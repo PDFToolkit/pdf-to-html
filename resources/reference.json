@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "title": "Deriving HTML from PDF",
+  "version": "1.2",
+  "publicationDate": "2026-09",
+  "publisher": "PDF Association",
+  "license": "CC-BY-4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "source": "resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf",
+  "filename": "Deriving_HTML_from_PDF_1-2.pdf",
+  "bytes": 900894,
+  "sha256": "272669b92b073f74ae8ccd75ad35c94f0ee4f907fd8f9ded41fe3d1bc41f0f7d",
+  "physicalPdfPages": 74,
+  "printedPageOffset": 6,
+  "inventoryIsConformanceClaim": false,
+  "sections": [
+    {
+      "section": "4.1–4.2",
+      "scope": "Input and HTML document processing",
+      "physicalPages": [
+        11,
+        15
+      ]
+    },
+    {
+      "section": "4.3",
+      "scope": "Structure, roles, properties and attributes",
+      "physicalPages": [
+        16,
+        52
+      ]
+    },
+    {
+      "section": "4.4",
+      "scope": "Content and annotations",
+      "physicalPages": [
+        52,
+        61
+      ]
+    },
+    {
+      "section": "4.5",
+      "scope": "ECMAScript",
+      "physicalPages": [
+        61,
+        62
+      ]
+    },
+    {
+      "section": "4.6",
+      "scope": "Associated files",
+      "physicalPages": [
+        62,
+        67
+      ]
+    },
+    {
+      "section": "Annex A",
+      "scope": "Security implications",
+      "physicalPages": [
+        68,
+        68
+      ]
+    },
+    {
+      "section": "Annex B",
+      "scope": "ECMAScript derivation guidance",
+      "physicalPages": [
+        69,
+        71
+      ]
+    },
+    {
+      "section": "Annex C",
+      "scope": "Encrypted files handling",
+      "physicalPages": [
+        72,
+        72
+      ]
+    },
+    {
+      "section": "Annex D",
+      "scope": "Accessibility implications",
+      "physicalPages": [
+        73,
+        74
+      ]
+    }
+  ]
+}

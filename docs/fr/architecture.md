@@ -1,0 +1,91 @@
+# Architecture de la dérivation HTML
+
+[English](../architecture.md) · [Français](architecture.md)
+
+## Séparer lecture de fichiers et traitement sémantique
+
+`PDF\Reading` possède syntaxe PDF, références croisées, flux et résolution bornée.
+`PDF\Html\Reading\ReadPdfSource` adapte un document lu en
+`PDF\Html\Model\TaggedDocument`. Son périmètre d'entrée est plus restreint que
+celui du modèle source assemblé directement par une application.
+
+Le core conserve ses objets PDF et son writer. Ce module optionnel possède la
+dérivation HTML ; ni le core ni le lecteur ne dépendent de lui.
+
+## Conserver des objets source explicites
+
+Un `TaggedDocument` contient structure, rôles, attributs de classes, langue, titre
+et fichiers associés. `StructureElement` conserve rôle, namespace, propriétés,
+attributs et enfants ordonnés. Texte, contenu marqué, graphiques, images, liens
+et widgets représentent des informations distinctes. La résolution appartient
+à un document, sans singleton, registre global ni recherche implicite de ressource.
+
+`StructureProperties` distingue Lang, ActualText, Alt, E, identifiants, classes et
+Ref. Un texte de remplacement n'est pas une description accessible.
+
+## Dériver une sortie sémantique
+
+`HtmlDeriver` coordonne rôles, attributs, contenu et réparation du modèle de
+contenu HTML. Des nœuds HTML explicites précèdent la sérialisation. La dérivation
+suit l'ordre logique des enfants ; les rôles qualifiés par namespace sont résolus
+avant de choisir le HTML.
+
+HTML ne peut pas imbriquer directement toute structure PDF valide. Réparer son
+modèle de contenu et reproduire la mise en page sont deux responsabilités.
+Titres, légendes, étiquettes, listes, tableaux, figures et widgets ont donc leurs
+propres règles de traitement.
+
+## Renvoyer les preuves avec le résultat
+
+`DerivationResult` renvoie HTML, CSS, ressources et diagnostics. L'application
+choisit comment les conserver et les exposer. La dérivation ne récupère pas d'URL,
+n'ouvre pas de nom de fichier arbitraire et n'exécute pas de script par effet de bord.
+
+Avec le contenu actif fiable activé, `ScriptAssetEmitter` déplace le code des
+scripts dans des ressources `pdf-script-<sha256>.js` nommées par leur contenu et
+produit des `script[src]`. Cela préserve la grammaire JavaScript même si la source
+contient une séquence HTML de fermeture de script, sans assainir le JavaScript.
+L'appelant doit écrire toutes les ressources à côté du HTML ou adapter leurs URL
+de manière cohérente ; l'exemple CLI réalise explicitement ces écritures.
+
+Les fragments MathML passent par un filtre de vocabulaire tenant compte des
+namespaces. Le MathML de présentation et de contenu peut être conservé ; conserver
+le balisage ne fournit ni moteur de rendu navigateur, ni calcul mathématique,
+ni polyfill. Le vocabulaire étendu hors du sous-ensemble Core accepté produit un
+diagnostic. Voir la [couverture et les limites navigateur](coverage.md).
+
+Lire la [couverture](coverage.md) pour distinguer modèle/fichier/runtime et la
+[sécurité](security.md) avant de traiter des documents non fiables.
+
+## Configurer des limites indépendantes
+
+`ReaderLimits` borne syntaxe et flux PDF. `ReadingLimits` ajoute les bornes de
+l'adaptation : profondeur, nœuds, instructions, octets de contenu/texte,
+correspondances, ressources et pages. `DerivationLimits` borne parcours sémantique,
+octets de sortie, ressources et chaînes de rôles. Chaque conversion possède ses
+propres budgets et caches.
+
+`PdfToHtml` coordonne ces étapes injectables. Un `AuthenticationProvider` optionnel
+est une capacité distincte de l'application : une entrée chiffrée nécessite des
+données authentifiées et des permissions vérifiées. Déclarer une version PDF,
+conserver un dictionnaire `/Encrypt` ou construire un objet de permissions
+n'implémente pas le déchiffrement.
+
+## Fournir les capacités d'interprétation et de rendu
+
+`TaggedPdfSource` est le port public d'interprétation implémenté par `ReadPdfSource`.
+Injecter une autre implémentation dans `PdfToHtml` permet d'obtenir le même modèle
+immuable depuis une interprétation indépendante sans remplacer la dérivation.
+
+Le troisième argument optionnel d'`HtmlDeriver` est `ContentRenderer` : le moteur
+de l'application reçoit un `GraphicContent` ou un `ContentGroup` et renvoie un
+`ImageContent` ou explicitement null. `DerivationPolicy::preferVisualFigures`
+vaut false par défaut pour conserver le contenu sémantique des figures ; l'activer
+demande un rendu du groupe par le moteur fourni. Cela n'installe ni ne lance un
+moteur de rendu.
+
+Le quatrième argument optionnel est `PDF\Html\Forms\AppearanceRenderer`, qui
+convertit les nœuds explicites d'apparence des widgets en nœuds HTML. Lire un flux
+d'apparence PDF et implémenter son moteur visuel restent des tâches distinctes.
+Ces deux capacités appartiennent à l'application, avec ses ressources et sa
+politique d'exécution. Le package ne lance aucun processus externe implicitement.

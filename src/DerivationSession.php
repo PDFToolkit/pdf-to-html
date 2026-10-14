@@ -266,6 +266,9 @@ final class DerivationSession
         if ($properties->classes !== []) {
             $attrs['class'] = implode(' ', array_map($this->className->encode(...), $properties->classes));
         }
+        if ($properties->expansion !== null && $properties->expansion !== '') {
+            $attrs['title'] = $properties->expansion;
+        }
         if ($derived->noteType !== null && $type === 'FENote') {
             $attrs['data-pdf-fenotetype'] = $derived->noteType;
         }
@@ -274,12 +277,12 @@ final class DerivationSession
             $attrs['aria-level'] = $heading[1];
         }
         $element = new Element($tag, $attrs);
+        if ($type === 'LBody' && $kind !== 'dl') {
+            $element->attributes['style'] = 'display:inline';
+        }
         $css = $derived->css;
         if (in_array($type, ['L', 'TOC'], true) && $this->hasExplicitLabels($source)) {
             $css['list-style-type'] = 'none';
-        }
-        if ($type === 'LBody' && $kind !== 'dl') {
-            $css['display'] = 'inline';
         }
         $this->applyAttributes($element, $derived->html, $css);
         if ($type === 'Lbl' && $tag === 'label' && $formLabelTarget !== null) {
@@ -387,7 +390,6 @@ final class DerivationSession
         }
         if ($properties->expansion !== null && $properties->expansion !== '') {
             $element->tag = 'abbr';
-            $element->attributes['title'] = $properties->expansion;
         }
         if ($derived->textPosition !== null) {
             $element->children = [new Element($derived->textPosition, [], $element->children)];

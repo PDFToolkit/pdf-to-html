@@ -2,6 +2,21 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## 0.1.2 — 2026-10-14
+
+- Associe les libellés indirects d'un Form à leur widget en conservant la portée
+  des Forms imbriqués et les labels HTML explicites.
+- Repère les remplacements ActualText structurels avant d'interpréter les pages
+  partagées ; conserve texte de remplacement, ancres et validation des graphes.
+- Distingue les événements propres aux widgets partageant un champ, avec valeur
+  et validation communes et budgets cumulatifs de scripts.
+- Relie le runtime aux objets WidgetBinding immuables : les Forms imbriqués gardent
+  leur identité et les contrôles HTML homonymes étrangers restent indépendants.
+- Applique le titre d'expansion et le display par défaut de LBody avant les
+  attributs HTML/CSS explicites, conformément à la section 4.3.7.1.
+- Relie directement les deux README à la référence conservée et distingue les
+  lacunes techniques restantes des politiques de sécurité et d'intégration.
+
 ## 0.1.1 — 2026-10-14
 
 - Complète les métriques des polices simples et leurs descripteurs indirects,

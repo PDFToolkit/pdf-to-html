@@ -1,7 +1,7 @@
 {
     "name": "pdftoolkit/pdf-to-html",
     "type": "library",
-    "description": "Explicit object-oriented derivation of tagged PDF to semantic HTML for PHP 8.3+",
+    "description": "Object-oriented tagged PDF to semantic HTML derivation following PDF Association Deriving HTML 1.2 for PHP 8.3+",
     "keywords": [
         "pdf",
         "html",

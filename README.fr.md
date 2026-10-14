@@ -5,6 +5,11 @@
 Dériver du HTML sémantique depuis un PDF balisé avec des objets PHP explicites,
 selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
+Ce dépôt a été créé spécialement pour implémenter les règles de
+[Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
+L'implémentation actuelle est **partielle**. Le [guide de couverture](docs/fr/coverage.md)
+précise les mécanismes testés et le travail technique restant.
+
 Ce package optionnel conserve la dérivation hors du core PDF. Il exploite structure
 logique et contenu Unicode plutôt que de deviner l'ordre de lecture à partir des
 positions des caractères. Il ne reproduit pas la mise en page et ne promet pas
@@ -13,7 +18,7 @@ de convertir tout PDF.
 ## Installer
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.1.0"
+composer require "pdftoolkit/pdf-to-html:^0.1.2"
 ```
 
 PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3,

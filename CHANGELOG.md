@@ -2,6 +2,21 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## 0.1.2 — 2026-10-14
+
+- Associate indirect Form labels with their widget while preserving nested Form
+  scopes and explicit HTML labels.
+- Discover structural ActualText replacements before interpreting shared page
+  content; preserve replacement text, page anchors and strict graph validation.
+- Keep individual widget events distinct when several widgets share one field;
+  retain shared field values, validation and cumulative script budgets.
+- Bind generated runtimes to explicit immutable WidgetBinding objects, preserving
+  nested-form identities and isolating unrelated HTML controls with the same name.
+- Apply structural expansion titles and LBody display defaults before explicit
+  HTML/CSS attributes, according to reference section 4.3.7.1.
+- Identify the retained reference directly in both READMEs and document the
+  remaining technical gaps separately from application/security policies.
+
 ## 0.1.1 — 2026-10-14
 
 - Complete the independent PDF 2.0 fixture's simple-font metrics and indirect

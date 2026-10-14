@@ -2,6 +2,13 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
+**État de l'implémentation : PARTIEL.** Ce package implémente une partie de la
+référence, avec une conversion PDF vers HTML exécutable et un modèle source
+explicite. Il n'implémente pas chacune des règles de Deriving HTML from PDF 1.2.
+La version 0.1.2 corrige les régressions précises décrites ci-dessous ; les
+lacunes techniques restantes sont distinguées des restrictions de sécurité
+volontaires.
+
 ## Périmètre de la référence
 
 La référence conservée est **Deriving HTML from PDF 1.2**, septembre 2026,
@@ -24,6 +31,68 @@ exécutables, validation indépendante et diagnostics s'examinent ensemble.
    accepter les soumissions et fournir un runtime JavaScript appartient à
    l'application. Renvoyer un script ne l'exécute ni ne l'émule.
 
+## Lacunes techniques vérifiées
+
+Ce sont des limites de l'implémentation. L'existence d'un objet, d'une interface
+ou d'un diagnostic ne signifie pas que le mécanisme est terminé. Les numéros de
+pages physiques désignent la référence conservée. Les contrôles de structure
+s'appuient sur les connaissances ISO 32000-2 requises par la section 4.1 ; ce
+package n'est pas un validateur WTPDF.
+
+| Référence, pages physiques du PDF | Lacune restante et conséquence pratique | Frontière du code |
+| --- | --- | --- |
+| 4.4.3, [53–54](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=53) | Les images inline (`BI…ID…EI`) sont refusées. La conversion échoue au lieu de produire une image ou un placeholder conservant ses dimensions logiques. | [ContentInstructionReader](../../src/Reading/ContentInstructionReader.php). |
+| 4.4/4.4.1/4.4.5, [52–54](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=52) | La lecture native ne conserve que des marqueurs d'opérateurs de peinture pour les chemins/shadings ; géométrie, opérandes, état graphique et ressources des shadings sont perdus. Injecter un moteur ne permet pas de retrouver ces informations. Le port de rendu nécessite actuellement des objets source construits manuellement avec suffisamment de données ; le rendu complet de groupes graphiques issus de fichiers reste absent. La référence permet d'omettre les chemins/shadings inutiles à la réutilisation, mais cela n'implémente pas son cas de fidélité visuelle. | [ContentReader](../../src/Reading/ContentReader.php), [GraphicContent](../../src/Model/GraphicContent.php), [ContentRenderer](../../src/ContentRenderer.php). |
+| 4.4.2, [53](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=53) | Les vecteurs d'encodage des polices simples sont reconnus, mais les correspondances de secours entre noms de glyphes et Unicode restent incomplètes, notamment pour Symbol, ZapfDingbats et MacExpert. Sans ToUnicode exploitable, certains textes valides deviennent des nœuds graphiques omis avec diagnostic. | [FontTextDecoder](../../src/Reading/FontTextDecoder.php). |
+| 4.6.4.1, [63–64](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=63) | Une Alternative acceptée peut remplacer l'élément lors de la dérivation sémantique, mais l'adaptateur lit encore au préalable le contenu qui sera remplacé. Un contenu non accepté ou mal formé qui devrait être ignoré peut donc faire échouer la conversion avant le remplacement. | [SourceReadSession](../../src/Reading/SourceReadSession.php), [DerivationSession](../../src/DerivationSession.php). |
+| 4.4.8.3.1/tableau 5, [57](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=57), et sémantique de l'action ResetForm dans ISO 32000-2 | La sélection `/Fields` et les flags d'exclusion de ResetForm ne sont pas implémentés. Le bouton reset natif actuel réinitialise tout le formulaire HTML. L'adaptateur ne retrouve pas la sélection : une action PDF ciblée ne doit pas être considérée comme équivalente à cette sortie. | [SourceReadSession](../../src/Reading/SourceReadSession.php), [WidgetDeriver](../../src/Forms/WidgetDeriver.php). |
+| 4.1/4.3.1, [11/16](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=11), et prérequis de structure logique ISO 32000-2 | Les parents de structure, MCID et présences sur les pages sont contrôlés dans le sens direct, mais les associations inverses de `ParentTree` ne sont pas validées. Une conversion réussie ne prouve pas la cohérence des deux sens d'association du document source. | [SourceReadSession](../../src/Reading/SourceReadSession.php). |
+| 4.3.5.4.1, [28](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=28) | L'attribut Layout `Placement` est encore appliqué aux labels de listes. La référence recommande de l'ignorer pour `Lbl` dans les listes ; une valeur fournie peut toujours modifier leur comportement display/float. | [DerivationSession](../../src/DerivationSession.php), [AttributeDeriver](../../src/Attributes/AttributeDeriver.php). |
+
+Les problèmes `/Fields`, correspondances de glyphes et ParentTree ne sont pas
+des politiques de sécurité. Le refus des images inline et la perte de données
+graphiques non plus. Ces frontières demandent une implémentation et des preuves
+de régression, pas seulement une ligne supplémentaire dans la couverture.
+
+## Régressions corrigées dans la version 0.1.2
+
+- **Labels et portée des formulaires** — sections 4.3.5.4 et 4.3.5.11.1,
+  pages physiques 28–29 et 37. [LabelDerivationTest](../../tests/LabelDerivationTest.php)
+  contrôle les labels indirects avec correspondance de rôle à travers des groupes
+  de structure/contenu, les formulaires interactifs imbriqués, les formulaires
+  internes non interactifs qui ne doivent pas hériter d'une cible extérieure,
+  les cibles des labels HTML explicites et les mappings de labels blocs selon
+  leur contexte.
+- **Remplacement avant décodage des glyphes** — sections 4.3.6.3 et 4.4.7.2,
+  pages physiques 40–41 et 54. [ReadingReplacementTest](../../tests/ReadingReplacementTest.php)
+  construit des fixtures PDF en octets contenant des correspondances Unicode
+  incohérentes sous ActualText. Il contrôle les remplacements vides ou non vides
+  sur une page partagée, les contenus MCR/Form descendants et les remplacements
+  marqués imbriqués. Les correspondances invalides non remplacées et les parents
+  de structure incohérents restent refusés ; le remplacement ne contourne pas
+  la validation de structure. Ce correctif ne couvre pas encore les remplacements
+  AF Alternative, comme indiqué ci-dessus.
+- **Valeurs de champs partagées, événements propres aux widgets** — annexe B,
+  page physique 71. [ReadingScenariosTest](../../tests/ReadingScenariosTest.php),
+  `testSharedFieldWidgetActionsRemainDistinctWhenReadFromPdf`, lit deux widgets
+  d'un même champ possédant des actions de focus distinctes et une validation
+  commune. [ScriptDeriverTest](../../tests/Script/ScriptDeriverTest.php) et le
+  [harness Node](../../tests/Script/runtime.cjs) vérifient des handlers focus/mouse-up
+  distincts, des valeurs synchronisées, les valeurs communes rejetées et la
+  compatibilité avec les anciens modèles mélangeant les actions. Les scripts
+  propres aux widgets restent désactivés dans le profil sûr et comptabilisés dans
+  les budgets cumulatifs de sortie.
+- **Priorité des attributs explicites** — section 4.3.7.1, page physique 43.
+  [StructureAttributePrecedenceTest](../../tests/StructureAttributePrecedenceTest.php)
+  vérifie qu'un `title` HTML explicite prévaut sur E, que E fournit toujours le
+  titre sans redéfinition et qu'un `display` HTML/CSS explicite prévaut sur la
+  valeur inline par défaut du corps de liste.
+
+Les objets [WidgetBinding](../../src/Script/WidgetBinding.php) immuables relient
+le runtime aux identifiants HTML finaux. Le harness Node vérifie le véritable HTML
+de Forms imbriqués, les contrôles homonymes étrangers, les renommages et les
+identifiants ressemblant à des propriétés de prototype.
+
 ## Mécanismes implémentés et preuves
 
 Ce tableau décrit les comportements exécutables du package, y compris les ports
@@ -34,12 +103,12 @@ fichier d'entrée ni la certification de son contenu.
 | --- | --- | --- | --- |
 | 4.1–4.2 | Titre/langue, head/body, styles des classes, association des formulaires et navigation par labels de pages ; lecture du titre XMP et des métadonnées source. | [DerivationSession](../../src/DerivationSession.php), [DocumentMetadataReader](../../src/Reading/DocumentMetadataReader.php) | [HtmlDeriverTest](../../tests/HtmlDeriverTest.php) : `testDocumentMetadataTextEscapingAndPageNavigation` ; [ReadingSourceTest](../../tests/ReadingSourceTest.php) : `testIndependentPdf20StructureContentAndMetadata`. |
 | 4.3.1–4.3.4 | Ordre logique en profondeur, correspondances transitives de rôles et identité des objets namespace ; réparation HTML conservant contenu et unicité des identifiants. | [RoleResolver](../../src/RoleResolver.php), [ContentModelRepair](../../src/Html/ContentModelRepair.php) | [HtmlDeriverTest](../../tests/HtmlDeriverTest.php) : chaînes de rôles, namespaces distincts et cycles ; [HtmlBoundaryTest](../../tests/HtmlBoundaryTest.php) : liens/labels imbriqués, légendes, listes et budgets de réparation. |
-| 4.3.5 | Transformations spécifiques des titres, légendes, étiquettes, rôles FENote/notes, listes/descriptions, tableaux, figures, formules MathML, code, liens et formulaires interactifs ou non. Les moteurs graphiques restent injectables. | [DerivationSession](../../src/DerivationSession.php), [WidgetDeriver](../../src/Forms/WidgetDeriver.php), [ContentRenderer](../../src/ContentRenderer.php) | [HtmlDeriverTest](../../tests/HtmlDeriverTest.php) : descriptions, légendes, figures inline et Reference/Link ; [AdvancedDerivationTest](../../tests/AdvancedDerivationTest.php) : rendu du groupe et adaptation ruby ; [six cas HTML5](../../tests/export-derivation-cases.php), dont code et MathML. |
+| 4.3.5 | Transformations spécifiques des titres, légendes, étiquettes, rôles FENote/notes, listes/descriptions, tableaux, figures, formules MathML, code, liens et formulaires interactifs ou non. Le port de rendu accepte du contenu construit par l'application ; les graphiques de fichiers natifs ont les limites ci-dessus. | [DerivationSession](../../src/DerivationSession.php), [WidgetDeriver](../../src/Forms/WidgetDeriver.php), [ContentRenderer](../../src/ContentRenderer.php) | [HtmlDeriverTest](../../tests/HtmlDeriverTest.php) : descriptions, légendes, figures inline et Reference/Link ; [LabelDerivationTest](../../tests/LabelDerivationTest.php) : labels indirects/imbriqués ; [AdvancedDerivationTest](../../tests/AdvancedDerivationTest.php) : groupes visuels modélisés manuellement et adaptation ruby ; [six cas HTML5](../../tests/export-derivation-cases.php), dont code et MathML. |
 | 4.3.6 | Lang, ActualText même vide, Alt, E, identifiants et liens issus de Ref restent distincts ; les remplacements conservent les ancres de pages et les cibles supprimées ne créent pas de lien cassé. | [StructureProperties](../../src/Model/StructureProperties.php), [SourceValues](../../src/Reading/SourceValues.php), [DerivationSession](../../src/DerivationSession.php) | [HtmlDeriverTest](../../tests/HtmlDeriverTest.php) : remplacement/expansion et contenu marqué ; [AdvancedDerivationTest](../../tests/AdvancedDerivationTest.php) : ancres conservées et cibles supprimées ; [ReadingScenariosTest](../../tests/ReadingScenariosTest.php) : identifiants binaires et diagnostics de texte optionnel invalide. |
 | 4.3.7 | Priorité explicite des propriétaires pour les classes et attributs directs ; List, Table, Layout, PrintField, HTML/CSS/ARIA, NSO correspondant et UserProperties produisent attributs/CSS ou diagnostics. Conversion des points PDF en pixels CSS. | [AttributeDeriver](../../src/Attributes/AttributeDeriver.php), [ClassName](../../src/ClassName.php) | [AttributeDeriverTest](../../tests/Attributes/AttributeDeriverTest.php) : propriétaires, namespaces, disposition et conversions ; [HtmlDeriverTest](../../tests/HtmlDeriverTest.php) : priorité classes/attributs directs. |
-| 4.4.1–4.4.7 | Lecture du texte marqué, ToUnicode incorporé, encodages simples acceptés, Form XObjects et images acceptées. `cm`, Form Matrix, q/Q, rotation et UserUnit composent les dimensions logiques des images ; chemins/shadings deviennent des nœuds graphiques avec port de rendu. | [ContentReader](../../src/Reading/ContentReader.php), [ContentMatrix](../../src/Reading/ContentMatrix.php), [FontTextDecoder](../../src/Reading/FontTextDecoder.php), [ToUnicodeReader](../../src/Reading/ToUnicodeReader.php) | [ReadingSourceTest](../../tests/ReadingSourceTest.php) : contenu Unicode/Form/image du vrai PDF ; [ReadingScenariosTest](../../tests/ReadingScenariosTest.php) : opérateurs apostrophes, restauration, matrices imbriquées, cisaillement/rotation/UserUnit, images non acceptées et bornes avant allocation. |
+| 4.4.1–4.4.7 | Lecture du texte marqué, ToUnicode incorporé, encodages simples acceptés, Form XObjects et Image XObjects acceptés. `cm`, Form Matrix, q/Q, rotation et UserUnit composent les dimensions logiques des images. Les chemins/shadings natifs ne conservent que des marqueurs d'opérateurs de peinture ; les images inline sont refusées. | [ContentReader](../../src/Reading/ContentReader.php), [ContentMatrix](../../src/Reading/ContentMatrix.php), [FontTextDecoder](../../src/Reading/FontTextDecoder.php), [ToUnicodeReader](../../src/Reading/ToUnicodeReader.php) | [ReadingSourceTest](../../tests/ReadingSourceTest.php) : contenu Unicode/Form/image du vrai PDF ; [ReadingScenariosTest](../../tests/ReadingScenariosTest.php) : opérateurs apostrophes, restauration, matrices imbriquées, cisaillement/rotation/UserUnit, images non acceptées et bornes avant allocation ; [ReadingReplacementTest](../../tests/ReadingReplacementTest.php) : remplacement avant décodage. |
 | 4.4.8 | OBJR, cibles URI/GoTo/structure et espaces distincts des destinations Name/String ; héritage des widgets, valeurs exportées/options, flags, apparences et présence réelle dans Annots/CropBox. Les signatures rapportent un état sans inventer de validation. | [SourceReadSession](../../src/Reading/SourceReadSession.php), [WidgetDeriver](../../src/Forms/WidgetDeriver.php), [AppearanceRenderer](../../src/Forms/AppearanceRenderer.php) | [ReadingScenariosTest](../../tests/ReadingScenariosTest.php) : identité des destinations, widgets absents et CropBox ; [WidgetDeriverTest](../../tests/Forms/WidgetDeriverTest.php) : choix/radio/texte, readonly, texte riche, fichiers, soumission/reset/signature et visibilité. |
-| 4.5 et annexe B | Pont JavaScript optionnel propre au document pour champs/événements courants, validation, calcul, formatage, reset et widgets de même nom. Aucune exécution PHP et aucune émulation complète d'ISO 21757-1. | [ScriptDeriver](../../src/Script/ScriptDeriver.php), [DerivationPolicy](../../src/DerivationPolicy.php) | [ScriptDeriverTest](../../tests/Script/ScriptDeriverTest.php), [harness Node](../../tests/Script/runtime.cjs) : initialisation, noms partagés, valeurs rejetées, calculs, readonly et reset. |
+| 4.5 et annexe B | Pont JavaScript optionnel propre au document pour champs/événements courants, validation, calcul, formatage et réinitialisation globale. Les champs partagent leurs valeurs par nom, les widgets conservent leurs événements propres. Aucune exécution PHP et aucune émulation complète d'ISO 21757-1. | [ScriptDeriver](../../src/Script/ScriptDeriver.php), [DerivationPolicy](../../src/DerivationPolicy.php) | [ScriptDeriverTest](../../tests/Script/ScriptDeriverTest.php), [harness Node](../../tests/Script/runtime.cjs) : initialisation, actions propres aux widgets, noms partagés, valeurs rejetées, calculs, readonly et reset global. |
 | 4.6 | Plans Alternative/Supplement, HTML/MathML/images incorporés et propriété explicite des ressources ; les types des références URL sont déduits des extensions de leur chemin. CSS, SVG, JavaScript et références distantes suivent des politiques distinctes. Les suppléments head conservent les métadonnées sûres, jamais refresh. | [AssociationPlan](../../src/AssociationPlan.php), [AssetCollection](../../src/AssetCollection.php), [DerivationSession](../../src/DerivationSession.php), [SafetyFilter](../../src/Html/SafetyFilter.php) | [HtmlDeriverTest](../../tests/HtmlDeriverTest.php) : Alternative/Supplement ; [AdvancedDerivationTest](../../tests/AdvancedDerivationTest.php) : head, dimensions SVG et identifiants dupliqués ; [HtmlBoundaryTest](../../tests/HtmlBoundaryTest.php) : ressources head et CSS ; [ReadingScenariosTest](../../tests/ReadingScenariosTest.php) : types d'URL et politique des URL de fichiers locaux. |
 | Annexe A | Validation URL/CSS/fragments, échappement, refus des entités/DTD, budgets cumulatifs parcours/sortie/ressources, cycles et contrôles avant expansion. | [SafetyFilter](../../src/Html/SafetyFilter.php), [Serializer](../../src/Html/Serializer.php), [ReadingBudget](../../src/Reading/ReadingBudget.php) | [HtmlBoundaryTest](../../tests/HtmlBoundaryTest.php) : fragments, CSS masqué, expansion des entités, cycles et fermeture de balises brutes ; [ReadingScenariosTest](../../tests/ReadingScenariosTest.php) : destinations cycliques, arbres partagés, XMP UTF-16 et budgets des copies/expansions Unicode. |
 | Annexe C | `PdfToHtml` sollicite un fournisseur injecté pour une entrée chiffrée et exige des permissions authentifiées ; la dérivation émet ce contexte. Déchiffrement et application des permissions appartiennent au fournisseur et à l'application. | [PdfToHtml](../../src/PdfToHtml.php), [AuthenticationProvider](../../src/AuthenticationProvider.php), [AuthenticatedPermissions](../../src/Model/AuthenticatedPermissions.php) | [HtmlDeriverTest](../../tests/HtmlDeriverTest.php) : `testEncryptedPermissionContextAndSessionReuse` ; le fournisseur est une frontière d'intégration, pas un backend cryptographique intégré. |
@@ -69,25 +138,38 @@ SVG/OpenMath reste hors de ce profil.
 - L'entrée doit posséder un arbre de structure exploitable. Aucun OCR, balisage
   inféré ou reconstruction géométrique de l'ordre de lecture n'est effectué.
   MCID, parents, cycles, présence sur les pages et identité des namespaces sont
-  vérifiés explicitement.
+  vérifiés explicitement. Les associations inverses ParentTree ne sont pas
+  contrôlées.
 - Le texte utilise les codespaces ToUnicode incorporés, bfchar/bfrange et
   l'héritage UseCMap par flux incorporé, ou les encodages simples connus/Differences
   dont la correspondance de glyphes est non ambiguë. Les CMaps externes nommées
   et les fontes composites sans collection ToUnicode exploitable ne sont pas
   résolues implicitement. Le texte non accepté devient un nœud graphique/diagnostic
-  explicite ; les correspondances mal formées sont refusées.
+  explicite ; les correspondances mal formées sont refusées. Reconnaître un vecteur
+  d'encodage ne fournit pas toutes les correspondances de secours des glyphes,
+  notamment pour Symbol, ZapfDingbats et MacExpert.
 - Les images inline `BI…ID…EI` sont refusées explicitement, sans recherche
   heuristique. L'extraction accepte les JPEG DeviceGray/DeviceRGB et les échantillons
   décodés huit bits acceptés, sans transformations Mask/SMask/Decode. Les autres
-  codecs, masques, espaces couleur et profondeurs demandent un décodeur/moteur fourni.
+  codecs, masques, espaces couleur et profondeurs ne sont pas décodés nativement ;
+  les nœuds `unsupported-image` dont les dimensions logiques sont conservées
+  deviennent des placeholders. Étendre le lecteur natif ou fournir un autre
+  adaptateur source est nécessaire pour
+  retrouver leurs pixels.
 - Les transformations affines donnent les longueurs logiques des côtés, pas les
   dimensions d'échantillonnage ni une reproduction CSS complète du positionnement
   et du clipping PDF. Les matrices dégénérées/non finies et les réutilisations
   Form/image ambiguës provoquent un refus ou un nœud unsupported-image explicite.
-  Le rendu des chemins, shadings et groupes d'apparence demande les ports explicites
-  `ContentRenderer`/`AppearanceRenderer`.
+  `ContentRenderer`/`AppearanceRenderer` sont des ports de rendu explicites, mais
+  ne retrouvent ni géométrie ni état abandonnés par l'adaptateur natif. Le rendu
+  complet des apparences/groupes à partir de fichiers n'est pas fourni.
 
 ## Profil sûr et modes activés
+
+La section 4.6.1 et l'annexe A, pages physiques 62 et 68, autorisent explicitement
+des restrictions de sécurité sur le contenu associé. Les politiques optionnelles
+suivantes sont des choix de sécurité volontaires. Elles ne corrigent pas les
+lacunes techniques recensées ci-dessus.
 
 La `DerivationPolicy` par défaut désactive `allowActiveContent` et
 `allowRemoteResources`, conserve `preferVisualFigures=false` et produit le contenu

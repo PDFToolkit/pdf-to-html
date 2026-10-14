@@ -112,6 +112,14 @@ final class AttributeDeriver
                         }
                     } else {
                         $html[$name] = $this->string($value);
+                        if ($name === 'style') {
+                            foreach (explode(';', $html[$name]) as $declaration) {
+                                $parts = explode(':', $declaration, 2);
+                                if (count($parts) === 2) {
+                                    $css[strtolower(trim($parts[0]))] = trim($parts[1]);
+                                }
+                            }
+                        }
                     }
                 }
             } elseif ($owner === 'NSO') {

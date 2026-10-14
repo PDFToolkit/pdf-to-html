@@ -219,8 +219,13 @@ final class DerivationSession
     {
         foreach ($this->document->classMap as $name => $attributes) {
             $derived = $this->attributes->derive($attributes);
-            $css = $this->safety->cssText($this->safety->css($derived->css));
-            $this->css .= '.' . $this->className->encode($name) . '{' . $css . "}\n";
+            $label = $this->attributes->derive($this->withoutPlacement($attributes));
+            $selector = '.' . $this->className->encode($name);
+            $this->css .= $selector . '{' . $this->safety->cssText($this->safety->css($label->css)) . "}\n";
+            $placement = array_diff_assoc($derived->css, $label->css);
+            if ($placement !== []) {
+                $this->css .= $selector . ':not([data-pdf-list-label]){' . $this->safety->cssText($this->safety->css($placement)) . "}\n";
+            }
         }
     }
 
@@ -245,15 +250,19 @@ final class DerivationSession
         if ($type === 'RB') {
             $this->diagnostics[] = new Diagnostic('obsolete-ruby-base', 'RB uses span because rb is obsolete in the HTML Living Standard; the original PDF structure type is retained.', $source->key);
         }
-        $derived = $this->effectiveAttributes($source);
+        $parent = $ancestors === [] ? null : $ancestors[array_key_last($ancestors)];
+        $listLabel = $type === 'Lbl' && $parent === 'LI';
+        $derived = $this->effectiveAttributes($source, $listLabel);
         foreach ($derived->diagnostics as $message) {
             $this->diagnostics[] = new Diagnostic('attribute-adaptation', $message, $source->key);
         }
-        $parent = $ancestors === [] ? null : $ancestors[array_key_last($ancestors)];
         $inline = $this->inlineContext($ancestors);
         $kind = $type === 'L' ? $this->listKind($derived->listNumbering) : ($type === 'TOC' ? 'ol' : $listKind);
         $tag = $this->tag($type, $role->namespace, $parent, $ancestors, $source, $kind);
         $attrs = ['id' => $this->identifiers[$source->key]];
+        if ($listLabel) {
+            $attrs['data-pdf-list-label'] = '';
+        }
         if ($role->namespace !== 'http://www.w3.org/1998/Math/MathML' && $role->namespace !== 'http://www.w3.org/1999/xhtml') {
             $attrs['data-pdf-se-type'] = $type;
             if ($role->original !== []) {
@@ -312,7 +321,7 @@ final class DerivationSession
         }
         if ($type === 'Link' || $type === 'Reference') {
             $target = $this->linkTarget($source);
-            if ($target !== null) {
+            if ($target !== null && !array_key_exists('href', $derived->html)) {
                 $element->attributes['href'] = $target;
             }
         }
@@ -384,7 +393,7 @@ final class DerivationSession
         $element->children = $children;
         if ($properties->actualText === null) {
             if ($type === 'Figure' || ($type === 'Form' && $derived->printField)) {
-                $this->imageProperties($element, $properties->alternateDescription, $element->attributes);
+                $this->imageProperties($element, $derived->html['alt'] ?? $properties->alternateDescription, $element->attributes);
             } elseif ($type === 'Formula' || $role->namespace === 'http://www.w3.org/1998/Math/MathML') {
                 if ($properties->alternateDescription !== null) {
                     $this->mathProperties($element, $properties->alternateDescription);
@@ -559,7 +568,7 @@ final class DerivationSession
         return new Element('img', ['src' => 'data:' . $type . ';base64,' . base64_encode($bytes), 'width' => (string) max(1, (int) round($source->widthPoints * 4 / 3)), 'height' => (string) max(1, (int) round($source->heightPoints * 4 / 3)), 'alt' => '']);
     }
 
-    private function effectiveAttributes(StructureElement $source): DerivedAttributes
+    private function effectiveAttributes(StructureElement $source, bool $ignorePlacement = false): DerivedAttributes
     {
         $classes = [];
         foreach ($source->properties->classes as $name) {
@@ -576,7 +585,23 @@ final class DerivationSession
             }
             $combined[] = $direct;
         }
-        return $this->attributes->derive($combined, $source->namespace, $source->namespaceIdentity);
+        return $this->attributes->derive($ignorePlacement ? $this->withoutPlacement($combined) : $combined, $source->namespace, $source->namespaceIdentity);
+    }
+
+    /**
+     * @param list<AttributeObject> $attributes
+     * @return list<AttributeObject>
+     */
+    private function withoutPlacement(array $attributes): array
+    {
+        return array_map(static function (AttributeObject $attribute): AttributeObject {
+            if ($attribute->owner !== 'Layout') {
+                return $attribute;
+            }
+            $values = $attribute->values;
+            unset($values['Placement']);
+            return new AttributeObject($attribute->owner, $values, $attribute->namespace, $attribute->namespaceIdentity);
+        }, $attributes);
     }
 
     /**
@@ -776,7 +801,7 @@ final class DerivationSession
     private function mathProperties(Element $element, string $alt): void
     {
         if ($element->tag === 'math') {
-            $element->attributes['alttext'] = $alt;
+            $element->attributes['alttext'] ??= $alt;
         }
         foreach ($element->children as $child) {
             if ($child instanceof Element) {

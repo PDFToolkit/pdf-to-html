@@ -20,9 +20,12 @@ use PDF\Syntax\DocumentStructure\PageTree\PageObject;
 use PDF\Syntax\DocumentStructure\PageTree\PageTreeNode;
 use PDF\Syntax\FileStructure\FileBody;
 use PDF\Syntax\FileStructure\FileHeader;
+use PDF\Syntax\FileStructure\PdfVersion;
 use PDF\Syntax\Object\DictionaryObject\Entry;
 use PDF\Syntax\Object\IndirectReference;
 use PDF\Syntax\Object\NumericType;
+use PDF\Syntax\Object\NameType;
+use PDF\Syntax\Object\NullType;
 use PDF\Syntax\Object\StreamObject;
 
 /** Produce a bounded one-page PDF of precisely selected content, with its original resource graph. */
@@ -35,7 +38,8 @@ final readonly class GraphicPdfExporter
     public function export(GraphicContent|ContentGroup $content): RenderingDocument
     {
         $sources = [];
-        $this->collect($content, $sources, 0);
+        $budget = new GraphicsExportBudget($this->limits);
+        $this->collect($content, $sources, 0, $budget);
         if ($sources === []) {
             throw new DerivationException('Graphics export requires original PDF programs, not textual descriptions.');
         }
@@ -45,6 +49,7 @@ final readonly class GraphicPdfExporter
         foreach ($sources as $source) {
             $ancestry = 0;
             do {
+                $budget->node($ancestry);
                 if (++$ancestry > $this->limits->maximumDepth) {
                     throw new DerivationException('The graphics caller chain exceeds its export limit.');
                 }
@@ -71,7 +76,8 @@ final readonly class GraphicPdfExporter
         $overrides = [];
         $contentBytes = '';
         foreach ($programs as $key => $program) {
-            $bytes = $writer->write($program, $ranges[$key]);
+            $bytes = $writer->write($program, $ranges[$key], $budget);
+            $budget->retain(strlen($bytes));
             if ($program->parent === null) {
                 $contentBytes = $bytes;
             } elseif ($program->stream !== null) {
@@ -80,7 +86,7 @@ final readonly class GraphicPdfExporter
                 throw new DerivationException('A nested graphics program requires its original Form stream.');
             }
         }
-        $import = new GraphicsImportSession($root->document, $this->limits, $overrides);
+        $import = new GraphicsImportSession($root->document, $this->limits, $overrides, $budget);
         $resourceEntries = [];
         foreach ($root->resources->entries() as $entry) {
             $resourceEntries[] = new Entry($entry->key, $import->import($root->document->resolve($entry->value)));
@@ -89,8 +95,9 @@ final readonly class GraphicPdfExporter
         $matrix = $root->initialMatrix;
         $context = new SerializationContext();
         $coefficients = array_map(static fn (float $coefficient): string => (new NumericType($coefficient))->toPdf($context), [$matrix->a, $matrix->b, $matrix->c, $matrix->d, $matrix->e, $matrix->f]);
-        $contentBytes = "q\n".implode(' ', $coefficients)." cm\n".$contentBytes."Q\n";
-        $import->retain(strlen($contentBytes));
+        $prefix = "q\n".implode(' ', $coefficients)." cm\n";
+        $import->retain(strlen($prefix) + 2);
+        $contentBytes = $prefix.$contentBytes."Q\n";
         // Reader boxes are already in the physical coordinate system after initialMatrix.
         $box = $root->boundingBox;
         if ($content instanceof ContentGroup && $content->viewport !== null) {
@@ -98,9 +105,24 @@ final readonly class GraphicPdfExporter
             $box = [$viewport->left, $viewport->bottom, $viewport->right, $viewport->top];
         }
         $rectangle = new Rectangle(...array_map(static fn (float $number): NumericType => new NumericType($number), $box));
-        $page = new PageObject($rectangle, $resources, new StreamObject($contentBytes));
-        $catalog = new DocumentCatalog((new PageTreeNode())->addKid($page));
-        $bytes = (new FileStructure(new FileHeader('2.0'), new FileBody($catalog), new IndirectReference($catalog)))->toPdf();
+        $pageEntries = [];
+        $group = $root->pageContext?->dictionary->get('Group');
+        if ($group !== null && !$root->document->resolve($group) instanceof NullType) {
+            $pageEntries[] = new Entry(new NameType('Group'), $import->import($group));
+        }
+        $page = new PageObject($rectangle, $resources, new StreamObject($contentBytes), ...$pageEntries);
+        $catalogEntries = [];
+        $optionalContent = $root->document->catalog()->get('OCProperties');
+        if ($optionalContent !== null && !$root->document->resolve($optionalContent) instanceof NullType) {
+            $catalogEntries[] = new Entry(new NameType('OCProperties'), $import->import($optionalContent));
+        }
+        $catalog = new DocumentCatalog((new PageTreeNode())->addKid($page), ...$catalogEntries);
+        $version = $root->document->header()->version;
+        $override = $root->document->catalog()->get('Version');
+        if ($override instanceof NameType && version_compare($override->value, $version->value, '>')) {
+            $version = PdfVersion::from($override->value);
+        }
+        $bytes = (new FileStructure(new FileHeader($version), new FileBody($catalog), new IndirectReference($catalog)))->toPdf();
         if (strlen($bytes) > $this->limits->maximumBytes) {
             throw new DerivationException('The final isolated graphics PDF exceeds its byte limit.');
         }
@@ -108,11 +130,9 @@ final readonly class GraphicPdfExporter
     }
 
     /** @param list<GraphicProgram> $sources */
-    private function collect(SourceNode $content, array &$sources, int $depth): void
+    private function collect(SourceNode $content, array &$sources, int $depth, GraphicsExportBudget $budget): void
     {
-        if ($depth > $this->limits->maximumDepth || count($sources) >= $this->limits->maximumObjects) {
-            throw new DerivationException('The selected graphics group exceeds its export limits.');
-        }
+        $budget->node($depth);
         if ($content instanceof MarkedContent && $content->artifact) {
             return;
         }
@@ -122,7 +142,7 @@ final readonly class GraphicPdfExporter
         }
         if ($content instanceof ContentGroup || $content instanceof MarkedContent || $content instanceof StructureElement) {
             foreach ($content->children as $child) {
-                $this->collect($child, $sources, $depth + 1);
+                $this->collect($child, $sources, $depth + 1, $budget);
             }
         }
     }

@@ -16,14 +16,14 @@ final class ImportedStream extends StreamObject
 {
     private ?DictionaryType $imported = null;
 
-    public function __construct(private readonly DictionaryType $original, private readonly string $encodedBytes, private readonly GraphicsImportSession $session, private readonly bool $override)
+    public function __construct(private readonly DictionaryType $original, private readonly string $encodedBytes, private readonly GraphicsImportSession $session, private readonly bool $override, private readonly int $depth)
     {
         parent::__construct('');
     }
 
     public function dictionary(): DictionaryType
     {
-        return $this->imported ??= $this->session->dictionary($this->original, stream: true, decodedOverride: $this->override);
+        return $this->imported ??= $this->session->dictionary($this->original, $this->depth, stream: true, decodedOverride: $this->override);
     }
 
     public function bytes(SerializationContext $context): string

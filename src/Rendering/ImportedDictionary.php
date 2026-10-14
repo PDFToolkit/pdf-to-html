@@ -12,7 +12,7 @@ final class ImportedDictionary extends DictionaryType
 {
     private ?DictionaryType $imported = null;
 
-    public function __construct(private readonly DictionaryType $original, private readonly GraphicsImportSession $session)
+    public function __construct(private readonly DictionaryType $original, private readonly GraphicsImportSession $session, private readonly int $depth)
     {
         parent::__construct();
     }
@@ -20,7 +20,7 @@ final class ImportedDictionary extends DictionaryType
     /** @return iterable<Entry> */
     public function entries(): iterable
     {
-        $this->imported ??= $this->session->dictionary($this->original);
+        $this->imported ??= $this->session->dictionary($this->original, $this->depth);
         yield from $this->imported->entries();
     }
 }

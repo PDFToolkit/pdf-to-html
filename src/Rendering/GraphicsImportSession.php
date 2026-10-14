@@ -14,23 +14,24 @@ use PDF\Syntax\Object\DictionaryObject\Entry;
 use PDF\Syntax\Object\DictionaryType;
 use PDF\Syntax\Object\StringType;
 use PDF\Syntax\Object\IndirectReference;
+use PDF\Syntax\Object\NullType;
 
 /** Mutable identity and cumulative budgets belong to one isolated graphics export. */
 final class GraphicsImportSession
 {
     /** @var array<string, BasicType> */
     private array $objects = [];
-    private int $nodes = 0;
-    private int $bytes = 0;
+    private readonly GraphicsExportBudget $budget;
     /** @var array<string, true> */
     private array $loading = [];
 
     /** @param array<int, string> $streamOverrides */
-    public function __construct(private readonly ReadDocument $source, private readonly GraphicsExportLimits $limits, private readonly array $streamOverrides = [])
+    public function __construct(private readonly ReadDocument $source, GraphicsExportLimits $limits, private readonly array $streamOverrides = [], ?GraphicsExportBudget $budget = null)
     {
+        $this->budget = $budget ?? new GraphicsExportBudget($limits);
     }
 
-    public function object(ObjectReference $reference): BasicType
+    public function object(ObjectReference $reference, int $depth): BasicType
     {
         $key = (string) $reference->identifier;
         if (isset($this->objects[$key])) {
@@ -41,7 +42,7 @@ final class GraphicsImportSession
         }
         $this->loading[$key] = true;
         try {
-            return $this->objects[$key] = $this->import($this->source->resolve($reference));
+            return $this->objects[$key] = $this->import($this->source->resolve($reference), $depth);
         } finally {
             unset($this->loading[$key]);
         }
@@ -49,22 +50,21 @@ final class GraphicsImportSession
 
     public function import(BasicType $value, int $depth = 0): BasicType
     {
-        if (++$this->nodes > $this->limits->maximumObjects || $depth > $this->limits->maximumDepth) {
-            throw new DerivationException('The graphics resource graph exceeds its export limits.');
-        }
+        $this->budget->node($depth);
         if ($value instanceof ObjectReference) {
-            return new IndirectReference($this->object($value));
+            return new IndirectReference($this->object($value, $depth + 1));
         }
         if ($value instanceof EncodedStream) {
-            if ($value->dictionary->has('F')) {
+            $external = $value->dictionary->get('F');
+            if ($external !== null && !$this->source->resolve($external) instanceof NullType) {
                 throw new DerivationException('External stream files cannot enter a rendering document.');
             }
             $bytes = $this->streamOverrides[spl_object_id($value)] ?? $value->bytes;
             $this->retain(strlen($bytes));
-            return new ImportedStream($value->dictionary, $bytes, $this, isset($this->streamOverrides[spl_object_id($value)]));
+            return new ImportedStream($value->dictionary, $bytes, $this, isset($this->streamOverrides[spl_object_id($value)]), $depth + 1);
         }
         if ($value instanceof DictionaryType) {
-            return new ImportedDictionary($value, $this);
+            return new ImportedDictionary($value, $this, $depth + 1);
         }
         if ($value instanceof ArrayType) {
             return new ArrayType(...array_map(fn (BasicType $child): BasicType => $this->import($child, $depth + 1), $value->items));
@@ -97,9 +97,6 @@ final class GraphicsImportSession
 
     public function retain(int $length): void
     {
-        if ($length < 0 || $length > $this->limits->maximumBytes - $this->bytes) {
-            throw new DerivationException('The cumulative graphics export byte limit was exceeded.');
-        }
-        $this->bytes += $length;
+        $this->budget->retain($length);
     }
 }

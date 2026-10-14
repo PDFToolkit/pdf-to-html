@@ -8,6 +8,7 @@ use PDF\Html\DerivationException;
 use PDF\Html\Model\GraphicProgram;
 use PDF\Serialization\SerializationContext;
 use PDF\Syntax\Object\NumericType;
+use PDF\Syntax\Object\NameType;
 
 /** Replay all state, but paint only selected content. Invisible text still advances text matrices. */
 final readonly class ContentProgramWriter
@@ -17,11 +18,10 @@ final readonly class ContentProgramWriter
     }
 
     /** @param list<array{int, int}> $ranges */
-    public function write(GraphicProgram $program, array $ranges): string
+    public function write(GraphicProgram $program, array $ranges, ?GraphicsExportBudget $budget = null): string
     {
-        if (count($program->instructions) > $this->limits->maximumInstructions) {
-            throw new DerivationException('The graphics instruction export limit was exceeded.');
-        }
+        $budget ??= new GraphicsExportBudget($this->limits);
+        $budget->instructions(count($program->instructions));
         $context = new SerializationContext();
         usort($ranges, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
         $merged = [];
@@ -35,16 +35,35 @@ final readonly class ContentProgramWriter
         }
         $rangeIndex = 0;
         $output = '';
-        $mode = 0;
+        $mode = $this->initialMode($program, $budget);
         $stack = [];
+        $marked = [];
+        $artifactDepth = 0;
         // Complete the container, so q/Q and BT/ET remain balanced after its last selected item.
         foreach ($program->instructions as $index => $instruction) {
             while (isset($merged[$rangeIndex]) && $index > $merged[$rangeIndex][1]) {
                 ++$rangeIndex;
             }
-            $selected = isset($merged[$rangeIndex]) && $index >= $merged[$rangeIndex][0];
+            $selected = isset($merged[$rangeIndex]) && $index >= $merged[$rangeIndex][0] && $artifactDepth === 0;
             $operator = $instruction->operator;
-            if (in_array($operator, ['BMC', 'BDC', 'EMC', 'MP', 'DP'], true)) {
+            if ($operator === 'BMC' || $operator === 'BDC') {
+                $tag = $instruction->operands[0] ?? null;
+                $artifact = $tag instanceof NameType && $tag->value === 'Artifact';
+                $optional = $tag instanceof NameType && $tag->value === 'OC';
+                $marked[] = [$artifact, $optional];
+                $artifactDepth += $artifact ? 1 : 0;
+                if (!$optional) {
+                    continue;
+                }
+            }
+            if ($operator === 'EMC') {
+                [$artifact, $optional] = array_pop($marked) ?? [false, false];
+                $artifactDepth -= $artifact ? 1 : 0;
+                if (!$optional) {
+                    continue;
+                }
+            }
+            if (in_array($operator, ['MP', 'DP'], true)) {
                 continue;
             }
             if ($operator === 'q') {
@@ -87,5 +106,30 @@ final readonly class ContentProgramWriter
             $output .= $piece;
         }
         return $output;
+    }
+
+    private function initialMode(GraphicProgram $program, GraphicsExportBudget $budget, int $depth = 0): int
+    {
+        if ($program->parent === null) {
+            return 0;
+        }
+        $budget->node($depth);
+        $parent = $program->parent;
+        $mode = $this->initialMode($parent, $budget, $depth + 1);
+        $budget->instructions($parent->firstInstruction + 1);
+        $stack = [];
+        foreach ($parent->instructions as $index => $instruction) {
+            if ($index > $parent->firstInstruction) {
+                break;
+            }
+            if ($instruction->operator === 'q') {
+                $stack[] = $mode;
+            } elseif ($instruction->operator === 'Q') {
+                $mode = array_pop($stack) ?? $mode;
+            } elseif ($instruction->operator === 'Tr' && ($instruction->operands[0] ?? null) instanceof NumericType) {
+                $mode = (int) $instruction->operands[0]->value;
+            }
+        }
+        return $mode;
     }
 }

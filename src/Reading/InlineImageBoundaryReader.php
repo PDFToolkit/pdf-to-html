@@ -5,27 +5,40 @@ declare(strict_types=1);
 namespace PDF\Html\Reading;
 
 use PDF\Reading\ByteCursor;
+use PDF\Syntax\Object\DictionaryType;
 
 /** Codec framing establishes the endpoint; pixel bytes never act as PDF EI delimiters. */
 final readonly class InlineImageBoundaryReader
 {
-    public function __construct(private ReadingBudget $budget)
+    public function __construct(private ReadingBudget $budget, private ?InlineImageBoundaryProvider $provider = null)
     {
     }
 
-    public function read(ByteCursor $cursor, ?string $filter, ?int $rawLength, int $earlyChange = 1): string
+    public function read(ByteCursor $cursor, ?string $filter, ?int $rawLength, int $earlyChange = 1, ?DictionaryType $dictionary = null): string
     {
         $start = $cursor->position();
-        match ($filter) {
-            null => $this->raw($cursor, $rawLength),
-            'ASCIIHexDecode' => $this->asciiHex($cursor),
-            'ASCII85Decode' => $this->ascii85($cursor),
-            'RunLengthDecode' => $this->runLength($cursor),
-            'FlateDecode' => $this->flate($cursor),
-            'DCTDecode' => $this->jpeg($cursor),
-            'LZWDecode' => $this->lzw($cursor, $earlyChange),
-            default => throw new ReadingException('The inline image filter has no supported verifiable endpoint: ' . $filter . '.'),
-        };
+        try {
+            match ($filter) {
+                null => $this->raw($cursor, $rawLength),
+                'ASCIIHexDecode' => $this->asciiHex($cursor),
+                'ASCII85Decode' => $this->ascii85($cursor),
+                'RunLengthDecode' => $this->runLength($cursor),
+                'FlateDecode' => $this->flate($cursor),
+                'DCTDecode' => $this->jpeg($cursor),
+                'LZWDecode' => $this->lzw($cursor, $earlyChange),
+                'CCITTFaxDecode' => (new InlineFaxBoundaryReader($this->budget))->read($cursor, $dictionary ?? new DictionaryType()),
+                default => throw new UnsupportedInlineImageFeature('The inline image filter requires an explicit InlineImageBoundaryProvider: ' . $filter . '.'),
+            };
+        } catch (UnsupportedInlineImageFeature $exception) {
+            if ($this->provider === null || $dictionary === null) {
+                throw $exception;
+            }
+            $cursor->seek($start);
+            $this->provider->locate($cursor, $dictionary, $this->budget);
+            if ($cursor->position() <= $start || $cursor->position() - $start > $this->budget->limits->maximumContentBytes) {
+                throw new ReadingException('An explicit inline image boundary provider returned an invalid endpoint.');
+            }
+        }
         $length = $cursor->position() - $start;
         $cursor->seek($start);
         return $cursor->read($length);
@@ -34,7 +47,7 @@ final readonly class InlineImageBoundaryReader
     private function raw(ByteCursor $cursor, ?int $length): void
     {
         if ($length === null) {
-            throw new ReadingException('The raw inline image colour space does not establish a sample length.');
+            throw new UnsupportedInlineImageFeature('The raw inline image colour space requires an explicit InlineImageBoundaryProvider to establish its sample length.');
         }
         $cursor->read($length);
     }

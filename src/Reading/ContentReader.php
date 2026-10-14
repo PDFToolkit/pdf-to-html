@@ -41,7 +41,7 @@ final class ContentReader
     /** @var array<string, array<int, true>> */
     private array $replacedContent = [];
     private FontTextDecoder $fonts;
-    public function __construct(private readonly SourceValues $values)
+    public function __construct(private readonly SourceValues $values, private readonly ?InlineImageBoundaryProvider $inlineImages = null)
     {
         $this->fonts = new FontTextDecoder($values);
     }
@@ -215,7 +215,7 @@ final class ContentReader
         $textObject = false;
         $number = $this->pageNumber($page);
         $instructions = [];
-        foreach ((new ContentInstructionReader($this->values->budget, $this->values->document))->read($bytes, $resources) as $instruction) {
+        foreach ((new ContentInstructionReader($this->values->budget, $this->values->document, $this->inlineImages))->read($bytes, $resources) as $instruction) {
             $this->values->budget->consume('nodes');
             $instructions[] = $instruction;
         }

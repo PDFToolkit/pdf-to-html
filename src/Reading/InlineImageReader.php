@@ -20,7 +20,7 @@ use PDF\Syntax\Object\NullType;
 /** ISO 32000 inline image syntax; explicit resources, codec endpoints and cumulative budgets. */
 final readonly class InlineImageReader
 {
-    public function __construct(private ReadingBudget $budget, private ?ReadDocument $document = null)
+    public function __construct(private ReadingBudget $budget, private ?ReadDocument $document = null, private ?InlineImageBoundaryProvider $boundary = null)
     {
     }
 
@@ -48,7 +48,9 @@ final readonly class InlineImageReader
                 if ($key === 'Filter') {
                     $value = $this->filter($value);
                 } elseif ($key === 'ColorSpace') {
-                    $value = $this->color($value, $resources);
+                    // Preserve named resources in the source program. Expanding an
+                    // ICCBased resource here would introduce forbidden BI references.
+                    $value = $this->color($value, null);
                 }
                 $entries[$key] = new Entry(new NameType($key), $value);
             }
@@ -82,7 +84,9 @@ final readonly class InlineImageReader
             $filter = $dictionary->get('Filter');
             $first = $filter instanceof ArrayType ? ($filter->items[0] ?? null) : $filter;
             $name = $first instanceof NameType ? $first->value : null;
-            $components = $mask ? 1 : $this->components($dictionary->get('ColorSpace'));
+            $color = $dictionary->get('ColorSpace');
+            $color = $color === null ? null : $this->color($color, $resources);
+            $components = $mask ? 1 : $this->components($color);
             $rawLength = $name === null && $components !== null ? $this->sampleLength($width, $height, $bits->integer(), $components) : null;
             $parameters = $dictionary->get('DecodeParms');
             $parameters = $parameters instanceof ArrayType ? ($parameters->items[0] ?? null) : $parameters;
@@ -90,7 +94,7 @@ final readonly class InlineImageReader
             if ($early !== null && !$early instanceof IntegerType) {
                 throw new ReadingException('Inline LZW EarlyChange must be an integer.');
             }
-            $data = (new InlineImageBoundaryReader($this->budget))->read($parser->cursor, $name, $rawLength, $early instanceof IntegerType ? $early->integer() : 1);
+            $data = (new InlineImageBoundaryReader($this->budget, $this->boundary))->read($parser->cursor, $name, $rawLength, $early instanceof IntegerType ? $early->integer() : 1, $dictionary);
             if ($parser->cursor->eof() || !str_contains("\0\t\n\f\r ", $parser->cursor->peek())) {
                 throw new ReadingException('Inline image data must be followed by whitespace and the EI operator.');
             }

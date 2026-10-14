@@ -1,0 +1,114 @@
+{
+  "license": "MIT",
+  "encoder": "Pillow 12.3.0 / libtiff 4.7.1",
+  "cases": [
+    {
+      "name": "group4-checkerboard",
+      "width": 64,
+      "height": 8,
+      "params": {
+        "K": -1,
+        "Columns": 64,
+        "Rows": 8,
+        "EndOfBlock": true,
+        "BlackIs1": true
+      },
+      "encoded": "Ns2zbNs2zbNs2yas2zbNs2zbNs25tm2bZtm2bZtm2TVm2bZtm2bZtm3Ns2zbNs2zbNs2yas2zbNs2zbNs25tm2bZtm2bZtm2TVm2bZtm2bZtm3ABABA=",
+      "bitmap": "Dw8PDw8PDw/w8PDw8PDw8A8PDw8PDw8P8PDw8PDw8PAPDw8PDw8PD/Dw8PDw8PDwDw8PDw8PDw/w8PDw8PDw8A==",
+      "encodedSha256": "cab6699036c50318f110bfa7baed0f9d2302787cfed0d8c933f1a468fb39f8df"
+    },
+    {
+      "name": "group4-runs-and-pass",
+      "width": 256,
+      "height": 16,
+      "params": {
+        "K": -1,
+        "Columns": 256,
+        "Rows": 16,
+        "EndOfBlock": true,
+        "BlackIs1": true
+      },
+      "encoded": "JqC5XMBog1g1g1g1g1g1g1g1g1g1g1g1g1g1g1ABABA=",
+      "bitmap": "//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/////+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB///////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///////gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP////////4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB/////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/////////+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB///////////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///////////gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB////////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP////////////4AAAAAAAAAAAAAAAAAAAAAAAAAAAAB/////////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAP/////////////+AAAAAAAAAAAAAAAAAAAAAAAAAAAB///////////////AAAAAAAAAAAAAAAAAAAAAAAAAAAP///////////////gAAAAAAAAAAAAAAAAAAAAAAAAAB/////8=",
+      "encodedSha256": "ec38014e52c9b45fdcb899af8082db5a2802cbbf48b6e0d2170dc366935eaa1f"
+    },
+    {
+      "name": "group4-random",
+      "width": 41,
+      "height": 9,
+      "params": {
+        "K": -1,
+        "Columns": 41,
+        "Rows": 9,
+        "EndOfBlock": true,
+        "BlackIs1": true
+      },
+      "encoded": "LmRzLkXRdGIj4VFXYIj6KHKdCkCPMKIKhSSDI4yOYQJ4IECwQJDSOOUOmCCCaCWCBJtUCCFeEhi9lQMVwwgjuErCYRHgjjhAgwgrL6CCCHTaQSCUGk9hMFwoQTCCYKiOggmEEKthMAEAEA==",
+      "bitmap": "Pvn5I7GAQlqQWAYAHvXv75IA9qHaxE0Ao2Jy2A+AkeDyIDKAT7tcs0iA52TDeySAhZKsLjIA",
+      "encodedSha256": "59f2350168256763eaa08c65e6efedd8f31703ba2ac03660a1c105768e7cd29d"
+    },
+    {
+      "name": "group3-one-dimensional",
+      "width": 64,
+      "height": 8,
+      "params": {
+        "K": 0,
+        "Columns": 64,
+        "Rows": 8,
+        "EndOfBlock": false,
+        "BlackIs1": true,
+        "EndOfLine": true
+      },
+      "encoded": "ABt27du3bt2wATV27du3bt27ABt27du3bt2wATV27du3bt27ABt27du3bt2wATV27du3bt27ABt27du3bt2wATV27du3bt27",
+      "bitmap": "Dw8PDw8PDw/w8PDw8PDw8A8PDw8PDw8P8PDw8PDw8PAPDw8PDw8PD/Dw8PDw8PDwDw8PDw8PDw/w8PDw8PDw8A==",
+      "encodedSha256": "f77b1642ca4cb0b43c47299797dd69bb5b699b9b46af68c44539c4428e4c3416"
+    },
+    {
+      "name": "group3-mixed-dimensional",
+      "width": 64,
+      "height": 8,
+      "params": {
+        "K": 2,
+        "Columns": 64,
+        "Rows": 8,
+        "EndOfBlock": false,
+        "BlackIs1": true,
+        "EndOfLine": true
+      },
+      "encoded": "ABmoLmA0AAoNQAZqDcQDcAFBqADNQzCALgAoNQAZqGlYZQAKMA==",
+      "bitmap": "//8AAAAP/////+AAAB///////AAAP///////gAB////////wAP////////4B/////////8P//////////////w==",
+      "encodedSha256": "6d958981c0ce74750bf558257940000f8466fb06bbd9b29025b7e005bf497118"
+    },
+    {
+      "name": "group4-rows-without-eofb",
+      "width": 41,
+      "height": 9,
+      "params": {
+        "K": -1,
+        "Columns": 41,
+        "Rows": 9,
+        "EndOfBlock": false,
+        "BlackIs1": true
+      },
+      "encoded": "LmRzLkXRdGIj4VFXYIj6KHKdCkCPMKIKhSSDI4yOYQJ4IECwQJDSOOUOmCCCaCWCBJtUCCFeEhi9lQMVwwgjuErCYRHgjjhAgwgrL6CCCHTaQSCUGk9hMFwoQTCCYKiOggmEEKthMA==",
+      "bitmap": "Pvn5I7GAQlqQWAYAHvXv75IA9qHaxE0Ao2Jy2A+AkeDyIDKAT7tcs0iA52TDeySAhZKsLjIA",
+      "encodedSha256": "8e1f9d1aa28835d507a01819f872c69e37945e6a06a24143c8c6fa578025e281"
+    },
+    {
+      "name": "group3-return-to-control",
+      "width": 64,
+      "height": 8,
+      "params": {
+        "K": 0,
+        "Columns": 64,
+        "Rows": 1,
+        "EndOfBlock": true,
+        "BlackIs1": true,
+        "EndOfLine": true
+      },
+      "encoded": "ABt27du3bt2wATV27du3bt27ABt27du3bt2wATV27du3bt27ABt27du3bt2wATV27du3bt27ABt27du3bt2wATV27du3bt27ABABABABABAB",
+      "bitmap": "Dw8PDw8PDw/w8PDw8PDw8A8PDw8PDw8P8PDw8PDw8PAPDw8PDw8PD/Dw8PDw8PDwDw8PDw8PDw/w8PDw8PDw8A==",
+      "encodedSha256": "df1b978bc8c01ab5755a42bcd6b57ac7e2a16ddc4b751345d8f155963a931044"
+    }
+  ]
+}

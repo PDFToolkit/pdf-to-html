@@ -14,7 +14,7 @@ use PDF\Syntax\Object\DictionaryType;
 /** Lexical operators and operands; string bytes never serve as operator delimiters. */
 final readonly class ContentInstructionReader
 {
-    public function __construct(private ReadingBudget $budget, private ?ReadDocument $document = null)
+    public function __construct(private ReadingBudget $budget, private ?ReadDocument $document = null, private ?InlineImageBoundaryProvider $inlineImages = null)
     {
     }
 
@@ -54,7 +54,7 @@ final readonly class ContentInstructionReader
                     throw new ReadingException('BI may not consume preceding content operands.');
                 }
                 $this->budget->consume('instructions');
-                yield new ContentInstruction('BI', [], (new InlineImageReader($this->budget, $this->document))->read($parser, $resources));
+                yield new ContentInstruction('BI', [], (new InlineImageReader($this->budget, $this->document, $this->inlineImages))->read($parser, $resources));
                 continue;
             }
             $this->budget->consume('instructions');

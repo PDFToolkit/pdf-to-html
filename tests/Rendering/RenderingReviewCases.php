@@ -65,6 +65,11 @@ final readonly class RenderingReviewCases
                 3 => '<< /Type /Page /Parent 2 0 R /StructParents 0 /MediaBox [0 0 200 200] /Group null /Resources << >> /Contents 4 0 R >>',
                 4 => $fixture->stream('/Figure <</MCID 0>> BDC 1 0 0 rg 50 50 20 20 re f EMC /Figure <</MCID 1>> BDC EMC'),
             ] + $base),
+            'indirect-catalog-version' => new FileBytes(str_replace('%PDF-2.0', '%PDF-1.7', $fixture->build([
+                1 => '<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /Version 20 0 R >>',
+                4 => $fixture->stream('/Figure <</MCID 0>> BDC 1 0 0 rg 50 50 20 20 re f EMC /Figure <</MCID 1>> BDC EMC'),
+                20 => '/2.0',
+            ] + $base)->bytes)),
         ];
     }
 }

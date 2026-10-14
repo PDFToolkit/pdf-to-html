@@ -94,4 +94,10 @@ final class GraphicExporterContextTest extends TestCase
         self::assertStringNotContainsString('/Group null', $bytes);
         self::assertStringNotContainsString('/OCProperties null', $bytes);
     }
+
+    public function testTheEffectiveCatalogVersionCanBeAnIndirectName(): void
+    {
+        $bytes = (new GraphicPdfExporter())->export($this->group('indirect-catalog-version'))->bytes;
+        self::assertStringStartsWith('%PDF-2.0', $bytes);
+    }
 }

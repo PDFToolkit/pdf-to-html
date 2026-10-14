@@ -119,6 +119,9 @@ final readonly class GraphicPdfExporter
         $catalog = new DocumentCatalog((new PageTreeNode())->addKid($page), ...$catalogEntries);
         $version = $root->document->header()->version;
         $override = $root->document->catalog()->get('Version');
+        if ($override !== null) {
+            $override = $root->document->resolve($override);
+        }
         if ($override instanceof NameType && version_compare($override->value, $version->value, '>')) {
             $version = PdfVersion::from($override->value);
         }

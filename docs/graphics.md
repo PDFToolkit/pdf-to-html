@@ -58,7 +58,9 @@ explicitly through `ContentGroup`. Those source-coordinate bounds are transforme
 once by the page matrix, including for a standalone Form: explicit viewports are
 in page coordinates, not the Form's local coordinates. The exporter does not
 discover a tight rectangle from painted pixels; choose an explicit viewport when
-a smaller crop is required.
+a smaller crop is required. Native reading retains the source page context;
+an application constructing a standalone Form model must supply that context
+when it requests an explicit page-space viewport, or export fails explicitly.
 
 ## Supply the engine as an object
 
@@ -104,6 +106,6 @@ visibility, including standalone Form object references, sheared Form clipping a
 explicit viewports in page space under rotation/UserUnit; nested Artifact paint
 is deliberately absent. It also checks source
 PDF 1.7 preservation. [GraphicExporterContextTest](../tests/Rendering/GraphicExporterContextTest.php)
-adds cumulative instruction and indirect resource-depth rejection cases. These
-tests also check that direct/indirect null UserUnit exports match its absence.
-oracles prove their exercised cases, not fidelity for arbitrary PDF pages.
+adds cumulative instruction and indirect resource-depth rejection cases, plus
+direct/indirect null UserUnit exports matching its absence. These oracles prove
+their exercised cases, not fidelity for arbitrary PDF pages.

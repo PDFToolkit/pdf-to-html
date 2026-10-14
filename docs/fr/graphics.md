@@ -64,6 +64,9 @@ un Form autonome : les viewports explicites utilisent les coordonnées de page,
 pas les coordonnées locales du Form. L'export ne
 découvre pas un rectangle serré à partir des pixels peints ; choisir un viewport
 explicite pour un cadrage plus petit.
+La lecture native conserve le contexte de page source ; l'application qui
+construit un modèle Form autonome fournit aussi ce contexte pour demander
+un viewport explicite en coordonnées de page, sinon l'export échoue explicitement.
 
 ## Fournir le moteur sous forme d'objet
 

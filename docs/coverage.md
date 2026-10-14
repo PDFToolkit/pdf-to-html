@@ -2,7 +2,7 @@
 
 [English](coverage.md) · [Français](fr/coverage.md)
 
-Version **0.2.0** implements the derivation mechanisms of the retained reference
+Version **0.2.1** implements the derivation mechanisms of the retained reference
 through native source interpretation, explicit policies and application ports.
 The [clause ledger](requirements.md) records every numbered rule, its decision
 and concrete evidence. Coverage is not universal PDF acceptance, browser layout
@@ -35,7 +35,7 @@ OCR, inferred tagging or reconstruction of arbitrary page layouts.
 3. **Application integration**: rendering engines, authentication, hosting assets,
    browser policies, submissions and permission enforcement remain explicit capabilities.
 
-## Mechanisms verified in 0.2.0
+## Mechanisms verified in 0.2.1
 
 | Reference and physical pages | Behavior | Concrete evidence |
 | --- | --- | --- |
@@ -76,8 +76,10 @@ rendering capability, whose original programs/resources remain available.
 `GraphicPdfExporter` reconstructs an isolated PDF, and `RasterContentRenderer`
 passes it to `GraphicsRasterizer`. A visual profile without its required engine
 fails explicitly. No rendering binary is selected or launched implicitly.
-The default viewport is the physical CropBox; a structure BBox or explicit
-viewport can override it. The exporter does not compute a painted-pixel crop.
+Page programs default to the physical CropBox; standalone Form object references
+retain their XObject and use transformed Form bounds, preserving BBox clipping,
+Matrix, Group and OC. A structure BBox or explicit page-coordinate viewport can
+override the output bounds. Each matrix is applied once; no painted-pixel crop is computed.
 See [graphics](graphics.md) for the retained context and integration example.
 
 ## Policies and browser boundaries

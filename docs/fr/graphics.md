@@ -11,7 +11,7 @@ traité en groupe. Rendre ses tracés séparément de son texte peut changer le 
 `ReadPdfSource` attache des objets immuables `GraphicProgram` aux contenus.
 Chaque objet conserve les instructions typées partagées de son conteneur, ses
 ressources, le résolveur source, sa boîte physique et la plage inclusive des
-instructions sélectionnées. Les programmes Form conservent aussi l'instruction
+instructions sélectionnées. Les programmes Form appelés conservent aussi l'instruction
 `Do` appelante et leur stream original. Couleurs, tracés, clipping,
 transformations, dégradés et état des polices restent accessibles au moteur de rendu.
 
@@ -28,6 +28,14 @@ ni AcroForm, ni actions du document, ni ECMAScript PDF. Les streams dans des
 fichiers externes sont refusés. Les budgets d'objets, instructions et octets sont
 cumulatifs pour l'export ; la profondeur réelle des ressources/appelants est bornée.
 
+Un Form autonome atteint par une référence d'objet reste un XObject Form dans
+le PDF exporté. Ses `BBox`, groupe de transparence `Group` et
+appartenance au contenu optionnel `OC` restent portés par cet objet. Sa vraie
+frontière de clipping est ainsi conservée même avec une matrice de cisaillement ;
+un rectangle de page aligné sur les axes exposerait des peintures hors du Form.
+L'enveloppe applique la transformation composée page/Form et appelle une fois
+le Form. Le dictionnaire cloné omet `Matrix`, déjà appliquée par cette enveloppe.
+
 ```sh
 php examples/02-export-figure.php tests/Fixtures/tagged.pdf figure.pdf
 ```
@@ -35,13 +43,25 @@ php examples/02-export-figure.php tests/Fixtures/tagged.pdf figure.pdf
 La CLI choisit ses chemins d'entrée et de sortie. L'exporteur de la bibliothèque
 retourne un `RenderingDocument`, sans écriture de fichier ni lancement de
 programme. Sa fenêtre utilise des points physiques ; rotation et `UserUnit`
-s'appliquent une seule fois. Une figure peut utiliser plusieurs conteneurs
-sources, mais une image ne combine pas silencieusement des pages indépendantes.
+s'appliquent une seule fois. Une figure peut inclure des Form imbriqués sous
+une même racine source ; une image ne combine pas silencieusement des racines
+ou pages indépendantes.
 
-Le viewport par défaut est la CropBox physique de la page source. Une `BBox`
-de structure peut définir celui de la figure, ou l'application peut fournir
+[`PageTransform`](../../src/Reading/PageTransform.php) est l'objet readonly commun
+à cette conversion. Il reçoit un `ReadPage` ; sa propriété publique `matrix`
+transforme l'espace utilisateur de page par défaut en points PDF physiques.
+UserUnit vaut 1 si absent ou null, dont un null indirect ; les autres valeurs
+doivent être positives et finies. La matrice du Form est composée une seule fois
+avec la transformation de page ; l'export ne l'applique pas à nouveau lors de
+l'appel du XObject racine.
+
+Pour les programmes de page, le viewport par défaut est la CropBox physique de
+la source ; les programmes Form autonomes utilisent les limites transformées du
+Form. Une `BBox` de structure peut définir celui de la figure, ou l'application peut fournir
 un `GraphicViewport` explicite dans `ContentGroup`. Ces limites en coordonnées
-source sont transformées une seule fois par la matrice de page. L'export ne
+source sont transformées une seule fois par la matrice de page, y compris pour
+un Form autonome : les viewports explicites utilisent les coordonnées de page,
+pas les coordonnées locales du Form. L'export ne
 découvre pas un rectangle serré à partir des pixels peints ; choisir un viewport
 explicite pour un cadrage plus petit.
 
@@ -85,9 +105,12 @@ la rotation et `UserUnit`. La syntaxe PDF de ces cas est rédigée indépendamme
 [validate_graphics_context.py](../../tools/validate_graphics_context.py) analyse
 et rend indépendamment les cas de contexte originaux/exportés. Il compare les
 buffers complets de pixels pour le clipping du texte Form hérité, la transparence
-de page et la visibilité du contenu optionnel ; la peinture Artifact imbriquée
+de page et la visibilité du contenu optionnel, dont les références d'objet Form
+autonomes, leur clipping cisaillé et les viewports explicites en coordonnées de
+page avec rotation/UserUnit ; la peinture Artifact imbriquée
 est volontairement absente. La version PDF 1.7 source est également vérifiée.
 [GraphicExporterContextTest](../../tests/Rendering/GraphicExporterContextTest.php)
 ajoute les refus d'instructions cumulatives et de profondeur de ressources
-indirectes. Ces oracles prouvent les cas exercés, sans promettre la fidélité
+indirectes. Ces tests vérifient aussi qu'un UserUnit null direct/indirect produit
+le même export que son absence. Ces oracles prouvent les cas exercés, sans promettre la fidélité
 de pages PDF arbitraires.

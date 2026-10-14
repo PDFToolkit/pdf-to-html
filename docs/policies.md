@@ -97,8 +97,14 @@ exported into this rendering document.
 The export preserves inherited text rendering/clipping mode, excludes nested
 artifacts, and retains page transparency groups and optional-content visibility.
 Its PDF version is the source's effective version, not an unconditional upgrade
-to PDF 2.0. The viewport defaults to the physical CropBox; a structure BBox or an
-explicit `GraphicViewport` can override it. No painted-pixel crop is inferred.
+to PDF 2.0. Page programs default to the physical CropBox; standalone Form object
+references retain their Form XObject, original clipping/Matrix/Group/OC and use
+transformed Form bounds. A structure BBox or explicit page-coordinate
+`GraphicViewport` can override the output bounds. The page transform and Form
+matrix are each applied once. No painted-pixel crop is inferred.
+`PageTransform(ReadPage)` supplies the shared physical page matrix. Absent and
+direct/indirect null UserUnit use 1; an explicit viewport remains in default page
+user space even when the selected root is a transformed Form object reference.
 Object, instruction and byte budgets are cumulative; real traversal depth is capped.
 
 `RasterContentRenderer` receives a `GraphicsRasterizer` object supplied by the

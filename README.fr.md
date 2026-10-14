@@ -7,7 +7,7 @@ selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
 Ce dépôt a été créé spécialement pour implémenter les règles de
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-La version 0.2.0 implémente les mécanismes de dérivation de la référence avec des
+La version 0.2.1 implémente les mécanismes de dérivation de la référence avec des
 profils de sécurité explicites et des capacités de rendu/authentification fournies
 par l'application. Le [guide de couverture](docs/fr/coverage.md) et le
 [registre des clauses](docs/fr/requirements.md) décrivent les comportements
@@ -21,14 +21,14 @@ de convertir tout PDF.
 ## Installer
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.2.0"
+composer require "pdftoolkit/pdf-to-html:^0.2.1"
 ```
 
 PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3,
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
 
-La version 0.2.0 utilise pdf-reader 0.2.3+ pour sa frontière typée des documents chiffrés.
+La version 0.2.1 utilise pdf-reader 0.2.3+ pour sa frontière typée des documents chiffrés.
 
 ## Lire, dériver, puis écrire
 
@@ -79,8 +79,11 @@ natifs conservent programmes d'instructions, état, ressources et contexte sourc
 sélectionnées ; `RasterContentRenderer` le transmet à un `GraphicsRasterizer`
 fourni explicitement. La bibliothèque n'installe ni ne lance un moteur de rendu.
 L'export conserve la version PDF effective de la source, la transparence et le
-contexte du contenu optionnel. Il utilise la CropBox physique sauf BBox de structure
-ou viewport explicite ; il ne calcule pas de rectangle serré à partir des pixels.
+contexte du contenu optionnel. Les programmes de page utilisent la CropBox
+physique ; les références d'objet Form autonomes conservent le XObject Form,
+ses limites transformées, clipping, matrice, transparence et contenu optionnel.
+Une BBox de structure ou un viewport explicite en coordonnées de page peut
+remplacer ces limites. Aucun cadrage par les pixels peints n'est calculé.
 Le [guide graphique](docs/fr/graphics.md) fournit un exemple d'intégration exécutable.
 
 ResetForm utilise la valeur par défaut PDF `/DV`, y compris son absence, et

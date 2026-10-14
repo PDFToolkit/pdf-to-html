@@ -11,7 +11,7 @@ its paths separately from its text can change the result.
 `ReadPdfSource` attaches immutable `GraphicProgram` objects to content nodes.
 Each object retains the container's shared typed instructions, its resources,
 source resolver, physical bounding box and inclusive selected instruction range.
-Form programs also retain the calling `Do` instruction and their original stream.
+Called Form programs also retain the calling `Do` instruction and their original stream.
 These objects keep colors, paths, clipping, transformations, shadings and font
 state available to a rendering engine.
 
@@ -21,11 +21,18 @@ rendering/clipping mode is preserved, including across Form calls. Nested artifa
 and unselected paints are omitted; partially selected Form streams are substituted.
 Page transparency groups and optional-content membership/default visibility remain
 available. The export keeps the effective source PDF version, rather than forcing 2.0.
-Compressed
-image and font resources are imported without decoding or recompressing them.
+Compressed image and font resources are imported without decoding or recompressing them.
 The export has no AcroForm, document actions or PDF ECMAScript. External stream
 files are refused. Object, instruction and byte budgets are cumulative across
 the export; actual resource/caller traversal depth is also bounded.
+
+A standalone Form reached through an object reference remains a Form XObject
+in the exported PDF. Its original `BBox`, transparency `Group` and
+optional-content `OC` membership stay on that object. This preserves its true
+clipping boundary even when a matrix shears the Form; replacing that clip by an
+axis-aligned page rectangle would expose paint outside the Form. The wrapper
+applies the composed page/Form transform and calls the Form once. Its cloned
+dictionary omits `Matrix`, which that wrapper has already applied.
 
 ```sh
 php examples/02-export-figure.php tests/Fixtures/tagged.pdf figure.pdf
@@ -34,14 +41,24 @@ php examples/02-export-figure.php tests/Fixtures/tagged.pdf figure.pdf
 The CLI chooses its input and output paths. The library's exporter returns a
 `RenderingDocument`; it performs no filesystem writes and launches no programs.
 Its viewport is measured in physical points, with page rotation and `UserUnit`
-applied once. A figure may span several source containers, but an image cannot
-silently combine independent pages.
+applied once. A figure may include nested Form containers under one source root;
+an image cannot silently combine independent roots or pages.
 
-The default viewport is the source page's physical CropBox. A structure `BBox`
+[`PageTransform`](../src/Reading/PageTransform.php) is the shared readonly object
+for this conversion. Construct it from a `ReadPage`; its public `matrix` maps
+default page user space to physical PDF points. UserUnit is 1 when absent or null,
+including an indirect null; other values must be positive and finite. The Form's
+matrix is composed with the page transform once; export does not apply it again
+when calling the root XObject.
+
+For page programs, the default viewport is the source page's physical CropBox;
+standalone Form programs use their transformed Form bounds. A structure `BBox`
 can supply the figure viewport, or an application can pass `GraphicViewport`
 explicitly through `ContentGroup`. Those source-coordinate bounds are transformed
-once by the page matrix. The exporter does not discover a tight rectangle from
-painted pixels; choose an explicit viewport when a smaller crop is required.
+once by the page matrix, including for a standalone Form: explicit viewports are
+in page coordinates, not the Form's local coordinates. The exporter does not
+discover a tight rectangle from painted pixels; choose an explicit viewport when
+a smaller crop is required.
 
 ## Supply the engine as an object
 
@@ -83,7 +100,10 @@ The PDF syntax used by these cases is authored independently of the writer.
 [validate_graphics_context.py](../tools/validate_graphics_context.py) independently
 parses and renders original/exported context cases. It compares complete pixel
 buffers for inherited Form text clipping, page transparency and optional-content
-visibility; nested Artifact paint is deliberately absent. It also checks source
+visibility, including standalone Form object references, sheared Form clipping and
+explicit viewports in page space under rotation/UserUnit; nested Artifact paint
+is deliberately absent. It also checks source
 PDF 1.7 preservation. [GraphicExporterContextTest](../tests/Rendering/GraphicExporterContextTest.php)
 adds cumulative instruction and indirect resource-depth rejection cases. These
+tests also check that direct/indirect null UserUnit exports match its absence.
 oracles prove their exercised cases, not fidelity for arbitrary PDF pages.

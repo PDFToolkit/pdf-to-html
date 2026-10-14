@@ -2,7 +2,7 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
-La version **0.2.0** implémente les mécanismes de dérivation de la référence
+La version **0.2.1** implémente les mécanismes de dérivation de la référence
 conservée par une interprétation source native, des politiques explicites et des
 ports propres à l'application. Le [registre des clauses](requirements.md) associe
 chaque règle numérotée à sa décision et à des preuves concrètes. La couverture
@@ -38,7 +38,7 @@ ni OCR, ni balisage inféré, ni reconstruction de mises en page arbitraires.
    hébergement des ressources, politiques navigateur, soumissions et application
    des permissions restent des capacités explicites.
 
-## Mécanismes vérifiés dans la version 0.2.0
+## Mécanismes vérifiés dans la version 0.2.1
 
 | Référence et pages physiques | Comportement | Preuves concrètes |
 | --- | --- | --- |
@@ -82,9 +82,11 @@ restent disponibles. `GraphicPdfExporter` reconstruit un PDF isolé et
 `RasterContentRenderer` le transmet à `GraphicsRasterizer`. Un profil visuel sans
 moteur requis échoue explicitement. Aucun binaire de rendu n'est choisi ni lancé
 implicitement.
-Le viewport par défaut est la CropBox physique ; une BBox de structure ou un
-viewport explicite peut le remplacer. L'export ne calcule pas de cadrage à
-partir des pixels peints. Le [guide graphique](graphics.md) présente le contexte
+Les programmes de page utilisent la CropBox physique par défaut ; les références
+d'objet Form autonomes gardent leur XObject et ses limites transformées, avec
+clipping BBox, Matrix, Group et OC. Une BBox de structure ou un viewport explicite
+en coordonnées de page peut remplacer les limites de sortie. Chaque matrice
+est appliquée une fois, sans cadrage par les pixels peints. Le [guide graphique](graphics.md) présente le contexte
 conservé et l'exemple d'intégration.
 
 ## Politiques et frontières du navigateur

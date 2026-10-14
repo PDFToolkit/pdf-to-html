@@ -26,6 +26,13 @@ programs instead of reducing a path/shading to its painting-operator name.
 The retained page context supplies its transparency group and the document's
 optional-content configuration when selected graphics are exported.
 
+[`PageTransform`](../src/Reading/PageTransform.php) is an explicit readonly
+`PDF\Html\Reading` object constructed from a `ReadPage`. Its public `matrix`
+converts default page user space into physical PDF points using Rotate and
+UserUnit. An absent or direct/indirect null UserUnit means 1; other values must
+be positive and finite. Reading and export share this transform so explicit
+page-coordinate viewports do not accidentally receive a Form-local matrix.
+
 `ParentTreeValidator` compares forward associations with inverse
 StructParent/StructParents entries. Its permissive/strict mode chooses between
 diagnostics and errors for inconsistencies; cycles and budgets remain errors.
@@ -118,8 +125,11 @@ for clipping/text advancement, remaps resources and creates an isolated one-page
 PDF. The application chooses the engine and returns its pixels. Real Poppler
 checks verify the export independently; application integration stays explicit.
 Export retains inherited text rendering/clipping state, excludes nested artifacts
-and preserves the effective source PDF version. Its default viewport is the
-physical CropBox; a structure BBox or explicit `GraphicViewport` can override it.
+and preserves the effective source PDF version. Page programs default to the
+physical CropBox; standalone Form roots retain their XObject boundary, BBox,
+Group and OC membership and use transformed Form bounds. Their matrix is composed
+with the page transform once. A structure
+BBox or explicit page-coordinate `GraphicViewport` can override the output bounds.
 Instruction, byte and object budgets are cumulative within the export; actual
 traversal depth is capped too. See the [graphics guide](graphics.md).
 

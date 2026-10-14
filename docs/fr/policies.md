@@ -102,10 +102,18 @@ AcroForm et actions du catalogue ne sont pas exportés dans ce document de rendu
 L'export conserve le mode hérité de rendu/clipping du texte, exclut les artefacts
 imbriqués et garde les groupes de transparence de page et la visibilité du contenu
 optionnel. Sa version PDF est celle, effective, de la source, sans passage forcé
-en PDF 2.0. Le viewport utilise la CropBox physique par défaut ; une BBox de
-structure ou un `GraphicViewport` explicite peut le remplacer. Aucun cadrage
+en PDF 2.0. Les programmes de page utilisent la CropBox physique par défaut ;
+les références d'objet Form autonomes conservent leur XObject Form et les
+clipping/Matrix/Group/OC originaux, avec les limites transformées du Form.
+Une BBox de structure ou un `GraphicViewport` explicite en coordonnées de page
+peut remplacer les limites de sortie. Transformation de page et matrice Form
+s'appliquent chacune une seule fois. Aucun cadrage
 à partir des pixels peints n'est déduit. Les budgets d'objets, instructions et
 octets sont cumulatifs ; la profondeur réelle du parcours est bornée.
+`PageTransform(ReadPage)` fournit la matrice physique commune de page. UserUnit
+absent ou null direct/indirect vaut 1 ; le viewport explicite reste dans l'espace
+utilisateur de page par défaut même si la racine sélectionnée est un Form
+transformé atteint par référence d'objet.
 
 `RasterContentRenderer` reçoit un objet `GraphicsRasterizer` fourni par
 l'application. Cette capacité reçoit un `RenderingDocument` et renvoie un

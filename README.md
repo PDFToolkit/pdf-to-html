@@ -7,7 +7,7 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.2.0 implements the reference's derivation mechanisms with explicit
+Version 0.2.1 implements the reference's derivation mechanisms with explicit
 security profiles and application-supplied rendering/authentication capabilities.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
@@ -19,14 +19,14 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 ## Install
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.2.0"
+composer require "pdftoolkit/pdf-to-html:^0.2.1"
 ```
 
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.2.0 uses pdf-reader 0.2.3+ for its typed encrypted-document boundary.
+Version 0.2.1 uses pdf-reader 0.2.3+ for its typed encrypted-document boundary.
 
 ## Read, derive, then write
 
@@ -77,8 +77,10 @@ the original instruction programs, state, resource graph and source context.
 `RasterContentRenderer` hands that document to an explicitly supplied
 `GraphicsRasterizer`. The library does not install or launch a renderer.
 The export retains the source's effective PDF version, transparency and optional
-content context. It uses the physical CropBox unless a structure BBox or explicit
-viewport is supplied; it does not infer a tight bounding box from painted pixels.
+content context. Page programs use the physical CropBox; standalone Form object
+references retain the Form XObject and its transformed bounds, clipping, matrix,
+transparency and optional content. A structure BBox or explicit page-coordinate
+viewport can override the output bounds. No painted-pixel crop is inferred.
 See the [graphics guide](docs/graphics.md) for the executable integration example.
 
 ResetForm uses the PDF default value `/DV`, including its absence, and honors

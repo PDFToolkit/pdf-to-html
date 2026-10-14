@@ -27,6 +27,14 @@ son opérateur de peinture.
 Le contexte de page conservé fournit son groupe de transparence et la configuration
 du contenu optionnel du document lors de l'export des graphiques sélectionnés.
 
+[`PageTransform`](../../src/Reading/PageTransform.php) est un objet readonly
+explicite de `PDF\Html\Reading`, construit depuis un `ReadPage`. Sa propriété
+publique `matrix` transforme l'espace utilisateur de page par défaut en points
+PDF physiques avec Rotate et UserUnit. UserUnit absent ou null direct/indirect
+vaut 1 ; les autres valeurs doivent être positives et finies. Lecture et export
+partagent cette transformation afin qu'un viewport explicite en coordonnées de
+page ne reçoive pas par erreur une matrice locale du Form.
+
 `ParentTreeValidator` compare les associations directes aux entrées inverses
 StructParent/StructParents. Son mode permissif/strict choisit entre diagnostic
 et erreur pour les incohérences ; cycles et budgets restent des erreurs.
@@ -125,9 +133,12 @@ un PDF isolé d'une page. L'application choisit le moteur et renvoie ses pixels.
 De vrais contrôles Poppler vérifient l'export indépendamment ; l'intégration
 reste explicite.
 L'export conserve l'état hérité de rendu/clipping du texte, exclut les artefacts
-imbriqués et préserve la version PDF effective de la source. Son viewport par
-défaut est la CropBox physique ; une BBox de structure ou un `GraphicViewport`
-explicite peut le remplacer. Les budgets d'instructions, octets et objets sont
+imbriqués et préserve la version PDF effective de la source. Les programmes de
+page utilisent la CropBox physique par défaut ; les Form racines conservent la
+frontière XObject, BBox, Group et appartenance OC et utilisent les limites
+transformées du Form. Leur matrice est composée une fois avec la transformation
+de page. Une BBox de structure ou un `GraphicViewport` explicite en
+coordonnées de page peut remplacer les limites de sortie. Les budgets d'instructions, octets et objets sont
 cumulatifs pendant l'export ; la profondeur réelle du parcours est aussi bornée.
 Voir le [guide graphique](graphics.md).
 

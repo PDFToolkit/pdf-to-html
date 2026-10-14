@@ -2,6 +2,18 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## 0.2.1 — 2026-10-15
+
+- Export directly referenced Form XObjects as actual isolated XObjects, retaining
+  their local `/BBox` clipping, transparency `/Group` and optional-content context.
+  Flattening their instructions into a page no longer paints outside a sheared
+  Form box or changes the group's blending behavior.
+- Apply the source Form matrix exactly once and map explicit page-space viewports
+  independently through the immutable `PageTransform`, including rotation and
+  `UserUnit`. Reuse that object for native content interpretation.
+- Add independent OBJR Form fixtures and Poppler comparisons for clipping,
+  transparency, visibility and transformed viewports; update both language guides.
+
 ## 0.2.0 — 2026-10-15
 
 - Require `pdftoolkit/pdf-reader` **0.2.3 or later within 0.2.x**, including its

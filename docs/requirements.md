@@ -1,0 +1,108 @@
+# Deriving HTML 1.2: clause decisions and evidence
+
+[English](requirements.md) · [Français](fr/requirements.md)
+
+This ledger concerns the retained PDF Association usage specification, not a
+claim of complete ISO 32000-2, Acrobat or browser implementation. Page numbers
+are physical PDF pages, including the six-page front matter.
+[Open the original](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
+
+**Native** means executable package behavior. **Policy** means an explicit
+security decision permitted by the reference. **Port** means the package
+prepares data and calls an application-owned capability. **HTML adaptation**
+means the literal PDF rule conflicts with current HTML/browser behavior and the
+decision is recorded with diagnostics. Tests exercise concrete cases; a table
+entry alone does not prove universal conformance.
+
+## Document and logical structure
+
+| Clause | Pages | Decision and evidence |
+| --- | --- | --- |
+| 1–3; 4.1 | 9–11 | Tagged logical content is the input; no inferred tagging or OCR. ISO knowledge remains a prerequisite. Native inverse-association checking is tested by [ParentTreeReadingTest](../tests/Reading/ParentTreeReadingTest.php), including strict/permissive modes, pages, annotations, Form streams, cycles and budgets. |
+| 4.2; 4.2.1 | 11–12 | Native UTF-8 HTML/CSS, doctype, language, XMP title/filename fallback, charset and viewport. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), `testDocumentMetadataTextEscapingAndPageNavigation`; [ReadingSourceTest](../tests/ReadingSourceTest.php). |
+| 4.2.2 | 12 | Native catalog Supplement HTML takes precedence over other associated files before their payloads are decoded. [AssociatedFilesReadingTest](../tests/Reading/AssociatedFilesReadingTest.php), `testCatalogHtmlSupplementIgnoresOtherStreamsBeforeDecoding`. |
+| 4.2.3 | 12–15 | Native ClassMap selectors, consistent class-name conversion, class HTML properties and owner precedence. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), `testClassPropertiesAndDirectAttributesRespectOwnerPrecedence`. |
+| 4.2.4 | 15 | Native AcroForm HTML owner and explicit `form` association for widgets. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php), `testInteractiveFormHasLabelsAndPageNavigation`. |
+| 4.2.5 | 15 | Native hidden page-list navigation and page labels; anchors are preserved through replacements. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), [ReadingReplacementTest](../tests/ReadingReplacementTest.php). |
+| 4.3.1; 4.3.2.1 | 16 | Native depth-first logical order and per-element processing. Graph identities, parents and budgets are checked. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), `testDepthFirstOrderAndTransitiveRoleMapping`; [ReadingReplacementTest](../tests/ReadingReplacementTest.php). |
+| 4.3.2.2 | 16–17 | Native transitive default RoleMap, original-type history and standard-type metadata. [HtmlDeriverTest](../tests/HtmlDeriverTest.php): role chains/cycles. |
+| 4.3.2.3 | 17–18 | Native recognized PDF/MathML namespaces and namespace-object identity; HTML namespace is policy-controlled. Unknown namespaces require role mapping. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), `testNamespaceObjectIdentityKeepsDistinctRoleMaps`; [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php). |
+| 4.3.3 | 18–22 | Native standard structure-type mappings. RB uses a diagnosed HTML adaptation because modern HTML makes `rb` obsolete. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php): mapping inventory and ruby adaptation. |
+| 4.3.4 | 22–23 | Native content-model repair preserves content, order and unique identifiers. [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php): nested anchors/labels, captions, tables, lists and repair budgets; [HTML5 oracle](../tools/validate_derivation.py). |
+
+## Structure special cases
+
+| Clause | Pages | Decision and evidence |
+| --- | --- | --- |
+| 4.3.5.1 | 23–24 | Native Document elements remain in one HTML document as div. Splitting into separate documents is optional. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php): mapping inventory. |
+| 4.3.5.2.1 | 24 | Native H becomes p; H1–H6 become headings; higher levels use p with heading role/aria-level. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php). |
+| 4.3.5.2.2 | 24–25 | Native headings under TH become p and Sect becomes div. [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php): table-header descendants. |
+| 4.3.5.3.1–4.3.5.3.3 | 26–27 | Native figure/table/list captions; table captions move first, forbidden caption blocks move outside, list captions become preceding div. [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php), [HtmlDeriverTest](../tests/HtmlDeriverTest.php). |
+| 4.3.5.4.1 | 27–28 | Native explicit list labels suppress generated markers; description terms use dt. Layout Placement is ignored for list labels while explicit CSS remains authoritative. [StructureAttributePrecedenceTest](../tests/StructureAttributePrecedenceTest.php), `testListLabelIgnoresPlacementFromAttributesAndSharedClasses`; [LabelDerivationTest](../tests/LabelDerivationTest.php). |
+| 4.3.5.4.2 | 28 | Native Form labels use label unless their specified direct children require div. Indirect labels bind to the nearest interactive field. [LabelDerivationTest](../tests/LabelDerivationTest.php): indirect labels, nested forms and block exceptions. |
+| 4.3.5.4.3–4.3.5.4.5 | 28–29 | Native context-specific block/inline labels; other parents use span. Optional generated ARIA label text is not inferred. Explicit author attributes remain subject to safety filtering. [LabelDerivationTest](../tests/LabelDerivationTest.php). |
+| 4.3.5.5 | 29–30 | Native inline/block FENote and NoteType metadata. Note is diagnosed as outside the Well-Tagged target. Optional note popups are not inferred. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php), [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php). |
+| 4.3.5.6 | 30–31 | Native inline figures preserve identified content and propagated language/Alt/HTML attributes; visual figures use the explicit rendering port. [NormativeDerivationTest](../tests/NormativeDerivationTest.php), `testInlineTextualFigureRetainsIdentityLanguageAltAndExplicitAttributes`; [GraphicPdfExporterTest](../tests/Rendering/GraphicPdfExporterTest.php). |
+| 4.3.5.7 | 31–32 | Native Formula uses span/div; direct MathML, including resolved custom roles, takes precedence over associated alternatives. [NormativeDerivationTest](../tests/NormativeDerivationTest.php), `testRoleMappedMathMlTakesPrecedenceOverFormulaAlternatives`; [HTML5 cases](../tests/export-derivation-cases.php). |
+| 4.3.5.8.1–4.3.5.8.3 | 32–35 | Native nested lists, description lists and splitting/reopening paragraph ancestors. [HtmlDeriverTest](../tests/HtmlDeriverTest.php): description/nested lists and unique IDs after paragraph repair. |
+| 4.3.5.9 | 35 | Native NonStruct flattening or attributed div; Private/Artifact content is omitted before decoding. [AssociatedFilesReadingTest](../tests/Reading/AssociatedFilesReadingTest.php), `testPrivateContentIsIgnoredBeforeUnsupportedStreamDecoding`; [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php). |
+| 4.3.5.10; 4.3.5.10.1–4.3.5.10.3 | 36–37 | Native Link/Reference, first URI/GoTo in action chains, SD precedence, separate Name/String destinations and binary IDs. Structured targets follow final Alternative HTML IDs in either reading order; element-less alternatives retain an anchor. Views are validated; HTML zoom/viewport changes are optional. GoToR/GoToE require application navigation. [LinkActionsReadingTest](../tests/Reading/LinkActionsReadingTest.php), [NormativeDerivationTest](../tests/NormativeDerivationTest.php). |
+| 4.3.5.11; 4.3.5.11.1 | 37–38 | Native fields and direct/indirect labels; nested forms preserve their own targets. [LabelDerivationTest](../tests/LabelDerivationTest.php), [WidgetDeriverTest](../tests/Forms/WidgetDeriverTest.php). |
+| 4.3.5.11.2 | 38 | Native HTML-namespace fields use explicit HTML attributes and skip widget mapping. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php), `testHtmlNamespaceFieldsUseExplicitAttributesWithoutMappingTheWidget`. |
+| 4.3.5.11.3 | 38 | Native PrintField creates a non-interactive figure; visual appearance uses AppearanceRenderer. Optional Role/Checked alternative generation remains an author/application choice. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php), `testPrintFieldNeverCreatesAnInteractiveWidgetOrWidgetScript`. |
+| 4.3.5.12 | 38–39 | Native code phrases or pre/code lines with explicit line breaks. [HTML5 cases](../tests/export-derivation-cases.php), [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php). |
+
+## Properties and attributes
+
+| Clause | Pages | Decision and evidence |
+| --- | --- | --- |
+| 4.3.6.1 | 39–40 | Native IDs, generated targets, classes and A-over-C precedence. Binary identity is preserved injectively. [TableHeadersReadingTest](../tests/Reading/TableHeadersReadingTest.php), [HtmlDeriverTest](../tests/HtmlDeriverTest.php). |
+| 4.3.6.2 | 40 | Native nonempty language attributes. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), [ReadingSourceTest](../tests/ReadingSourceTest.php). |
+| 4.3.6.3 | 40–41 | Native empty/nonempty ActualText, applied before ignored glyph decoding even on shared pages and descendant streams. Structural validation remains active. [ReadingReplacementTest](../tests/ReadingReplacementTest.php). |
+| 4.3.6.4 | 41 | Native Figure alternatives on identified content and Formula/math alttext. Browser-compatible naming of non-image groups is an HTML adaptation. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php). |
+| 4.3.6.5 | 41–42 | Native abbr/title expansion with explicit HTML title taking precedence. [StructureAttributePrecedenceTest](../tests/StructureAttributePrecedenceTest.php). |
+| 4.3.6.6 | 42 | Native Ref links where suitable targets remain present. Optional association popups/highlighting belong to the host. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php): omitted reference targets. |
+| 4.3.7; 4.3.7.1 | 43–44 | Native owner ordering and namespace-object matching. Explicit HTML/CSS overrides structural defaults. [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php), [StructureAttributePrecedenceTest](../tests/StructureAttributePrecedenceTest.php). |
+| 4.3.7.2–4.3.7.3 | 44 | Native valid HTML attributes/booleans and sanitized CSS declarations. [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php), [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php). |
+| 4.3.7.4 | 44–45 | Native ordered/unordered/description lists and list styles. ContinuedList/ContinuedFrom are not projected without an application continuation mechanism, as permitted. [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php). |
+| 4.3.7.5 | 45–47 | Native table attributes, byte-string Headers/ID identity and final HTML targets after owner/Alternative overrides. Explicit HTML Headers remain authoritative. Border/padding conversion is native; Scope Both uses a diagnosed HTML adaptation. [TableHeadersReadingTest](../tests/Reading/TableHeadersReadingTest.php), [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php), [NormativeDerivationTest](../tests/NormativeDerivationTest.php), `testTableHeadersFollowAlternativeIdsWithoutRewritingExplicitHtmlHeaders`. |
+| 4.3.7.6 | 47–50 | Native layout mappings, sub/sup, point-to-pixel conversion and ruby properties. Modern text-decoration-thickness replaces the reference's older approximation. [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php). |
+| 4.3.7.7 | 50 | Native PrintField switches to non-interactive processing. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php). |
+| 4.3.7.8–4.3.7.10 | 50 | Native HTML/CSS/ARIA owners under content/URL/style policies. Unsafe attributes are omitted with diagnostics. [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php), [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php). |
+| 4.3.7.11 | 51–52 | Native UserProperties data attributes with consistent name conversion. [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php). |
+| 4.3.7.12 | 52 | Other owners are diagnosed; their processing is implementation-dependent in the reference. [AttributeDeriverTest](../tests/Attributes/AttributeDeriverTest.php), `testUnsupportedOwnerAndContinuationAreNeverSilentlyProjected`. |
+
+## Content, associated files and annexes
+
+| Clause | Pages | Decision and evidence |
+| --- | --- | --- |
+| 4.4 | 52 | Native logical content and page identifiers assigned to their actual parent, including replacements and widgets. Visual mode calls a port with retained original programs; physical CropBox is the default viewport, with structure BBox/explicit viewport overrides. [PageContentIdentifiersTest](../tests/Html/PageContentIdentifiersTest.php), [page HTML5 oracle](../tools/validate_page_identifiers.py), [GraphicPdfExporterTest](../tests/Rendering/GraphicPdfExporterTest.php). |
+| 4.4.1 | 52–53 | Paths retain geometry, state, clipping and resources. Isolated exports preserve source PDF version, page transparency groups and optional-content visibility. Irrelevant paint omission is permitted with diagnostics. [GraphicPdfExporterTest](../tests/Rendering/GraphicPdfExporterTest.php), [GraphicExporterContextTest](../tests/Rendering/GraphicExporterContextTest.php), [context pixel oracle](../tools/validate_graphics_context.py). |
+| 4.4.2 | 53 | Native ToUnicode and simple-font fallback via pinned Adobe glyph lists, including Symbol/ZapfDingbats/MacExpert. Tf and inherited ExtGState Font participate in q/Q and Form context. Unknown mappings are explicit; external CMaps are not implicitly fetched. [GlyphNameDecoderTest](../tests/Reading/GlyphNameDecoderTest.php), [ReadingGraphicsFontTest](../tests/ReadingGraphicsFontTest.php), [ReadingScenariosTest](../tests/ReadingScenariosTest.php). |
+| 4.4.3 | 53–54 | Native image XObjects and verified inline boundaries, logical dimensions and placeholder fallback when pixel conversion is unavailable. CCITT boundaries are checked with independent fax payloads; codec extensions have an explicit provider. [inline tests](../tests/Reading), [inline oracle](../tools/validate_inline_derivation.py), [fax oracle](../tools/validate_inline_fax.py). |
+| 4.4.4 | 54 | Native nested Form groups retain resources, matrix, caller context and inherited text rendering/clipping mode. [ReadingScenariosTest](../tests/ReadingScenariosTest.php), [GraphicPdfExporterTest](../tests/Rendering/GraphicPdfExporterTest.php), [GraphicExporterContextTest](../tests/Rendering/GraphicExporterContextTest.php), [context pixel oracle](../tools/validate_graphics_context.py). |
+| 4.4.5 | 54 | Shading programs/resources reach the rendering port. Irrelevant shading omission is permitted and diagnosed. [GraphicProgramReadingTest](../tests/GraphicProgramReadingTest.php), [GraphicPdfExporterTest](../tests/Rendering/GraphicPdfExporterTest.php). |
+| 4.4.6 | 54 | Native artifacts are omitted, including those nested inside a selected graphics group. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), [AssociatedFilesReadingTest](../tests/Reading/AssociatedFilesReadingTest.php), [GraphicExporterContextTest](../tests/Rendering/GraphicExporterContextTest.php), [context pixel oracle](../tools/validate_graphics_context.py). |
+| 4.4.7; 4.4.7.1–4.4.7.5 | 54–55 | Native marked-content Lang/ActualText/E and combined wrappers. Marked Alt uses role=img/aria-label as a diagnosed HTML adaptation. [HtmlDeriverTest](../tests/HtmlDeriverTest.php), [ReadingReplacementTest](../tests/ReadingReplacementTest.php). |
+| 4.4.8.1 | 55 | Native OBJR XObject interpretation, source page/context and inverse StructParent validation. [ParentTreeReadingTest](../tests/Reading/ParentTreeReadingTest.php), [ReadingSourceTest](../tests/ReadingSourceTest.php). |
+| 4.4.8.2 | 55–56 | Other annotation kinds are outside the reference; they produce explicit diagnostics rather than invented HTML behavior. [SourceReadSession](../src/Reading/SourceReadSession.php). |
+| 4.4.8.3 | 56 | Native Annots/CropBox visibility and property/attribute precedence. [WidgetDeriverTest](../tests/Forms/WidgetDeriverTest.php), [ReadingScenariosTest](../tests/ReadingScenariosTest.php). |
+| 4.4.8.3.1 | 56–61 | Native field mappings, options/export values, selection, ResetForm `/DV`/`Fields`, supported HTML SubmitForm and explicit signature status. Rich text and file defaults have browser adaptations; signature validation belongs to a supplied source capability. [WidgetDeriverTest](../tests/Forms/WidgetDeriverTest.php), [FormActionsTest](../tests/Forms/FormActionsTest.php), [FormActionsReadingTest](../tests/Reading/FormActionsReadingTest.php), [Node harness](../tests/Script/runtime.cjs). |
+| 4.4.8.3.2 | 61 | Native colors/borders/alignment, field names, required and applicable readonly. Unsupported browser-role behavior is diagnosed. [WidgetDeriverTest](../tests/Forms/WidgetDeriverTest.php). |
+| 4.5 | 61–62 | Policy-gated PDF ECMAScript export with an explicit document-scoped field/event bridge. Source scripts never execute in PHP. [ScriptDeriverTest](../tests/Script/ScriptDeriverTest.php), [Node harness](../tests/Script/runtime.cjs). |
+| 4.6.1 | 62 | Native embedded-file precedence over FS/URL and policy selection before replaced content is decoded. [AssociatedFilesReadingTest](../tests/Reading/AssociatedFilesReadingTest.php). |
+| 4.6.2–4.6.3 | 62–63 | Native MIME/extension selection, URL scheme validation and preserved embedded filenames. Local file URLs are prohibited. [AssociatedFilesReadingTest](../tests/Reading/AssociatedFilesReadingTest.php), [ReadingScenariosTest](../tests/ReadingScenariosTest.php). |
+| 4.6.4.1 | 63–65 | Native Alternative replaces descendants; Supplement replaces direct content and preserves substructure. Shared source/output selection precedes replaced content decoding. Final replacement IDs preserve structured links/Headers, with explicit HTML attributes authoritative. [AssociatedFilesReadingTest](../tests/Reading/AssociatedFilesReadingTest.php), [NormativeDerivationTest](../tests/NormativeDerivationTest.php). |
+| 4.6.4.2 | 65 | Embedded HTML is parsed/filtered; remote import requires active and remote permission. [AssociatedFilesReadingTest](../tests/Reading/AssociatedFilesReadingTest.php), [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php). |
+| 4.6.4.3 | 65–66 | CSS is sanitized and emitted as a returned stylesheet asset/link or a permitted remote stylesheet. It remains a policy decision; no implicit fetch. [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php), [AssociatedFileSelection](../src/AssociatedFileSelection.php). |
+| 4.6.4.4 | 66 | Trusted scripts are emitted after the referencing element, or replace explicit HTML script content, and externalized without changing their bytes. [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php), [ScriptAssetEmitter](../src/Script/ScriptAssetEmitter.php). |
+| 4.6.4.5–4.6.4.6 | 66 | Native raster references and policy-controlled SVG; SVG BBox supplies logical dimensions. [AdvancedDerivationTest](../tests/AdvancedDerivationTest.php). |
+| 4.6.4.7 | 66–67 | Native namespace-aware MathML vocabulary filtering. Browser rendering/polyfills are an application responsibility. [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php). |
+| Annex A | 68 | Policy boundaries, URL/CSS/fragment filtering and cumulative resource budgets. [HtmlBoundaryTest](../tests/HtmlBoundaryTest.php), [AssociatedFilesReadingTest](../tests/Reading/AssociatedFilesReadingTest.php). |
+| Annex B | 69–71 | Native scoped scripts, field events, shared values and per-widget bindings. Precise emulation of all PDF ECMAScript objects is explicitly outside this annex. [ScriptDeriverTest](../tests/Script/ScriptDeriverTest.php), [Node harness](../tests/Script/runtime.cjs). |
+| Annex C | 72 | Only the reader's typed EncryptedPdfException for verified Encrypt requests authentication; absent/direct/indirect null entries do not. Adapter/provider failures are not retried or reclassified. The port supplies verified source/permissions; body carries data-pdf-perms. Receiving viewer enforcement is application-owned. [AuthenticationBoundaryTest](../tests/AuthenticationBoundaryTest.php), [HtmlDeriverTest](../tests/HtmlDeriverTest.php), `testEncryptedPermissionContextAndSessionReuse`. |
+| Annex D | 73–74 | Native semantic structures/language/alternatives/labels/table relations; actual accessibility review belongs to the producer and consuming application. [HTML5 oracle](../tools/validate_derivation.py), [LabelDerivationTest](../tests/LabelDerivationTest.php), [TableHeadersReadingTest](../tests/Reading/TableHeadersReadingTest.php). |
+
+See [coverage](coverage.md) for accepted input encodings, browser adaptations and
+independent oracles. The original specification and released tests remain the
+sources of truth when assessing a specific document.

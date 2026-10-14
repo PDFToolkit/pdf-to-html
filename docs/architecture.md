@@ -20,6 +20,17 @@ attributes and ordered children. Text, marked content, graphics, images, links
 and widgets represent distinct information. Resolution belongs to one document,
 without singleton, global registry or implicit resource lookup.
 
+`GraphicProgram` retains an instruction range, original operands/resources,
+page box, matrix and enclosing Form invocation. Content nodes refer to those
+programs instead of reducing a path/shading to its painting-operator name.
+The retained page context supplies its transparency group and the document's
+optional-content configuration when selected graphics are exported.
+
+`ParentTreeValidator` compares forward associations with inverse
+StructParent/StructParents entries. Its permissive/strict mode chooses between
+diagnostics and errors for inconsistencies; cycles and budgets remain errors.
+It checks association consistency, not every WTPDF requirement.
+
 `StructureProperties` distinguishes Lang, ActualText, Alt, E, IDs, classes and Ref.
 A replacement string is not the same as an accessible description.
 
@@ -33,6 +44,16 @@ HTML cannot directly nest every valid PDF structure. Repairing its content model
 is separate from reproducing a PDF layout. Headings, captions, labels, lists,
 tables, figures and widgets therefore have their own processing rules.
 
+`AssociatedFileSelection` applies the shared policy before interpreting native
+content. A structural pass records ActualText and accepted Alternative/Supplement
+before any shared page is interpreted. Alternative replaces descendants;
+Supplement replaces direct content and keeps substructure. A blocked association
+leaves the original available.
+
+`PageContentIdentifiers` associates navigation identifiers with the actual
+derived content parent of each page. Replacements preserve the correct source
+anchors rather than assigning them to unrelated content.
+
 ## Return evidence with the result
 
 `DerivationResult` returns HTML, CSS, assets and diagnostics. Applications choose
@@ -45,6 +66,12 @@ Externalization preserves JavaScript grammar even when the source contains an
 HTML closing-script sequence. It does not sanitize JavaScript. The caller must
 write all returned assets beside the HTML or consistently remap their URLs;
 the CLI example performs those writes explicitly.
+
+Library-owned form operations use a separately enabled `FormActionPolicy`.
+Their runtime does not require embedded PDF scripts. `FieldSelection`,
+`ResetFormAction` and `SubmitFormAction` preserve absent/empty selections,
+exclusion, `/DV` and export options. `WidgetBinding` identifies each widget's
+final HTML control while values remain shared by PDF field name.
 
 MathML fragments use namespace-aware vocabulary filtering. Presentation and
 Content MathML can be preserved; preserving markup does not supply a browser
@@ -68,6 +95,11 @@ needs authenticated source data and verified permissions. Merely setting a PDF
 version, retaining an `/Encrypt` dictionary or constructing a permission object
 does not implement decryption.
 
+The default source adapter receives the deriver's policy and limits. Applications
+wiring separate stages pass the same objects explicitly; see [policies](policies.md).
+Authentication is dispatched only by the reader's typed `EncryptedPdfException`
+for verified `/Encrypt`; adaptation/filter failures never request it by text matching.
+
 ## Supply interpretation and rendering capabilities
 
 `TaggedPdfSource` is the public interpretation port implemented by `ReadPdfSource`.
@@ -79,6 +111,21 @@ engine receives `GraphicContent` or a `ContentGroup` and returns `ImageContent`
 or an explicit null result. `DerivationPolicy::preferVisualFigures` defaults to
 false, preserving semantic figure content; enabling it requests group rendering
 through that supplied engine. It does not install or launch a renderer.
+
+`RasterContentRenderer` coordinates `GraphicPdfExporter` and an application-owned
+`GraphicsRasterizer`. Export preserves selected programs and the state needed
+for clipping/text advancement, remaps resources and creates an isolated one-page
+PDF. The application chooses the engine and returns its pixels. Real Poppler
+checks verify the export independently; application integration stays explicit.
+Export retains inherited text rendering/clipping state, excludes nested artifacts
+and preserves the effective source PDF version. Its default viewport is the
+physical CropBox; a structure BBox or explicit `GraphicViewport` can override it.
+Instruction, byte and object budgets are cumulative within the export; actual
+traversal depth is capped too. See the [graphics guide](graphics.md).
+
+`InlineImageBoundaryProvider` extends native codec-boundary handling without
+heuristic binary `EI` searching. The provider interprets the exact payload
+boundary and consumes the supplied source budget.
 
 The optional fourth argument is `PDF\Html\Forms\AppearanceRenderer`, which
 converts explicit widget-appearance nodes to HTML nodes. Reading a PDF appearance

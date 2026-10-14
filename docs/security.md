@@ -22,10 +22,31 @@ A deliberate script-export option is separate from execution or an Acrobat
 runtime. Browser events and form submission need application review. The safe
 profile intentionally restricts the reference's active-content mechanisms.
 
+`FormActionPolicy` grants library-owned reset/submission separately from PDF
+ECMAScript. Both are disabled by default. Enabling reset neither exports PDF
+scripts nor enables submission. PHP/Node cases check `/DV`, selection/exclusion
+and NoExport. Review submission destinations before enabling that capability.
+
+The default `PdfToHtml` source adapter uses the deriver's policy. Blocked associated
+files are not decoded and do not suppress original content. Source/output policies
+must also match when an application wires its own stages.
+
+Only the reader's typed `EncryptedPdfException` for verified `/Encrypt` triggers
+authentication. Unsupported filters or adaptation errors do not trigger it by
+containing an encryption-like word. A provider must return verified permissions,
+not just a guessed mask.
+[AuthenticationBoundaryTest](../tests/AuthenticationBoundaryTest.php) checks
+that absent/null encryption entries, interpretation errors and provider failures
+are not reclassified into an authentication request, and rejects unverified permissions.
+
 Enabled scripts are returned as external JavaScript assets by `ScriptAssetEmitter`.
 This avoids HTML raw-text parsing ambiguities without changing the script grammar;
 it does not make the code safe. Persisting or serving those assets is an explicit
 application responsibility, with its own origin and content-security policy.
+
+Generated library form runtimes are externalized too. They contain library code,
+not embedded PDF script bodies when PDF scripting is disabled. They still need
+to be served deliberately under the application's browser policy.
 
 ## Validate before serialization
 
@@ -38,6 +59,16 @@ MathML filtering distinguishes namespaces and HTML integration points. Unknown
 MathML names, namespace spoofing, active attributes and unsupported foreign XML
 are rejected or diagnosed, including under the trusted-content policy. Content
 MathML preservation does not imply that a browser can render or evaluate it.
+
+`ParentTreeValidator` has explicit permissive/strict modes. Permissive never
+disables cycle or cumulative-budget checks. Inline boundaries follow exact codec
+rules or an injected provider, not binary delimiter guessing. Graphics export
+bounds resources/output bytes, isolates selected paints and strips catalog
+execution capabilities. Running the application's rendering engine is an
+explicit, separate integration decision.
+The export also checks cumulative instructions and actual resource-graph depth,
+including indirect dictionaries and Form caller chains. External stream `/F`
+references are refused rather than resolved as local filenames.
 
 Preview untrusted conversion in a separate origin or sandboxed frame. This browser
 boundary complements validation. Do not combine `allow-scripts` and

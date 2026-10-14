@@ -20,6 +20,18 @@ attributs et enfants ordonnés. Texte, contenu marqué, graphiques, images, lien
 et widgets représentent des informations distinctes. La résolution appartient
 à un document, sans singleton, registre global ni recherche implicite de ressource.
 
+`GraphicProgram` conserve une plage d'instructions, opérandes/ressources
+originaux, rectangle de page, matrice et appel Form englobant. Les nœuds
+désignent ces programmes au lieu de réduire un chemin/shading au nom de
+son opérateur de peinture.
+Le contexte de page conservé fournit son groupe de transparence et la configuration
+du contenu optionnel du document lors de l'export des graphiques sélectionnés.
+
+`ParentTreeValidator` compare les associations directes aux entrées inverses
+StructParent/StructParents. Son mode permissif/strict choisit entre diagnostic
+et erreur pour les incohérences ; cycles et budgets restent des erreurs.
+Ce contrôle ne valide pas chacune des exigences WTPDF.
+
 `StructureProperties` distingue Lang, ActualText, Alt, E, identifiants, classes et
 Ref. Un texte de remplacement n'est pas une description accessible.
 
@@ -35,6 +47,16 @@ modèle de contenu et reproduire la mise en page sont deux responsabilités.
 Titres, légendes, étiquettes, listes, tableaux, figures et widgets ont donc leurs
 propres règles de traitement.
 
+`AssociatedFileSelection` applique la politique commune avant d'interpréter le
+contenu natif. Une passe structurelle enregistre ActualText et les
+Alternative/Supplement acceptés avant de traiter une page partagée. Alternative
+remplace les descendants ; Supplement remplace le contenu direct et conserve
+la sous-structure. Une association bloquée laisse l'original disponible.
+
+`PageContentIdentifiers` associe la navigation au véritable parent du contenu
+dérivé de chaque page. Les remplacements conservent les bonnes ancres source
+sans les attribuer à un contenu sans rapport.
+
 ## Renvoyer les preuves avec le résultat
 
 `DerivationResult` renvoie HTML, CSS, ressources et diagnostics. L'application
@@ -47,6 +69,12 @@ produit des `script[src]`. Cela préserve la grammaire JavaScript même si la so
 contient une séquence HTML de fermeture de script, sans assainir le JavaScript.
 L'appelant doit écrire toutes les ressources à côté du HTML ou adapter leurs URL
 de manière cohérente ; l'exemple CLI réalise explicitement ces écritures.
+
+Les actions propres à la bibliothèque utilisent une `FormActionPolicy` activée
+séparément ; leur runtime ne nécessite pas de scripts PDF incorporés.
+`FieldSelection`, `ResetFormAction` et `SubmitFormAction` conservent sélection
+absente/vide, exclusion, `/DV` et options d'export. `WidgetBinding` identifie le
+contrôle HTML final de chaque widget et garde la valeur partagée par nom PDF.
 
 Les fragments MathML passent par un filtre de vocabulaire tenant compte des
 namespaces. Le MathML de présentation et de contenu peut être conservé ; conserver
@@ -71,6 +99,12 @@ données authentifiées et des permissions vérifiées. Déclarer une version PD
 conserver un dictionnaire `/Encrypt` ou construire un objet de permissions
 n'implémente pas le déchiffrement.
 
+L'adaptateur par défaut reçoit politique et limites du dériveur. Les applications
+assemblant les étapes séparément fournissent les mêmes objets ; voir les
+[politiques](policies.md). L'authentification ne dépend que de l'exception typée
+`EncryptedPdfException` du lecteur pour `/Encrypt` vérifié ; les erreurs
+d'adaptation/filtres ne la déclenchent jamais par recherche de texte.
+
 ## Fournir les capacités d'interprétation et de rendu
 
 `TaggedPdfSource` est le port public d'interprétation implémenté par `ReadPdfSource`.
@@ -83,6 +117,23 @@ de l'application reçoit un `GraphicContent` ou un `ContentGroup` et renvoie un
 vaut false par défaut pour conserver le contenu sémantique des figures ; l'activer
 demande un rendu du groupe par le moteur fourni. Cela n'installe ni ne lance un
 moteur de rendu.
+
+`RasterContentRenderer` coordonne `GraphicPdfExporter` et un `GraphicsRasterizer`
+propre à l'application. L'export préserve les programmes sélectionnés et l'état
+nécessaire au clipping/avancement du texte, réassocie les ressources et produit
+un PDF isolé d'une page. L'application choisit le moteur et renvoie ses pixels.
+De vrais contrôles Poppler vérifient l'export indépendamment ; l'intégration
+reste explicite.
+L'export conserve l'état hérité de rendu/clipping du texte, exclut les artefacts
+imbriqués et préserve la version PDF effective de la source. Son viewport par
+défaut est la CropBox physique ; une BBox de structure ou un `GraphicViewport`
+explicite peut le remplacer. Les budgets d'instructions, octets et objets sont
+cumulatifs pendant l'export ; la profondeur réelle du parcours est aussi bornée.
+Voir le [guide graphique](graphics.md).
+
+`InlineImageBoundaryProvider` étend les frontières de codecs natives sans
+recherche heuristique d'un `EI` binaire. Le fournisseur interprète la frontière
+exacte du contenu et consomme le budget source fourni.
 
 Le quatrième argument optionnel est `PDF\Html\Forms\AppearanceRenderer`, qui
 convertit les nœuds explicites d'apparence des widgets en nœuds HTML. Lire un flux

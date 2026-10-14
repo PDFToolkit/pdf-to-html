@@ -7,8 +7,11 @@ selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
 Ce dépôt a été créé spécialement pour implémenter les règles de
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-L'implémentation actuelle est **partielle**. Le [guide de couverture](docs/fr/coverage.md)
-précise les mécanismes testés et le travail technique restant.
+La version 0.2.0 implémente les mécanismes de dérivation de la référence avec des
+profils de sécurité explicites et des capacités de rendu/authentification fournies
+par l'application. Le [guide de couverture](docs/fr/coverage.md) et le
+[registre des clauses](docs/fr/requirements.md) décrivent les comportements
+concrets, les preuves exécutables et les frontières d'intégration.
 
 Ce package optionnel conserve la dérivation hors du core PDF. Il exploite structure
 logique et contenu Unicode plutôt que de deviner l'ordre de lecture à partir des
@@ -18,12 +21,14 @@ de convertir tout PDF.
 ## Installer
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.1.2"
+composer require "pdftoolkit/pdf-to-html:^0.2.0"
 ```
 
 PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3,
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
+
+La version 0.2.0 utilise pdf-reader 0.2.3+ pour sa frontière typée des documents chiffrés.
 
 ## Lire, dériver, puis écrire
 
@@ -55,6 +60,47 @@ Son constructeur reçoit lecteur, adaptateur, dériveur et fournisseur optionnel
 d'authentification comme objets explicites. La conversion reçoit toujours des
 octets ; le nom source est descriptif et n'est pas ouvert implicitement.
 
+L'adaptateur source par défaut reçoit la politique et les limites du dériveur.
+Les contenus Alternative/Supplement sont sélectionnés avant de décoder le contenu
+PDF remplacé, avec la même politique que la sortie HTML. Lors d'un assemblage
+manuel, fournir la même politique à `ReadPdfSource` et `HtmlDeriver`.
+
+La lecture native contrôle les associations inverses ParentTree en mode permissif
+et renvoie les incohérences dans les diagnostics. Utiliser
+`StructureValidationMode::Strict` sur `ReadPdfSource` pour les refuser. Ce contrôle
+d'association de structure ne constitue pas une certification WTPDF/PDF/UA.
+
+## Choisir les capacités de rendu et de formulaire
+
+Texte logique, correspondances Unicode, structure, tableaux, labels, liens,
+Image XObjects et encodages inline acceptés sont lus directement. Les graphiques
+natifs conservent programmes d'instructions, état, ressources et contexte source.
+`GraphicPdfExporter` produit un PDF isolé contenant les opérations de peinture
+sélectionnées ; `RasterContentRenderer` le transmet à un `GraphicsRasterizer`
+fourni explicitement. La bibliothèque n'installe ni ne lance un moteur de rendu.
+L'export conserve la version PDF effective de la source, la transparence et le
+contexte du contenu optionnel. Il utilise la CropBox physique sauf BBox de structure
+ou viewport explicite ; il ne calcule pas de rectangle serré à partir des pixels.
+Le [guide graphique](docs/fr/graphics.md) fournit un exemple d'intégration exécutable.
+
+ResetForm utilise la valeur par défaut PDF `/DV`, y compris son absence, et
+respecte sélection, noms parents et exclusion. SubmitForm possède des règles
+explicites d'export HTML, de sélection et de noms de mapping. Les deux demandent
+une autorisation `FormActionPolicy` ; le runtime de formulaire propre à la
+bibliothèque peut être activé sans exporter les scripts PDF :
+
+```php
+$policy = new \PDF\Html\DerivationPolicy(
+    formActions: new \PDF\Html\Forms\FormActionPolicy(allowReset: true),
+);
+$converter = new \PDF\Html\PdfToHtml(deriver: new HtmlDeriver($policy));
+$result = $converter->convert(new FileBytes($pdfBytes), 'document.pdf');
+```
+
+ECMAScript PDF et ressources distantes possèdent des options séparées. Lire les
+[politiques](docs/fr/policies.md) avant de les activer ou de servir les ressources
+renvoyées.
+
 `DerivationResult` renvoie explicitement HTML, CSS, ressources et diagnostics.
 Les inspecter avant publication. Écrire chaque ressource à côté du HTML sous son
 nom retourné, ou adapter ses URL de manière cohérente. Lorsque les scripts fiables
@@ -77,6 +123,8 @@ fournit le PDF d'entrée, ses pages rendues, le PHP exécutable et le HTML obten
 
 - [Architecture](docs/fr/architecture.md) : objets source, rôles et sérialisation.
 - [Couverture](docs/fr/coverage.md) : référence et frontières de l'adaptateur.
+- [Registre des clauses](docs/fr/requirements.md) : règles, décisions et preuves.
+- [Politiques](docs/fr/policies.md) : profils communs, formulaires, scripts et rendu.
 - [Sécurité](docs/fr/security.md) : budgets, validation HTML/CSS/URL et contenu actif.
 - [Référence conservée](docs/fr/reference.md) : PDF original, licence et empreinte.
 - [API complète et guides](https://pdftoolkit.github.io/fr/modules/to-html/).

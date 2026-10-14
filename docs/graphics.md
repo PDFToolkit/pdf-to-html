@@ -1,0 +1,89 @@
+# Preserve PDF graphics and render complete figures
+
+[English](graphics.md) · [Français](fr/graphics.md)
+
+Section 4.4 distinguishes semantic reuse from visual fidelity. A chart or
+infographic must be processed as a group when its appearance matters. Rendering
+its paths separately from its text can change the result.
+
+## Preserve the source program
+
+`ReadPdfSource` attaches immutable `GraphicProgram` objects to content nodes.
+Each object retains the container's shared typed instructions, its resources,
+source resolver, physical bounding box and inclusive selected instruction range.
+Form programs also retain the calling `Do` instruction and their original stream.
+These objects keep colors, paths, clipping, transformations, shadings and font
+state available to a rendering engine.
+
+`GraphicPdfExporter` creates an isolated PDF in memory. It replays graphics state
+and preserves text advances using invisible unselected text. Inherited text
+rendering/clipping mode is preserved, including across Form calls. Nested artifacts
+and unselected paints are omitted; partially selected Form streams are substituted.
+Page transparency groups and optional-content membership/default visibility remain
+available. The export keeps the effective source PDF version, rather than forcing 2.0.
+Compressed
+image and font resources are imported without decoding or recompressing them.
+The export has no AcroForm, document actions or PDF ECMAScript. External stream
+files are refused. Object, instruction and byte budgets are cumulative across
+the export; actual resource/caller traversal depth is also bounded.
+
+```sh
+php examples/02-export-figure.php tests/Fixtures/tagged.pdf figure.pdf
+```
+
+The CLI chooses its input and output paths. The library's exporter returns a
+`RenderingDocument`; it performs no filesystem writes and launches no programs.
+Its viewport is measured in physical points, with page rotation and `UserUnit`
+applied once. A figure may span several source containers, but an image cannot
+silently combine independent pages.
+
+The default viewport is the source page's physical CropBox. A structure `BBox`
+can supply the figure viewport, or an application can pass `GraphicViewport`
+explicitly through `ContentGroup`. Those source-coordinate bounds are transformed
+once by the page matrix. The exporter does not discover a tight rectangle from
+painted pixels; choose an explicit viewport when a smaller crop is required.
+
+## Supply the engine as an object
+
+Implement `GraphicsRasterizer::rasterize(RenderingDocument): ImageContent` with
+the rendering engine selected by your application, then inject it:
+
+```php
+use PDF\Html\DerivationPolicy;
+use PDF\Html\HtmlDeriver;
+use PDF\Html\PdfToHtml;
+use PDF\Html\Rendering\RasterContentRenderer;
+
+// $rasterizer is your explicit GraphicsRasterizer implementation.
+$renderer = new RasterContentRenderer($rasterizer);
+$converter = new PdfToHtml(deriver: new HtmlDeriver(
+    policy: new DerivationPolicy(preferVisualFigures: true),
+    renderer: $renderer,
+));
+$result = $converter->convert($fileBytes, 'chart.pdf');
+```
+
+The rasterizer returns portable PNG, JPEG or GIF bytes. The renderer preserves
+the logical viewport dimensions independently of the raster resolution.
+Choose and isolate the engine according to your application's input policy.
+No renderer is started implicitly by installing the package.
+
+The visual profile fails explicitly if its renderer is missing or declines the
+group. Semantic reuse may omit irrelevant paths and shadings, as sections 4.4.1
+and 4.4.5 permit; diagnostics identify those omissions. Images that cannot be
+converted receive a placeholder at their logical display size.
+
+## Independent rendering evidence
+
+`tools/validate_graphics.py` parses exported PDFs with pypdf and renders them
+with Poppler. Pixel checks verify clipping, inherited Form colors, exclusion of
+other Form MCIDs, advancement across invisible text, rotation and `UserUnit`.
+The PDF syntax used by these cases is authored independently of the writer.
+
+[validate_graphics_context.py](../tools/validate_graphics_context.py) independently
+parses and renders original/exported context cases. It compares complete pixel
+buffers for inherited Form text clipping, page transparency and optional-content
+visibility; nested Artifact paint is deliberately absent. It also checks source
+PDF 1.7 preservation. [GraphicExporterContextTest](../tests/Rendering/GraphicExporterContextTest.php)
+adds cumulative instruction and indirect resource-depth rejection cases. These
+oracles prove their exercised cases, not fidelity for arbitrary PDF pages.

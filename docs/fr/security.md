@@ -23,11 +23,35 @@ Une option volontaire d'export des scripts reste distincte de leur exécution et
 d'un runtime Acrobat. Événements navigateur et soumissions demandent une revue de
 l'application. Le profil sûr restreint les mécanismes actifs de la référence.
 
+`FormActionPolicy` autorise reset/soumission propres à la bibliothèque séparément
+de l'ECMAScript PDF. Les deux sont désactivés par défaut. Activer reset n'exporte
+aucun script PDF et n'active pas la soumission. Les cas PHP/Node contrôlent `/DV`,
+sélection/exclusion et NoExport. Vérifier les destinations avant d'activer la
+soumission.
+
+L'adaptateur par défaut de `PdfToHtml` utilise la politique du dériveur. Les
+fichiers bloqués ne sont pas décodés et ne suppriment pas l'original. Les
+politiques source/sortie doivent aussi correspondre lors d'un assemblage séparé.
+
+Seule l'`EncryptedPdfException` typée du lecteur pour `/Encrypt` vérifié déclenche
+l'authentification. Filtres non acceptés et erreurs d'adaptation ne la déclenchent
+pas par la présence d'un mot ressemblant à une mention de chiffrement. Le
+fournisseur renvoie des permissions vérifiées, pas un masque supposé.
+[AuthenticationBoundaryTest](../../tests/AuthenticationBoundaryTest.php) vérifie
+que l'absence/nullité de Encrypt, les erreurs d'interprétation et les échecs du
+fournisseur ne sont pas reclassés en demande d'authentification, et refuse les
+permissions non vérifiées.
+
 Les scripts activés sont renvoyés comme ressources JavaScript externes par
 `ScriptAssetEmitter`. Cela évite les ambiguïtés d'analyse du texte brut HTML sans
 modifier la grammaire du script et sans rendre son code sûr. Conserver ou servir
 ces ressources relève explicitement de l'application, avec son origine et sa
 politique de sécurité du contenu.
+
+Les runtimes de formulaire générés sont aussi externalisés. Ils contiennent le
+code de la bibliothèque et aucun corps de script PDF lorsque les scripts PDF
+sont désactivés. Ils demandent néanmoins une mise à disposition volontaire
+suivant la politique navigateur de l'application.
 
 ## Valider avant sérialisation
 
@@ -42,6 +66,17 @@ inconnus, usurpations de namespace, attributs actifs et XML étranger non accept
 sont refusés ou diagnostiqués, y compris avec la politique de contenu fiable.
 Conserver le MathML de contenu n'implique pas que le navigateur sache l'afficher
 ou l'évaluer.
+
+`ParentTreeValidator` possède des modes permissif/strict explicites. Le mode
+permissif ne désactive jamais cycles ou budgets cumulatifs. Les frontières inline
+suivent des règles exactes de codec ou un fournisseur injecté, sans deviner le
+délimiteur binaire. L'export graphique borne ressources/octets, isole les
+peintures sélectionnées et supprime les capacités d'exécution du catalogue.
+Exécuter le moteur de rendu de l'application reste une décision explicite
+et distincte.
+L'export contrôle aussi le cumul d'instructions et la profondeur réelle des
+ressources, dont les dictionnaires indirects et chaînes d'appels Form. Les
+références `/F` externes des flux sont refusées, sans résoudre de fichier local.
 
 Prévisualiser une conversion non fiable dans une origine distincte ou une frame
 sandboxée. Cette frontière complète la validation. Ne pas combiner `allow-scripts`

@@ -2,6 +2,64 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## 0.2.0 — 2026-10-15
+
+- Require `pdftoolkit/pdf-reader` **0.2.3 or later within 0.2.x**, including its
+  typed encrypted-input exception and bounded inline-image interpretation.
+- Validate inverse ParentTree associations, page/annotation/Form membership,
+  binary structure IDs and table Headers; resolve navigation and header targets
+  after explicit HTML identifiers have taken precedence.
+- Select applicable ActualText and associated-file Alternative/Supplement
+  replacements before interpreting replaced content. Preserve original content
+  when policy blocks a replacement; retain lazy decoding and cumulative budgets
+  across shared pages, resources and actions.
+- Interpret ordered URI/GoTo action chains, structure destinations and separate
+  Name/String named-destination spaces, with explicit graph and view validation.
+- Complete Adobe glyph-name fallback for simple-font Unicode, including Symbol,
+  ZapfDingbats, MacExpert, Differences and multi-scalar names. Retain original
+  font programs for rendering and diagnose unavailable mappings.
+- Derive inline images with verified codec boundaries and logical dimensions;
+  add bounded CCITT codeword framing. Unsupported pixel conversion keeps a
+  dimensional placeholder, and additional boundary codecs require an explicit
+  `InlineImageBoundaryProvider`; no arbitrary binary `EI` search is used.
+- Preserve immutable `GraphicProgram` objects and add `GraphicPdfExporter` for
+  isolated one-page PDFs of selected content. Keep resources, transforms,
+  clipping, text advancement and partial Form calls while suppressing unrelated
+  painting and artifacts. Preserve page transparency `/Group`, `/OCProperties`
+  and optional-content visibility, inherited text rendering `/Tr` and the source
+  PDF version. Resource, instruction, depth and byte budgets are cumulative.
+- Add `RasterContentRenderer` and the explicit `GraphicsRasterizer` capability.
+  The application supplies its engine; the package performs no implicit process
+  execution. A requested visual profile fails when its renderer is unavailable.
+- Implement immutable ResetForm/SubmitForm action selections, including field
+  groups, inclusion/exclusion, explicit empty selections and PDF `/DV` defaults.
+  Supported HTML submissions respect field/export selection. Both operations
+  require their own opt-in `FormActionPolicy`, independently of PDF ECMAScript;
+  default output executes neither action nor source scripts.
+- Extend document-scoped runtime checks for field validation, calculation,
+  formatting and page events. Preserve final widget identifier bindings and
+  isolate unrelated controls even when HTML names match. Persist every returned
+  external runtime/script asset alongside the HTML or remap its URL explicitly.
+- Assign `PDF-Page-X` to the actual content parent, including widgets and
+  multi-page replacements, and diagnose pages without retained content. Wrap
+  expanded form content with `abbr` while preserving field IDs and explicit
+  titles; keep list-label Placement from overriding contextual label mapping.
+- Share policy and derivation limits between native reading and output.
+  Dispatch authentication only for the reader's verified encrypted-input
+  exception; an injected `AuthenticationProvider` supplies authenticated source
+  and permissions, which the receiving viewer must enforce.
+- Retain the original reference unchanged and add a clause-by-clause requirements
+  ledger, bilingual policies/graphics guides and executable figure-export and
+  safe-reset examples. Extend independently authored PDF fixtures, HTML5/pypdf
+  parsing, Poppler pixel checks and Node runtime cases for the new behavior.
+
+Native derivation rules, documented HTML adaptations, security policies and
+application capabilities are recorded separately in [requirements](docs/requirements.md)
+and [coverage](docs/coverage.md). Rasterization, cryptographic authentication and
+unsupported codecs remain explicit integration boundaries. This release does
+not claim universal PDF acceptance, complete Acrobat/ISO 21757-1 emulation,
+pixel-identical browser layout or automatic accessibility certification.
+
 ## 0.1.2 — 2026-10-14
 
 - Associate indirect Form labels with their widget while preserving nested Form

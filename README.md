@@ -7,8 +7,10 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-The current implementation is **partial**. The [coverage guide](docs/coverage.md)
-records tested mechanisms and the technical work that remains.
+Version 0.2.0 implements the reference's derivation mechanisms with explicit
+security profiles and application-supplied rendering/authentication capabilities.
+The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
+record the concrete behavior, executable evidence and integration boundaries.
 
 This optional package keeps derivation outside the PDF core. It exploits logical
 structure and Unicode content rather than guessing reading order from character
@@ -17,12 +19,14 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 ## Install
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.1.2"
+composer require "pdftoolkit/pdf-to-html:^0.2.0"
 ```
 
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
+
+Version 0.2.0 uses pdf-reader 0.2.3+ for its typed encrypted-document boundary.
 
 ## Read, derive, then write
 
@@ -54,6 +58,45 @@ Its constructor accepts the reader, source adapter, deriver and an optional
 authentication provider as explicit objects. Conversion still receives bytes;
 the source filename is descriptive and is not opened implicitly.
 
+The default source adapter inherits the deriver's policy and limits. Associated
+Alternative/Supplement content is selected before decoding the PDF content it
+replaces, with the same policy used for HTML output. When wiring the stages
+manually, pass the same policy to `ReadPdfSource` and `HtmlDeriver`.
+
+Native reading validates inverse ParentTree associations in permissive mode,
+returning diagnostics for inconsistencies. Use
+`StructureValidationMode::Strict` on `ReadPdfSource` to reject those inconsistencies.
+This is a structure-association check, not WTPDF/PDF/UA certification.
+
+## Choose rendering and form capabilities
+
+Logical text, Unicode mappings, structure, tables, labels, links, image XObjects
+and supported inline-image encodings are read directly. Native graphics retain
+the original instruction programs, state, resource graph and source context.
+`GraphicPdfExporter` creates an isolated PDF containing selected paint operations;
+`RasterContentRenderer` hands that document to an explicitly supplied
+`GraphicsRasterizer`. The library does not install or launch a renderer.
+The export retains the source's effective PDF version, transparency and optional
+content context. It uses the physical CropBox unless a structure BBox or explicit
+viewport is supplied; it does not infer a tight bounding box from painted pixels.
+See the [graphics guide](docs/graphics.md) for the executable integration example.
+
+ResetForm uses the PDF default value `/DV`, including its absence, and honors
+field selection, parent names and exclusion. SubmitForm has explicit HTML export,
+selection and mapping-name behavior. Both need `FormActionPolicy` permission;
+the library-owned form runtime can be enabled without exporting PDF scripts:
+
+```php
+$policy = new \PDF\Html\DerivationPolicy(
+    formActions: new \PDF\Html\Forms\FormActionPolicy(allowReset: true),
+);
+$converter = new \PDF\Html\PdfToHtml(deriver: new HtmlDeriver($policy));
+$result = $converter->convert(new FileBytes($pdfBytes), 'document.pdf');
+```
+
+PDF ECMAScript and remote resources have separate opt-ins. See
+[policies](docs/policies.md) before enabling them or serving returned assets.
+
 `DerivationResult` returns HTML, CSS, assets and diagnostics explicitly. Inspect
 them before publishing the result. Write every asset beside the HTML, using its
 returned filename, or remap its URLs consistently. When trusted scripts are
@@ -76,6 +119,8 @@ provides the input PDF, rendered pages, executable PHP and actual HTML result.
 
 - [Architecture](docs/architecture.md): source objects, roles and serialization.
 - [Coverage](docs/coverage.md): reference scope and file-adapter boundaries.
+- [Clause ledger](docs/requirements.md): numbered rules, decisions and evidence.
+- [Policies](docs/policies.md): shared profiles, forms, scripts and rendering.
 - [Security](docs/security.md): budgets, HTML/CSS/URL validation and active content.
 - [Retained reference](docs/reference.md): original PDF, license and fingerprint.
 - [Complete API and guides](https://pdftoolkit.github.io/modules/to-html/).

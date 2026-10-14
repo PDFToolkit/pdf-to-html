@@ -1,0 +1,11 @@
+{
+  "producer": "pypdf 6.20.1; original MIT fixture",
+  "filename": "tagged.pdf",
+  "bytes": 5315,
+  "sha256": "8a5bccc6c9e9491ee20ce13313230de5e4f96d7cadede5c825a4e957de7dbac3",
+  "pages": 1,
+  "header": "%PDF-2.0",
+  "text": "External tagged PDF",
+  "formText": "\u00e9ABCfi",
+  "title": "Independent tagged source"
+}

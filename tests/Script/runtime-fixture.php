@@ -5,10 +5,36 @@ declare(strict_types=1);
 require dirname(__DIR__).'/Attributes/standalone-bootstrap.php';
 
 use PDF\Html\Forms\FieldType;
+use PDF\Html\DerivationPolicy;
+use PDF\Html\HtmlDeriver;
+use PDF\Html\Model\AttributeObject;
 use PDF\Html\Model\FormField;
+use PDF\Html\Model\StructureElement;
+use PDF\Html\Model\StructureProperties;
 use PDF\Html\Model\TaggedDocument;
+use PDF\Html\Model\TextContent;
 use PDF\Html\Model\Widget;
 use PDF\Html\Script\ScriptDeriver;
+use PDF\Html\Script\WidgetBinding;
+
+if (($argv[1] ?? '') === '--bound-widget-actions') {
+    $field = new FormField('shared-bound', FieldType::Text, value: 'initial');
+    $outerWidget = new Widget($field, actions: ['Fo' => 'app.alert("outer-focus");', 'U' => 'this.getField("shared-bound").value = "outer-value";']);
+    $innerWidget = new Widget($field, actions: ['Fo' => 'app.alert("inner-focus");', 'U' => 'this.getField("shared-bound").value = "inner-value";']);
+    $inner = new StructureElement('inner-form', 'Form', [new StructureElement('inner-label', 'Lbl', [new TextContent('Inner')]), $innerWidget], properties: new StructureProperties(id: 'inner-original'), attributes: [new AttributeObject('HTML-5.00', ['id' => '__proto__'])]);
+    $foreign = new StructureElement('foreign', 'input', [], 'http://www.w3.org/1999/xhtml', properties: new StructureProperties(id: 'foreign'), attributes: [new AttributeObject('HTML-5.00', ['name' => 'shared-bound', 'value' => 'unrelated', 'type' => 'text', 'form' => 'acroform_id'])]);
+    $outer = new StructureElement('outer-form', 'Form', [$foreign, $inner, $outerWidget], properties: new StructureProperties(id: 'outer-original'), attributes: [new AttributeObject('HTML-5.00', ['id' => 'constructor', 'name' => 'renamed-control'])]);
+    $result = (new HtmlDeriver(new DerivationPolicy(allowActiveContent: true)))->derive(new TaggedDocument('bound-widgets.pdf', [$outer]));
+    $scripts = array_values(array_filter($result->assets, static fn ($asset): bool => $asset->mediaType === 'text/javascript'));
+    echo json_encode(['html' => $result->html, 'script' => $scripts[0]->bytes], JSON_THROW_ON_ERROR);
+    exit;
+}
+
+if (($argv[1] ?? '') === '--missing-bound-widget') {
+    $widget = new Widget(new FormField('shared-bound', FieldType::Text, value: 'initial'), actions: ['Fo' => 'app.alert("missing-focus");']);
+    echo (new ScriptDeriver())->derive(new TaggedDocument('missing-widget.pdf', []), [$widget], [new WidgetBinding($widget, 'missing-control')]);
+    exit;
+}
 
 if (($argv[1] ?? '') === '--without-form') {
     $document = new TaggedDocument('without-form.pdf', [], documentScripts:['app.alert(this.app === app ? "document without form" : "incorrect document this");'], pageScripts:[1 => ['O' => 'app.alert(this.app === app ? "page without form" : "incorrect page this");']], pageLabels:[1 => '1']);

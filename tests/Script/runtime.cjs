@@ -86,4 +86,39 @@ assert.equal(widgetFirst.value,"changed-by-second");
 widgetFirst.change("invalid");
 assert.equal(widgetFirst.value,"changed-by-second");
 assert.equal(widgetSecond.value,"changed-by-second");
-console.log("PASS document-scoped scripts, per-widget actions and legacy compatibility, shared values, validation, calculations, reset, readonly and prototype field names");
+const boundOutput=JSON.parse(execFileSync(process.env.PDF_RUNTIME_TEST_PHP ?? "php",[path.join(__dirname,"runtime-fixture.php"),"--bound-widget-actions"],{encoding:"utf8"}));
+const boundControls=Array.from(boundOutput.html.matchAll(/<input\b([^>]*)>/g), match => {
+ const attributes=Object.fromEntries(Array.from(match[1].matchAll(/([\w-]+)="([^"]*)"/g), attribute => [attribute[1],attribute[2]]));
+ const control=new Control(attributes.name,attributes.value,attributes.type);
+ control.id=attributes.id;
+ return control;
+});
+assert.deepEqual(boundControls.map(control=>control.id),["foreign","__proto__","constructor"]);
+const boundById=new Map(boundControls.map(control=>[control.id,control]));
+const boundAlerts=[];
+const boundDocument={
+ readyState:"complete",
+ querySelector:()=>({elements:boundControls,addEventListener:()=>{}}),
+ defaultView:{alert:value=>boundAlerts.push(value),addEventListener:()=>{}},
+ getElementById:id=>boundById.get(id) ?? null
+};
+vm.runInNewContext(boundOutput.script,{document:boundDocument},{timeout:1000});
+assert.deepEqual(Object.keys(boundById.get("foreign").handlers),[]);
+assert.equal(boundById.get("foreign").value,"unrelated");
+boundById.get("__proto__").handlers.focus[0]({});
+boundById.get("constructor").handlers.focus[0]({});
+assert.deepEqual(boundAlerts,["inner-focus","outer-focus"]);
+boundById.get("constructor").handlers.mouseup[0]({});
+assert.equal(boundById.get("__proto__").value,"outer-value");
+assert.equal(boundById.get("constructor").value,"outer-value");
+assert.equal(boundById.get("foreign").value,"unrelated");
+boundById.get("__proto__").handlers.mouseup[0]({});
+assert.equal(boundById.get("constructor").value,"inner-value");
+const missingBoundSource=execFileSync(process.env.PDF_RUNTIME_TEST_PHP ?? "php",[path.join(__dirname,"runtime-fixture.php"),"--missing-bound-widget"],{encoding:"utf8"});
+const unmatched=new Control("shared-bound","unrelated"); unmatched.id="foreign";
+vm.runInNewContext(missingBoundSource,{
+ document:{...boundDocument,querySelector:()=>({elements:[unmatched],addEventListener:()=>{}}),getElementById:()=>null}
+},{timeout:1000});
+assert.deepEqual(Object.keys(unmatched.handlers),[]);
+assert.equal(unmatched.value,"unrelated");
+console.log("PASS document-scoped scripts, exact HTML widget bindings, nested and legacy actions, shared values, validation, calculations, reset, readonly and prototype field names");

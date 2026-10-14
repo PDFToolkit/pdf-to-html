@@ -6,6 +6,7 @@ namespace PDF\Html\Script;
 
 use PDF\Html\Model\TaggedDocument;
 use PDF\Html\Model\Widget;
+use PDF\Html\DerivationException;
 
 /**
  * Trusted, opt-in document-scoped Annex B bridge.
@@ -20,14 +21,20 @@ final class ScriptDeriver
     public array $diagnostics = [];
     /**
      * @param list<Widget> $widgets
+     * @param list<WidgetBinding>|null $bindings Null retains the manual API's positional widget matching.
      */
-    public function derive(TaggedDocument $document, array $widgets): ?string
+    public function derive(TaggedDocument $document, array $widgets, ?array $bindings = null): ?string
     {
         $this->diagnostics = [];
+        if ($bindings !== null && count($bindings) !== count($widgets)) {
+            throw new DerivationException('Explicit script bindings must identify every derived widget.');
+        }
         $fields = [];
         $widgetActions = [];
+        $boundWidgets = $bindings === null ? null : [];
+        $boundIds = [];
         $functions = [];
-        foreach ($widgets as $widget) {
+        foreach ($widgets as $index => $widget) {
             $field = $widget->field;
             if (!isset($fields[$field->name])) {
                 $actions = [];
@@ -53,6 +60,14 @@ final class ScriptDeriver
                 $actions[$event] = $key;
             }
             $widgetActions[$field->name][] = (object) $actions;
+            if ($bindings !== null) {
+                $binding = $bindings[$index];
+                if ($binding->widget !== $widget || isset($boundIds[$binding->htmlId])) {
+                    throw new DerivationException('Explicit script bindings must match their widget and use unique HTML identifiers.');
+                }
+                $boundIds[$binding->htmlId] = true;
+                $boundWidgets[] = ['id' => $binding->htmlId, 'name' => $field->name, 'actions' => (object) $actions];
+            }
         }
         $pages = [];
         foreach ($document->pageScripts as $page => $actions) {
@@ -69,7 +84,7 @@ final class ScriptDeriver
         $this->diagnostics[] = 'Browser permission enforcement and document trust remain the host application responsibility.';
         $this->diagnostics[] = 'Document scripts share a strict lexical document module; arbitrary host globals and the full Acrobat API are not emulated.';
         $encode = static fn (mixed $value): string => json_encode($value, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
-        $config = $encode(['fields' => (object) $fields, 'widgets' => (object) $widgetActions, 'pages' => (object) $pages]);
+        $config = $encode(['fields' => (object) $fields, 'widgets' => (object) $widgetActions, 'bindings' => $boundWidgets, 'pages' => (object) $pages]);
         $bodies = [];
         foreach ($functions as $key => $source) {
             $bodies[] = $encode($key).":function(event){\n".$source."\n}";
@@ -82,7 +97,11 @@ final class ScriptDeriver
 const config = JSON.parse(__CONFIG__), methods = Object.create(null);
 const fieldMap = new Map(), view = document.defaultView;
 const rootForm = document.querySelector('form[name="acroform"]');
-const controls = () => Array.from(rootForm?.elements ?? []).filter(el => el.name && Object.prototype.hasOwnProperty.call(config.fields, el.name));
+const widgetBindings = config.bindings === null ? null : new Map(config.bindings.map(binding => [binding.id, binding]));
+const controls = () => widgetBindings === null
+ ? Array.from(rootForm?.elements ?? []).filter(el => el.name && Object.prototype.hasOwnProperty.call(config.fields, el.name))
+ : Array.from(widgetBindings.keys(), id => document.getElementById(id)).filter(el => el && ["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(el.tagName));
+const sourceFieldName = el => widgetBindings === null ? el.name : widgetBindings.get(el.id)?.name;
 const errors = [];
 let calculating = false;
 const app = Object.freeze({
@@ -120,7 +139,7 @@ class Field {
  get value() { return this._value; }
  set value(value) { this._value = value; this.sync(); }
  get valueAsString() { return this._value == null ? "" : Array.isArray(this._value) ? this._value.join(", ") : String(this._value); }
- get widgets() { return controls().filter(el => el.name === this.name); }
+ get widgets() { return controls().filter(el => sourceFieldName(el) === this.name); }
  get display() { return this.widgets.every(el => el.style.display === "none") ? 1 : 0; }
  set display(value) { this.widgets.forEach(el => { el.style.display = Number(value) === 1 ? "none" : ""; }); }
  get required() { return this.widgets.some(el => el.required); }
@@ -173,10 +192,10 @@ function install() {
  rootForm?.addEventListener("reset", native => { native.preventDefault(); pdf.resetForm(); });
  const widgetOccurrences = new Map();
  controls().forEach(el => {
-  const field = fieldMap.get(el.name);
-  const occurrence = widgetOccurrences.get(el.name) ?? 0;
-  widgetOccurrences.set(el.name, occurrence + 1);
-  const actions = config.widgets[el.name]?.[occurrence] ?? {};
+  const name = sourceFieldName(el), field = fieldMap.get(name);
+  const occurrence = widgetOccurrences.get(name) ?? 0;
+  widgetOccurrences.set(name, occurrence + 1);
+  const actions = widgetBindings === null ? (config.widgets[name]?.[occurrence] ?? {}) : widgetBindings.get(el.id).actions;
   for (const [browser, action, name] of [["focus","Fo","Focus"],["blur","Bl","Blur"],["mouseenter","E","MouseEnter"],["mouseleave","X","MouseExit"],["mousedown","D","MouseDown"],["mouseup","U","MouseUp"]]) {
    el.addEventListener(browser, () => invoke(actions[action], eventFor(field, name, field.value)));
   }

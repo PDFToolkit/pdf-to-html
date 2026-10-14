@@ -9,10 +9,14 @@ use PDF\Html\DerivationException;
 use PDF\Html\DerivationLimits;
 use PDF\Html\HtmlDeriver;
 use PDF\Html\Model\FormField;
+use PDF\Html\Model\AttributeObject;
 use PDF\Html\Model\StructureElement;
+use PDF\Html\Model\StructureProperties;
 use PDF\Html\Model\TaggedDocument;
 use PDF\Html\Model\Widget;
 use PDF\Html\Script\ScriptDeriver;
+use PDF\Html\Script\WidgetBinding;
+use PDF\Html\DerivationPolicy;
 use PHPUnit\Framework\TestCase;
 
 final class ScriptDeriverTest extends TestCase
@@ -102,5 +106,34 @@ final class ScriptDeriverTest extends TestCase
         ])]);
         $this->expectException(DerivationException::class);
         (new HtmlDeriver(limits: new DerivationLimits(maximumOutputBytes: 1024)))->derive($document);
+    }
+
+    public function testNestedSharedFieldWidgetsBindToTheirFinalHtmlIdentifiers(): void
+    {
+        $field = new FormField('shared', FieldType::Text);
+        $inner = new StructureElement('inner', 'Form', [new Widget($field, actions: ['Fo' => 'app.alert("inner");'])], properties: new StructureProperties(id: 'inner-original'), attributes: [new AttributeObject('HTML-5.00', ['id' => '__proto__'])]);
+        $outer = new StructureElement('outer', 'Form', [$inner, new Widget($field, actions: ['Fo' => 'app.alert("outer");'])], properties: new StructureProperties(id: 'outer-original'), attributes: [new AttributeObject('HTML-5.00', ['id' => 'constructor'])]);
+        $result = (new HtmlDeriver(new DerivationPolicy(allowActiveContent: true)))->derive(new TaggedDocument('nested.pdf', [$outer]));
+        self::assertMatchesRegularExpression('/<input id="__proto__".*<input id="constructor"/', $result->html);
+        self::assertCount(1, $result->assets);
+        self::assertStringContainsString('\\u0022id\\u0022:\\u0022__proto__\\u0022', $result->assets[0]->bytes);
+        self::assertStringContainsString('\\u0022id\\u0022:\\u0022constructor\\u0022', $result->assets[0]->bytes);
+        self::assertStringNotContainsString('inner-original', $result->assets[0]->bytes);
+        self::assertStringNotContainsString('outer-original', $result->assets[0]->bytes);
+    }
+
+    public function testExplicitBindingsCannotAssignTheSameControlTwice(): void
+    {
+        $widget = new Widget(new FormField('shared', FieldType::Text));
+        $this->expectException(DerivationException::class);
+        (new ScriptDeriver())->derive(new TaggedDocument('duplicate.pdf', []), [$widget, $widget], [new WidgetBinding($widget, 'control'), new WidgetBinding($widget, 'control')]);
+    }
+
+    public function testExplicitBindingsCannotBeAssignedToAnotherWidget(): void
+    {
+        $widget = new Widget(new FormField('first', FieldType::Text));
+        $other = new Widget(new FormField('second', FieldType::Text));
+        $this->expectException(DerivationException::class);
+        (new ScriptDeriver())->derive(new TaggedDocument('mismatch.pdf', []), [$widget], [new WidgetBinding($other, 'control')]);
     }
 }

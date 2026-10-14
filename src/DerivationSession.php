@@ -28,6 +28,7 @@ use PDF\Html\Model\TextContent;
 use PDF\Html\Model\Widget;
 use PDF\Html\Script\ScriptDeriver;
 use PDF\Html\Script\ScriptAssetEmitter;
+use PDF\Html\Script\WidgetBinding;
 
 /** The mutable traversal state belongs to precisely one source document. */
 final class DerivationSession
@@ -49,6 +50,8 @@ final class DerivationSession
     private array $widgets = [];
     /** @var list<Widget> */
     private array $renderedWidgets = [];
+    /** @var list<WidgetBinding> */
+    private array $widgetBindings = [];
     /** @var list<HtmlNode> */
     private array $extraHead = [];
     private int $nodeCount = 0;
@@ -108,7 +111,7 @@ final class DerivationSession
         $this->safety->filter($body);
         if ($this->policy->allowActiveContent) {
             $scripts = new ScriptDeriver();
-            $script = $scripts->derive($this->document, $this->renderedWidgets);
+            $script = $scripts->derive($this->document, $this->renderedWidgets, $this->widgetBindings);
             foreach ($scripts->diagnostics as $message) {
                 $this->diagnostics[] = new Diagnostic('script-profile', $message);
             }
@@ -486,8 +489,9 @@ final class DerivationSession
                 $this->diagnostics[] = new Diagnostic('graphic-omitted', 'Content was omitted; provide ContentRenderer when it matters to this reuse application: ' . $source->instructions, $source->kind);
             }
         } elseif ($source instanceof Widget) {
-            $this->renderedWidgets[] = $source;
             $rendered = (new WidgetDeriver($this->appearanceRenderer))->derive($source, 'pdf-widget-' . $this->widgetIndex($source));
+            $this->renderedWidgets[] = $source;
+            $this->widgetBindings[] = new WidgetBinding($source, $rendered->field->attributes['id']);
             foreach ($rendered->diagnostics as $message) {
                 $this->diagnostics[] = new Diagnostic('widget-adaptation', $message);
             }
@@ -808,7 +812,6 @@ final class DerivationSession
     private function interactiveForm(StructureElement $source, Widget $widget, array $ancestors, ?string $kind, DerivedAttributes $derived): array
     {
         $id = $this->identifiers[$source->key];
-        $this->renderedWidgets[] = $widget;
         $rendering = (new WidgetDeriver($this->appearanceRenderer))->derive($widget, $id);
         $field = $rendering->field;
         foreach ($rendering->diagnostics as $message) {
@@ -822,6 +825,8 @@ final class DerivationSession
         $output = [];
         foreach ($source->children as $child) {
             if ($child === $widget) {
+                $this->renderedWidgets[] = $widget;
+                $this->widgetBindings[] = new WidgetBinding($widget, $field->attributes['id'] ?? $id);
                 array_push($output, ...$this->pageAnchor($widget->page));
                 array_push($output, ...$rendering->nodes);
             } else {

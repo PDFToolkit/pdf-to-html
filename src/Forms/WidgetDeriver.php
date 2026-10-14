@@ -15,8 +15,11 @@ use PDF\Html\Model\Widget;
      */
 final readonly class WidgetDeriver
 {
-    public function __construct(private ?AppearanceRenderer $appearanceRenderer = null, private string $formId = 'acroform_id')
+    private FormActionPolicy $formActions;
+
+    public function __construct(private ?AppearanceRenderer $appearanceRenderer = null, private string $formId = 'acroform_id', ?FormActionPolicy $formActions = null)
     {
+        $this->formActions = $formActions ?? new FormActionPolicy();
     }
     public function derive(Widget $widget, string $id): WidgetRendering
     {
@@ -24,22 +27,32 @@ final readonly class WidgetDeriver
         $diagnostics = [];
         $field = new Element('input', ['id' => $id, 'name' => $source->name, 'form' => $this->formId]);
         $siblings = [];
+        $reset = $source->resetFormAction();
+        $submit = $source->submitFormAction();
         if ($source->type === FieldType::Button && ($source->flags & 65536) !== 0 || $source->type === FieldType::Signature) {
             $field->tag = 'button';
             $field->attributes['type'] = 'button';
             if ($source->type === FieldType::Signature) {
                 $field->attributes['data-pdf-signature-status'] = $widget->signatureStatus ?? 'not-validated';
                 $diagnostics[] = 'A signature button reports PDF validation status only; the derived HTML is not signed.';
-            } elseif ($source->actionType === 'SubmitForm' && ($source->submitFlags & 4) !== 0) {
-                $field->attributes['type'] = 'submit';
-                if ($source->actionTarget !== null) {
-                    $field->attributes['formaction'] = $source->actionTarget;
+            } elseif ($submit !== null) {
+                $field->attributes['data-pdf-form-action'] = 'SubmitForm';
+                if ($submit->supportsHtmlSubmission() && $this->formActions->allowSubmit) {
+                    $field->attributes['type'] = 'submit';
+                    $field->attributes['formaction'] = $submit->target;
+                    $field->attributes['formmethod'] = ($submit->flags & 8) !== 0 ? 'get' : 'post';
+                    $field->attributes['formnovalidate'] = '';
+                } else {
+                    $diagnostics[] = $submit->supportsHtmlSubmission()
+                        ? 'PDF SubmitForm selection, NoExport and missing-value rules require the explicitly enabled library form-action runtime; this button is inert.'
+                        : 'SubmitForm export formats and flags outside HTML Form export cannot be represented by this reference mapping; provide an application export handler.';
                 }
-                $field->attributes['formmethod'] = ($source->submitFlags & 8) !== 0 ? 'get' : 'post';
-            } elseif ($source->actionType === 'ResetForm') {
-                $field->attributes['type'] = 'reset';
-                if ($source->actionTarget !== null) {
-                    $diagnostics[] = 'ResetForm selected-field restrictions require an application reset handler.';
+            } elseif ($reset !== null) {
+                $field->attributes['data-pdf-form-action'] = 'ResetForm';
+                if ($this->formActions->allowReset) {
+                    $field->attributes['type'] = 'reset';
+                } else {
+                    $diagnostics[] = 'PDF ResetForm uses /DV and a /Fields selection, which native HTML reset cannot preserve; enable the library form-action runtime. This button is inert.';
                 }
             } elseif ($source->actionType !== null) {
                 $diagnostics[] = 'Button action '.$source->actionType.' needs an application action handler.';
@@ -114,11 +127,16 @@ final readonly class WidgetDeriver
                 if ($value !== '') {
                     $diagnostics[] = 'A file input cannot be prefilled by HTML; its PDF value was omitted.';
                 }
+                if ($source->defaultValue !== null) {
+                    $diagnostics[] = 'A browser cannot restore a PDF FileSelect /DV path; reset clears the user-selected file and never reads a local path.';
+                }
             } else {
                 $field->attributes['value'] = $value;
             }
             if ($source->maximumLength !== null && !$file) {
                 $field->attributes['maxlength'] = (string) $source->maximumLength;
+            } elseif ($source->maximumLength !== null) {
+                $diagnostics[] = 'HTML file input has no maxlength attribute; the PDF FileSelect MaxLen was omitted.';
             }
             $field->attributes['spellcheck'] = ($source->flags & 4194304) !== 0 ? 'false' : 'true';
         }
@@ -138,6 +156,8 @@ final readonly class WidgetDeriver
         }
         if (($source->flags & 2) !== 0 && $field->tag !== 'button') {
             $field->attributes['required'] = '';
+        } elseif (($source->flags & 2) !== 0) {
+            $diagnostics[] = 'HTML button has no required attribute; the PDF field flag does not create an invalid HTML attribute.';
         }
         $attributes = new AttributeDeriver();
         $css = [];

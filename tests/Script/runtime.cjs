@@ -121,4 +121,126 @@ vm.runInNewContext(missingBoundSource,{
 },{timeout:1000});
 assert.deepEqual(Object.keys(unmatched.handlers),[]);
 assert.equal(unmatched.value,"unrelated");
-console.log("PASS document-scoped scripts, exact HTML widget bindings, nested and legacy actions, shared values, validation, calculations, reset, readonly and prototype field names");
+const actionOutput=JSON.parse(execFileSync(process.env.PDF_RUNTIME_TEST_PHP ?? "php",[path.join(__dirname,"runtime-fixture.php"),"--form-actions"],{encoding:"utf8"}));
+assert.equal(actionOutput.script.includes("disabled-document-script"),false);
+function actionControl(source) {
+ const attributes=source.attributes;
+ const control=new Control(attributes.name,attributes.value ?? "",attributes.type ?? "");
+ Object.assign(control,{id:attributes.id,tagName:source.tag.toUpperCase(),multiple:Object.hasOwn(attributes,"multiple"),disabled:false,required:Object.hasOwn(attributes,"required")});
+ control.options=source.options.map(option=>({...option,selected:false}));
+ Object.defineProperty(control,"selectedOptions",{get(){return this.options.filter(option=>option.selected);}});
+ control.getAttribute=name=>attributes[name] ?? null;
+ control.getBoundingClientRect=()=>({left:10,top:20,width:200,height:40});
+ return control;
+}
+const actionControls=actionOutput.controls.map(actionControl);
+const unrelatedActionControl=new Control("Person.Name","foreign"); unrelatedActionControl.id="unbound-action-control";
+const actionById=new Map(actionControls.map(control=>[control.id,control]));
+const actionByName=new Map(actionControls.map(control=>[control.name,control]));
+const actionRoot={elements:[unrelatedActionControl,...actionControls],handlers:{},addEventListener(type,handler){this.handlers[type]=handler;}};
+actionControls.forEach(control=>{control.form=actionRoot;});
+const actionDocument={
+ readyState:"complete",
+ querySelector:()=>actionRoot,
+ defaultView:{alert:()=>{throw new Error("No PDF source script may execute in this profile");},addEventListener:()=>{}},
+ getElementById:id=>actionById.get(id) ?? null
+};
+vm.runInNewContext(actionOutput.script,{document:actionDocument},{timeout:1000});
+function clickAction(name,details={}) {
+ let prevented=false;
+ actionByName.get(name).handlers.click[0]({preventDefault(){prevented=true;},detail:1,...details});
+ return prevented;
+}
+actionByName.get("Person.Name").change("User value");
+assert.equal(clickAction("ResetNone"),true);
+assert.equal(actionByName.get("Person.Name").value,"User value");
+assert.equal(clickAction("ResetPerson"),true);
+assert.equal(actionByName.get("Person.Name").value,"Ada");
+assert.equal(actionByName.get("Person.Address.City").value,"Paris");
+assert.equal(actionByName.get("Person.NoDefault").value,"");
+assert.equal(actionByName.get("Person.Secret").value,"Private default");
+assert.equal(actionByName.get("Personality.Name").value,"Unrelated current");
+assert.equal(unrelatedActionControl.value,"foreign");
+clickAction("ResetExcluded");
+assert.equal(actionByName.get("Personality.Name").value,"Unrelated default");
+const multipleChoice=actionByName.get("Choice.Several");
+assert.deepEqual(multipleChoice.selectedOptions.map(option=>option.value),["BE","DE"]);
+assert.deepEqual(actionByName.get("Choice.NoDefault").selectedOptions,[]);
+assert.equal(actionByName.get("Choice.NoDefault").selectedIndex,-1);
+multipleChoice.options.forEach(option=>{option.selected=option.value==="FR";});
+multipleChoice.change("");
+clickAction("ResetExcluded");
+assert.deepEqual(multipleChoice.selectedOptions.map(option=>option.value),["BE","DE"]);
+actionByName.get("Person.Name").change("Changed again");
+clickAction("ResetAll");
+assert.equal(actionByName.get("Person.Name").value,"Ada");
+function submitAction(name,details={}) {
+ clickAction(name,details);
+ let prevented=false;
+ actionRoot.handlers.submit({submitter:actionByName.get(name),preventDefault(){prevented=true;}});
+ const data=new FormData();
+ data.append("Person.Name","foreign"); data.append("unrelated-payload","must not leak");
+ if (!prevented) actionRoot.handlers.formdata({formData:data});
+ return {prevented,entries:Array.from(data.entries())};
+}
+assert.deepEqual(submitAction("SubmitPerson"),{prevented:false,entries:[["customer_name","Ada"],["Person.Address.City","Paris"]]});
+assert.deepEqual(submitAction("SubmitExcluded").entries,[["Personality.Name","Unrelated default"],["Choice.Several","BE"],["Choice.Several","DE"]]);
+assert.deepEqual(submitAction("SubmitAll").entries,[["customer_name","Ada"],["Person.Address.City","Paris"],["Person.NoDefault",""],["Person.Empty",""],["Personality.Name","Unrelated default"],["Choice.Several","BE"],["Choice.Several","DE"],["Choice.NoDefault",""]]);
+assert.deepEqual(submitAction("SubmitNone").entries,[]);
+assert.deepEqual(submitAction("SubmitCoordinates",{clientX:110,clientY:40}).entries,[["x","50"],["y","10"]]);
+actionByName.get("Person.Secret").required=true;
+actionByName.get("Person.Secret").checkValidity=()=>false;
+actionByName.get("Personality.Name").required=true;
+actionByName.get("Personality.Name").checkValidity=()=>false;
+assert.equal(submitAction("SubmitPerson").prevented,false);
+actionByName.get("Person.Name").required=true;
+actionByName.get("Person.Name").checkValidity=()=>false;
+assert.equal(submitAction("SubmitPerson").prevented,true);
+actionByName.get("Person.Name").required=false;
+actionByName.get("SubmitPerson").getAttribute=()=>null;
+assert.equal(submitAction("SubmitPerson").prevented,true);
+const ownedControls=actionOutput.controls.map(actionControl);
+const ownedByName=new Map(ownedControls.map(control=>[control.name,control]));
+const ownedById=new Map(ownedControls.map(control=>[control.id,control]));
+const primaryOwner={elements:[],handlers:{},addEventListener(type,handler){this.handlers[type]=handler;}};
+const explicitOwner={elements:[],handlers:{},addEventListener(type,handler){this.handlers[type]=handler;}};
+ownedControls.forEach(control=>{control.form=primaryOwner;});
+ownedByName.get("Person.Name").form=explicitOwner;
+ownedByName.get("SubmitPerson").form=explicitOwner;
+vm.runInNewContext(actionOutput.script,{document:{...actionDocument,querySelector:()=>primaryOwner,getElementById:id=>ownedById.get(id) ?? null}},{timeout:1000});
+ownedByName.get("SubmitPerson").handlers.click[0]({preventDefault(){},detail:0});
+explicitOwner.handlers.submit({submitter:ownedByName.get("SubmitPerson"),preventDefault(){throw new Error("Valid alternate owner submission was blocked");}});
+const ownedData=new FormData();
+ownedData.append("Person.Secret","must not leak"); ownedData.append("Person.Address.City","wrong form");
+explicitOwner.handlers.formdata({formData:ownedData});
+assert.deepEqual(Array.from(ownedData.entries()),[["customer_name","Current name"]]);
+const pageSource=execFileSync(process.env.PDF_RUNTIME_TEST_PHP ?? "php",[path.join(__dirname,"runtime-fixture.php"),"--page-lifecycle"],{encoding:"utf8"});
+const pageAlerts=[];
+const anchors=new Map([1,3].map(number=>["PDF-Page-"+number,{id:"PDF-Page-"+number}]));
+let observePages,unloadPages;
+vm.runInNewContext(pageSource,{
+ document:{
+  readyState:"complete",querySelector:()=>null,getElementById:id=>anchors.get(id),
+  defaultView:{
+   alert:value=>pageAlerts.push(value),
+   IntersectionObserver:class {constructor(callback){observePages=callback;} observe(){}},
+   addEventListener(type,handler){if(type==="beforeunload") unloadPages=handler;}
+  }
+ }
+},{timeout:1000});
+observePages([{target:anchors.get("PDF-Page-1"),isIntersecting:true}]);
+observePages([{target:anchors.get("PDF-Page-1"),isIntersecting:true}]);
+observePages([{target:anchors.get("PDF-Page-3"),isIntersecting:true}]);
+observePages([{target:anchors.get("PDF-Page-1"),isIntersecting:false}]);
+observePages([{target:anchors.get("PDF-Page-1"),isIntersecting:false}]);
+unloadPages();
+assert.deepEqual(pageAlerts,["open:0:PageOpen:true","open:2:PageOpen:true","close:0:PageClose:true","close:2:PageClose:true"]);
+const formatSource=execFileSync(process.env.PDF_RUNTIME_TEST_PHP ?? "php",[path.join(__dirname,"runtime-fixture.php"),"--format-values"],{encoding:"utf8"});
+const rawFormatted=new Control("raw"), rawInspection=new Control("inspect");
+vm.runInNewContext(formatSource,{document:{...document,querySelector:()=>({elements:[rawFormatted,rawInspection],addEventListener:()=>{}})}},{timeout:1000});
+assert.equal(rawFormatted.value,"$10");
+assert.equal(rawInspection.value,"10:10");
+rawFormatted.change("12");
+assert.equal(rawFormatted.value,"$12");
+assert.equal(rawInspection.value,"12:12");
+console.log("PASS document scripts and page lifecycle, exact bindings, targeted reset/defaults, opt-in submission, raw/formatted values, validation, readonly and prototype names");

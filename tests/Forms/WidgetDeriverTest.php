@@ -6,6 +6,7 @@ namespace PDF\Html\Tests\Forms;
 
 use PDF\Html\Forms\ChoiceOption;
 use PDF\Html\Forms\FieldType;
+use PDF\Html\Forms\FormActionPolicy;
 use PDF\Html\Forms\WidgetDeriver;
 use PDF\Html\Model\FormField;
 use PDF\Html\Model\Widget;
@@ -19,7 +20,7 @@ final class WidgetDeriverTest extends TestCase
     }
     public function testSubmitResetAndSignatureDoNotInventValidation(): void
     {
-        $deriver = new WidgetDeriver();
+        $deriver = new WidgetDeriver(formActions: new FormActionPolicy(true, true));
         $submit = $deriver->derive($this->widget(new FormField('send', FieldType::Button, 65536, actionType:'SubmitForm', actionTarget:'https://example.test/send', submitFlags:12)), 'send')->field;
         self::assertSame('button', $submit->tag);
         self::assertSame('submit', $submit->attributes['type']);
@@ -118,7 +119,7 @@ final class WidgetDeriverTest extends TestCase
             new FormField('signature', FieldType::Signature, 1),
             new FormField('file', FieldType::Text, 1048577),
         ] as $source) {
-            $rendering = (new WidgetDeriver())->derive($this->widget($source), $source->name);
+            $rendering = (new WidgetDeriver(formActions: new FormActionPolicy(true, true)))->derive($this->widget($source), $source->name);
             self::assertSame('true', $rendering->field->attributes['data-pdf-readonly'], $source->name);
             self::assertSame($source->name, $rendering->field->attributes['name']);
             self::assertArrayNotHasKey('aria-readonly', $rendering->field->attributes, $source->name);

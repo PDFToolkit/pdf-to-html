@@ -5,6 +5,11 @@ declare(strict_types=1);
 require dirname(__DIR__).'/Attributes/standalone-bootstrap.php';
 
 use PDF\Html\Forms\FieldType;
+use PDF\Html\Forms\ChoiceOption;
+use PDF\Html\Forms\FormActionPolicy;
+use PDF\Html\Forms\ResetFormAction;
+use PDF\Html\Forms\SubmitFormAction;
+use PDF\Html\Forms\WidgetDeriver;
 use PDF\Html\DerivationPolicy;
 use PDF\Html\HtmlDeriver;
 use PDF\Html\Model\AttributeObject;
@@ -16,6 +21,56 @@ use PDF\Html\Model\TextContent;
 use PDF\Html\Model\Widget;
 use PDF\Html\Script\ScriptDeriver;
 use PDF\Html\Script\WidgetBinding;
+
+if (($argv[1] ?? '') === '--form-actions') {
+    $fields = [
+        new FormField('Person.Name', FieldType::Text, value: 'Current name', defaultValue: 'Ada', mappingName: 'customer_name'),
+        new FormField('Person.Address.City', FieldType::Text, value: 'Current city', defaultValue: 'Paris'),
+        new FormField('Person.NoDefault', FieldType::Text, value: 'Present'),
+        new FormField('Person.Empty', FieldType::Text),
+        new FormField('Person.Secret', FieldType::Text, 4, value: 'Private', defaultValue: 'Private default'),
+        new FormField('Personality.Name', FieldType::Text, value: 'Unrelated current', defaultValue: 'Unrelated default'),
+        new FormField('Choice.Several', FieldType::Choice, 2097152, value: ['FR'], options: [new ChoiceOption('FR', 'France'), new ChoiceOption('BE', 'Belgium'), new ChoiceOption('DE', 'Germany')], defaultValue: ['BE', 'DE']),
+        new FormField('Choice.NoDefault', FieldType::Choice, 131072, value: 'FR', options: [new ChoiceOption('FR', 'France'), new ChoiceOption('BE', 'Belgium')]),
+        new FormField('ResetPerson', FieldType::Button, 65536, resetAction: new ResetFormAction(['Person'])),
+        new FormField('ResetExcluded', FieldType::Button, 65536, resetAction: new ResetFormAction(['Person'], true)),
+        new FormField('ResetNone', FieldType::Button, 65536, resetAction: new ResetFormAction([])),
+        new FormField('ResetAll', FieldType::Button, 65536, resetAction: new ResetFormAction(null, true)),
+        new FormField('SubmitPerson', FieldType::Button, 65536, submitAction: new SubmitFormAction('https://example.test/submit', 4, ['Person'])),
+        new FormField('SubmitExcluded', FieldType::Button, 65536, submitAction: new SubmitFormAction('https://example.test/submit', 5, ['Person'])),
+        new FormField('SubmitAll', FieldType::Button, 65536, submitAction: new SubmitFormAction('https://example.test/submit', 6)),
+        new FormField('SubmitNone', FieldType::Button, 65536, submitAction: new SubmitFormAction('https://example.test/submit', 4, [])),
+        new FormField('SubmitCoordinates', FieldType::Button, 65536, submitAction: new SubmitFormAction('https://example.test/submit', 20, []), mappingName: ' '),
+    ];
+    $policy = new FormActionPolicy(true, true);
+    $widgets = [];
+    $bindings = [];
+    $controls = [];
+    foreach ($fields as $index => $field) {
+        $widget = new Widget($field, page: 1, rectangle: [0, 0, 100, 20]);
+        $id = 'action-field-' . $index;
+        $rendering = (new WidgetDeriver(formActions: $policy))->derive($widget, $id);
+        $widgets[] = $widget;
+        $bindings[] = new WidgetBinding($widget, $id);
+        $controls[] = ['tag' => $rendering->field->tag, 'attributes' => $rendering->field->attributes, 'options' => array_map(static fn ($option): array => ['value' => $option->exportValue, 'text' => $option->displayValue], $field->options)];
+    }
+    $document = new TaggedDocument('actions.pdf', [], documentScripts: ['throw new Error("disabled-document-script");']);
+    echo json_encode(['script' => (new ScriptDeriver(false, $policy))->derive($document, $widgets, $bindings), 'controls' => $controls], JSON_THROW_ON_ERROR);
+    exit;
+}
+
+if (($argv[1] ?? '') === '--page-lifecycle') {
+    $document = new TaggedDocument('pages.pdf', [], documentScripts: ['function pageMessage(kind, event) { app.alert(kind + ":" + this.pageNum + ":" + event.name + ":" + (this === app.activeDocs[0])); }'], pageScripts: [1 => ['O' => 'pageMessage.call(this, "open", event);', 'C' => 'pageMessage.call(this, "close", event);'], 3 => ['O' => 'pageMessage.call(this, "open", event);', 'C' => 'pageMessage.call(this, "close", event);']], pageLabels: [1 => '1', 3 => '3']);
+    echo (new ScriptDeriver())->derive($document, []);
+    exit;
+}
+
+if (($argv[1] ?? '') === '--format-values') {
+    $field = new FormField('raw', FieldType::Text, value: '10', actions: ['F' => 'event.value = "$" + event.value;']);
+    $inspect = new FormField('inspect', FieldType::Text, actions: ['C' => 'event.value = this.getField("raw").value + ":" + this.getField("raw").valueAsString;']);
+    echo (new ScriptDeriver())->derive(new TaggedDocument('formatted.pdf', []), [new Widget($field), new Widget($inspect)]);
+    exit;
+}
 
 if (($argv[1] ?? '') === '--bound-widget-actions') {
     $field = new FormField('shared-bound', FieldType::Text, value: 'initial');
@@ -54,11 +109,11 @@ if (($argv[1] ?? '') === '--widget-actions') {
     exit;
 }
 
-$amount = new FormField('amount', FieldType::Text, value:'1', actions:['V' => 'event.rc = Number(event.value) >= 0;']);
+$amount = new FormField('amount', FieldType::Text, value:'1', actions:['V' => 'event.rc = Number(event.value) >= 0;'], defaultValue:'1');
 $total = new FormField('total', FieldType::Text, value:'0', actions:['C' => 'event.value = doubleAmount(this.getField("amount").value);', 'F' => 'event.value = "$" + event.value;']);
 $document = new TaggedDocument('runtime.pdf', [], documentScripts:[
     'var sharedSeed = 3; var methods = "a document variable"; function doubleAmount(value) { return Number(value) * 2; } this.getField("amount").value = "4";',
     'sharedSeed += 2; this.getField("shared").value = sharedSeed; this.getField("context").value = String(app.activeDocs[0] === this && methods === "a document variable");',
 ], pageScripts:[1 => ['O' => 'this.getField("shared").value = sharedSeed + 1;']], pageLabels:[1 => '1']);
 
-echo (new ScriptDeriver())->derive($document, [new Widget($amount), new Widget($amount), new Widget($total), new Widget(new FormField('__proto__', FieldType::Text, value:'safe')), new Widget(new FormField('locked', FieldType::Choice, 1, value:'FR')), new Widget(new FormField('shared', FieldType::Text, value:'0')), new Widget(new FormField('context', FieldType::Text, value:'unset'))]);
+echo (new ScriptDeriver(formActions: new FormActionPolicy(true)))->derive($document, [new Widget($amount), new Widget($amount), new Widget($total), new Widget(new FormField('__proto__', FieldType::Text, value:'safe')), new Widget(new FormField('locked', FieldType::Choice, 1, value:'FR')), new Widget(new FormField('shared', FieldType::Text, value:'0')), new Widget(new FormField('context', FieldType::Text, value:'unset'))]);

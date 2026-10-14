@@ -37,10 +37,22 @@ final class ContentReader
     private array $paintedImages = [];
     /** @var array<string, true> */
     private array $ambiguousImages = [];
+    /** @var array<string, array<int, true>> */
+    private array $replacedContent = [];
     private FontTextDecoder $fonts;
     public function __construct(private readonly SourceValues $values)
     {
         $this->fonts = new FontTextDecoder($values);
+    }
+
+    /** Register replacements before interpreting any shared page or Form content. */
+    public function replaceMarked(ReadPage $page, int $number, ?EncodedStream $stream = null): void
+    {
+        $key = $stream === null ? $this->pageKey($page) : $this->streamKey($page, $stream);
+        if (isset($this->complete[$key])) {
+            throw new \LogicException('Register replaced content before interpreting its container.');
+        }
+        $this->replacedContent[$key][$number] = true;
     }
 
     public function marked(ReadPage $page, int $number, ?EncodedStream $stream = null): MarkedContent
@@ -210,7 +222,8 @@ final class ContentReader
                     throw new ReadingException('A marked-content identifier must be a nonnegative integer.');
                 }
                 $this->values->budget->depth($depth + count($frames));
-                $frames[] = new MarkedContentFrame($id instanceof IntegerType ? $id->integer() : null, $properties instanceof DictionaryType ? $this->values->properties($properties) : new StructureProperties(), $frame->artifact || $tag->value === 'Artifact');
+                $properties = $properties instanceof DictionaryType ? $this->values->properties($properties) : new StructureProperties();
+                $frames[] = new MarkedContentFrame($id instanceof IntegerType ? $id->integer() : null, $properties, $frame->artifact || $tag->value === 'Artifact', $frame->suppressContent || $properties->actualText !== null || ($id instanceof IntegerType && isset($this->replacedContent[$key][$id->integer()])));
             } elseif ($operator === 'EMC') {
                 if (count($frames) === 1) {
                     throw new ReadingException('An EMC has no open marked-content sequence.');
@@ -265,7 +278,7 @@ final class ContentReader
                 if (!$textObject || $font === null) {
                     throw new ReadingException('Text showing requires an active text object and font.');
                 }
-                if ($frame->artifact || $frame->properties->actualText !== null) {
+                if ($frame->artifact || $frame->suppressContent) {
                     continue;
                 }
                 $shown = $operands[array_key_last($operands)] ?? null;
@@ -294,6 +307,9 @@ final class ContentReader
                 if (!$object instanceof EncodedStream) {
                     throw new ReadingException('A Do operator requires an existing XObject stream.');
                 }
+                if ($frame->suppressContent || $frame->artifact) {
+                    continue;
+                }
                 $subtype = $this->values->name($object->dictionary()->get('Subtype'));
                 $this->values->budget->consume('nodes');
                 if ($subtype === 'Form') {
@@ -304,6 +320,9 @@ final class ContentReader
                     $frame->children[] = new GraphicContent('unsupported-xobject', $subtype ?? 'missing subtype', page: $number);
                 }
             } elseif (in_array($operator, ['S', 's', 'f', 'F', 'f*', 'B', 'B*', 'b', 'b*', 'sh'], true)) {
+                if ($frame->suppressContent || $frame->artifact) {
+                    continue;
+                }
                 $this->values->budget->consume('nodes');
                 $frame->children[] = new GraphicContent($operator === 'sh' ? 'shading' : 'path', $operator, page: $number);
             } elseif (!in_array($operator, ['m', 'l', 'c', 'v', 'y', 'h', 're', 'W', 'W*', 'n', 'cm', 'w', 'J', 'j', 'M', 'd', 'ri', 'i', 'gs', 'CS', 'cs', 'SC', 'SCN', 'sc', 'scn', 'G', 'g', 'RG', 'rg', 'K', 'k', 'Tc', 'Tw', 'Tz', 'TL', 'Tr', 'Ts', 'Td', 'TD', 'Tm', 'T*', 'MP', 'DP', 'BX', 'EX', 'd0', 'd1'], true)) {

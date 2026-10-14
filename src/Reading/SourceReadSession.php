@@ -78,6 +78,10 @@ final class SourceReadSession
         if ($root === null) {
             throw new ReadingException('HTML derivation requires a tagged PDF structure tree.');
         }
+        // A page is interpreted once for all its MCIDs. Discover structure replacements
+        // first so another element on that page cannot force decoding ignored content.
+        $replacementElements = [];
+        $this->replacements($root->get('K'), null, false, 1, $replacementElements);
         $roles = $this->values->dictionary($root->get('RoleMap'));
         foreach ($roles?->entries() ?? [] as $entry) {
             $this->values->budget->consume('nodes');
@@ -144,7 +148,40 @@ final class SourceReadSession
         }
         return new TaggedDocument($filename, $structure, $this->values->text($catalog->get('Lang')), $this->metadata->title($catalog), $classes, $this->roles, $this->metadata->associatedFiles($catalog), $catalog->get('AcroForm') !== null, null, $this->metadata->pageLabels($catalog, count($tree)), $scripts, $pageScripts, $this->values->budget->diagnostics);
     }
-    private function element(BasicType $source, DictionaryType $dictionary, DictionaryType $parent, ?ReadPage $page, int $depth): StructureElement
+
+    /**
+     * ActualText replaces every descendant content item (4.3.6.3, physical pages 40–41).
+     * This pass preserves graph validation and never interprets replacement glyphs/assets.
+     * @param array<int, true> $seen
+     */
+    private function replacements(?BasicType $children, ?ReadPage $page, bool $replaced, int $depth, array &$seen): void
+    {
+        $this->values->budget->depth($depth);
+        foreach ($this->values->items($children) as $child) {
+            $this->values->budget->consume('nodes');
+            $child = $this->values->document->resolve($child);
+            if ($child instanceof DictionaryType && $child->get('S') !== null) {
+                $identity = spl_object_id($child);
+                if (isset($seen[$identity])) {
+                    throw new ReadingException('The structure graph contains a repeated element or cycle.');
+                }
+                $seen[$identity] = true;
+                $childPage = $child->get('Pg') === null ? $page : $this->page($child->get('Pg'));
+                $replacement = $this->values->value($child, 'ActualText') instanceof StringType;
+                $this->replacements($child->get('K'), $childPage, $replaced || $replacement, $depth + 1, $seen);
+            } elseif ($replaced && $child instanceof IntegerType && $child->integer() >= 0 && $page !== null) {
+                $this->content->replaceMarked($page, $child->integer());
+            } elseif ($replaced && $child instanceof DictionaryType && $this->values->name($child->get('Type')) === 'MCR') {
+                $contentPage = $child->get('Pg') === null ? $page : $this->page($child->get('Pg'));
+                $id = $this->values->value($child, 'MCID');
+                $stream = $this->values->value($child, 'Stm');
+                if ($contentPage !== null && $id instanceof IntegerType && $id->integer() >= 0 && ($stream === null || $stream instanceof EncodedStream)) {
+                    $this->content->replaceMarked($contentPage, $id->integer(), $stream);
+                }
+            }
+        }
+    }
+    private function element(BasicType $source, DictionaryType $dictionary, DictionaryType $parent, ?ReadPage $page, int $depth, bool $replaced = false): StructureElement
     {
         $this->values->budget->depth($depth);
         $this->values->budget->consume('nodes');
@@ -161,6 +198,7 @@ final class SourceReadSession
             throw new ReadingException('A structure element requires its S type name.');
         }
         $page = $dictionary->get('Pg') !== null ? $this->page($dictionary->get('Pg')) : $page;
+        $replaced = $replaced || $this->values->value($dictionary, 'ActualText') instanceof StringType;
         [$namespace, $namespaceIdentity] = $this->namespace($dictionary->get('NS'), $depth + 1);
         $children = [];
         foreach ($this->values->items($dictionary->get('K')) as $kid) {
@@ -174,7 +212,7 @@ final class SourceReadSession
                 }
                 $children[] = $this->content->marked($page, $resolved->integer());
             } elseif ($resolved instanceof DictionaryType && $resolved->get('S') !== null) {
-                $children[] = $this->element($kid, $resolved, $dictionary, $page, $depth + 1);
+                $children[] = $this->element($kid, $resolved, $dictionary, $page, $depth + 1, $replaced);
             } elseif ($resolved instanceof DictionaryType && $this->values->name($resolved->get('Type')) === 'MCR') {
                 $contentPage = $resolved->get('Pg') === null ? $page : $this->page($resolved->get('Pg'));
                 $id = $this->values->value($resolved, 'MCID');
@@ -189,7 +227,7 @@ final class SourceReadSession
                 if ($object === null) {
                     throw new ReadingException('An OBJR requires its Obj reference.');
                 }
-                $children[] = $this->object($object, $objectPage, $depth + 1);
+                $children[] = $this->object($object, $objectPage, $depth + 1, $replaced);
             } else {
                 throw new ReadingException('A structure child is neither an element, marked-content reference nor object reference.');
             }
@@ -276,10 +314,17 @@ final class SourceReadSession
         }
         return $this->pages[$this->values->key($source)] ?? throw new ReadingException('A content reference points outside the validated source page tree.');
     }
-    private function object(BasicType $source, ?ReadPage $page, int $depth): SourceNode
+    private function object(BasicType $source, ?ReadPage $page, int $depth, bool $replaced = false): SourceNode
     {
         $this->values->budget->depth($depth);
         $object = $this->values->document->resolve($source);
+        if ($replaced) {
+            if (!$object instanceof EncodedStream && !$object instanceof DictionaryType) {
+                throw new ReadingException('An object reference does not resolve to an annotation or XObject.');
+            }
+            $page ??= $object instanceof DictionaryType ? $this->annotationPages[spl_object_id($object)] ?? null : null;
+            return new ContentGroup([], $page === null ? null : $this->number($page));
+        }
         if ($object instanceof EncodedStream) {
             if ($page === null) {
                 throw new ReadingException('An object-reference XObject requires a source page.');

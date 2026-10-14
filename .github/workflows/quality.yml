@@ -38,6 +38,19 @@ jobs:
       - run: python -m pip install --require-hashes -r tools/validation-requirements.txt
       - run: python tools/validate_reference.py
       - run: python tools/build_reading_fixture.py --check
+      - run: python tools/build_glyph_list.py --check
+      - run: python tools/build_inline_fixture.py --check
+      - run: python tools/build_inline_fax_fixture.py --check
+      - name: Validate inline images with independent PDF, HTML5 and pixel parsers
+        run: python tools/validate_inline_derivation.py --php php
+      - name: Install the independent graphics rendering oracle
+        run: sudo apt-get update && sudo apt-get install --yes poppler-utils
+      - name: Validate isolated graphics with pypdf and Poppler
+        run: python tools/validate_graphics.py --php php
+      - name: Compare exported graphics contexts against independent Poppler oracles
+        run: python tools/validate_graphics_context.py --php php
+      - name: Validate CCITT inline boundaries with independent libtiff payloads and Poppler
+        run: python tools/validate_inline_fax.py --php php
       - name: Validate actual derivation with independent PDF and HTML5 parsers
         run: python tools/validate_derivation.py --php php
       - name: Validate the opt-in field runtime with Node
@@ -45,5 +58,13 @@ jobs:
           php tests/Script/runtime-fixture.php > "$RUNNER_TEMP/pdf-html-runtime.js"
           node --check "$RUNNER_TEMP/pdf-html-runtime.js"
           node tests/Script/runtime.cjs "$RUNNER_TEMP/pdf-html-runtime.js"
+      - name: Validate actual content parents and field expansion with HTML5 parsing
+        run: |
+          php tests/export-page-identifiers.php > "$RUNNER_TEMP/page-identifiers.json"
+          python tools/validate_page_identifiers.py "$RUNNER_TEMP/page-identifiers.json"
       - name: Execute the documented conversion
         run: php examples/01-derive-tagged-pdf.php
+      - name: Execute the documented graphics and safe form examples
+        run: |
+          php examples/02-export-figure.php tests/Fixtures/tagged.pdf "$RUNNER_TEMP/figure.pdf"
+          php examples/03-safe-form-reset.php "$RUNNER_TEMP/safe-reset.html"

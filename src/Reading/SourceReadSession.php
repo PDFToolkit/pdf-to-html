@@ -6,11 +6,18 @@ namespace PDF\Html\Reading;
 
 use PDF\Html\Forms\ChoiceOption;
 use PDF\Html\Forms\FieldType;
+use PDF\Html\Forms\ResetFormAction;
+use PDF\Html\Forms\SubmitFormAction;
+use PDF\Html\AssociatedFileSelection;
+use PDF\Html\RoleResolver;
 use PDF\Html\Model\AttributeObject;
 use PDF\Html\Model\ContentGroup;
 use PDF\Html\Model\FormField;
 use PDF\Html\Model\GraphicContent;
 use PDF\Html\Model\LinkAnnotation;
+use PDF\Html\Model\MarkedContent;
+use PDF\Html\Model\AssociatedFile;
+use PDF\Html\Model\StructureProperties;
 use PDF\Html\Model\RoleMapping;
 use PDF\Html\Model\SourceNode;
 use PDF\Html\Model\StructureElement;
@@ -20,6 +27,7 @@ use PDF\Reading\EncodedStream;
 use PDF\Reading\PageTreeLimits;
 use PDF\Reading\PageTreeReader;
 use PDF\Reading\ReadPage;
+use PDF\Document\Navigation\DestinationView;
 use PDF\Syntax\FileStructure\BasicType;
 use PDF\Syntax\Object\ArrayType;
 use PDF\Syntax\Object\DictionaryType;
@@ -33,12 +41,15 @@ final class SourceReadSession
 {
     private ContentReader $content;
     private DocumentMetadataReader $metadata;
+    private ParentTreeValidator $inverse;
     /** @var array<string, ReadPage> */
     private array $pages = [];
     /** @var array<int, int> */
     private array $pageNumbers = [];
     /** @var array<int, true> */
     private array $seenElements = [];
+    /** @var array<int, true> */
+    private array $knownStructures = [];
     /** @var array<int, true> */
     private array $seenNamespaces = [];
     /** @var list<RoleMapping> */
@@ -49,10 +60,13 @@ final class SourceReadSession
     private array $nameDestinations = [];
     /** @var array<int, ReadPage> */
     private array $annotationPages = [];
-    public function __construct(private readonly SourceValues $values)
+    /** @var array<int, list<AssociatedFile>> */
+    private array $associated = [];
+    public function __construct(private readonly SourceValues $values, private readonly AssociatedFileSelection $selection = new AssociatedFileSelection(), StructureValidationMode $structureValidation = StructureValidationMode::Permissive, ?InlineImageBoundaryProvider $inlineImages = null)
     {
-        $this->content = new ContentReader($values);
+        $this->content = new ContentReader($values, $inlineImages);
         $this->metadata = new DocumentMetadataReader($values);
+        $this->inverse = new ParentTreeValidator($values, $structureValidation);
     }
     public function read(string $filename): TaggedDocument
     {
@@ -78,10 +92,6 @@ final class SourceReadSession
         if ($root === null) {
             throw new ReadingException('HTML derivation requires a tagged PDF structure tree.');
         }
-        // A page is interpreted once for all its MCIDs. Discover structure replacements
-        // first so another element on that page cannot force decoding ignored content.
-        $replacementElements = [];
-        $this->replacements($root->get('K'), null, false, 1, $replacementElements);
         $roles = $this->values->dictionary($root->get('RoleMap'));
         foreach ($roles?->entries() ?? [] as $entry) {
             $this->values->budget->consume('nodes');
@@ -99,6 +109,11 @@ final class SourceReadSession
         foreach ($classMap?->entries() ?? [] as $entry) {
             $classes[$entry->key->value] = $this->attributes($entry->value);
         }
+        // Discover every replacement before any shared page is interpreted.
+        // Association decisions use the same explicit policy as HTML derivation.
+        $replacementElements = [];
+        $this->replacements($root->get('K'), null, false, 1, $replacementElements);
+        $this->knownStructures = $replacementElements;
         $names = $this->values->dictionary($catalog->get('Names'));
         foreach ($this->metadata->tree($names?->get('Dests'), 'Names') as [$name, $target]) {
             $name = $this->values->document->resolve($name);
@@ -128,6 +143,7 @@ final class SourceReadSession
         if ($structure === []) {
             throw new ReadingException('The tagged PDF has no derivable structure elements.');
         }
+        $this->inverse->validate($root);
         $scripts = [];
         foreach ($this->metadata->tree($names?->get('JavaScript'), 'Names') as [, $action]) {
             $script = $this->metadata->script($action);
@@ -146,7 +162,7 @@ final class SourceReadSession
         foreach ($tree as $index => $page) {
             $pageScripts[$index + 1] = $this->metadata->additionalScripts($page->dictionary);
         }
-        return new TaggedDocument($filename, $structure, $this->values->text($catalog->get('Lang')), $this->metadata->title($catalog), $classes, $this->roles, $this->metadata->associatedFiles($catalog), $catalog->get('AcroForm') !== null, null, $this->metadata->pageLabels($catalog, count($tree)), $scripts, $pageScripts, $this->values->budget->diagnostics);
+        return new TaggedDocument($filename, $structure, $this->values->text($catalog->get('Lang')), $this->metadata->title($catalog), $classes, $this->roles, $this->metadata->associatedFiles($catalog, $this->selection, catalog: true), $catalog->get('AcroForm') !== null, null, $this->metadata->pageLabels($catalog, count($tree)), $scripts, $pageScripts, $this->values->budget->diagnostics);
     }
 
     /**
@@ -154,7 +170,7 @@ final class SourceReadSession
      * This pass preserves graph validation and never interprets replacement glyphs/assets.
      * @param array<int, true> $seen
      */
-    private function replacements(?BasicType $children, ?ReadPage $page, bool $replaced, int $depth, array &$seen): void
+    private function replacements(?BasicType $children, ?ReadPage $page, bool $replaced, int $depth, array &$seen, bool $replaceDirect = false): void
     {
         $this->values->budget->depth($depth);
         foreach ($this->values->items($children) as $child) {
@@ -167,11 +183,11 @@ final class SourceReadSession
                 }
                 $seen[$identity] = true;
                 $childPage = $child->get('Pg') === null ? $page : $this->page($child->get('Pg'));
-                $replacement = $this->values->value($child, 'ActualText') instanceof StringType;
-                $this->replacements($child->get('K'), $childPage, $replaced || $replacement, $depth + 1, $seen);
-            } elseif ($replaced && $child instanceof IntegerType && $child->integer() >= 0 && $page !== null) {
+                [$replacement, $childDirect] = $this->disposition($child, $replaced);
+                $this->replacements($child->get('K'), $childPage, $replacement, $depth + 1, $seen, $childDirect);
+            } elseif ($replaceDirect && $child instanceof IntegerType && $child->integer() >= 0 && $page !== null) {
                 $this->content->replaceMarked($page, $child->integer());
-            } elseif ($replaced && $child instanceof DictionaryType && $this->values->name($child->get('Type')) === 'MCR') {
+            } elseif ($replaceDirect && $child instanceof DictionaryType && $this->values->name($child->get('Type')) === 'MCR') {
                 $contentPage = $child->get('Pg') === null ? $page : $this->page($child->get('Pg'));
                 $id = $this->values->value($child, 'MCID');
                 $stream = $this->values->value($child, 'Stm');
@@ -190,6 +206,7 @@ final class SourceReadSession
             throw new ReadingException('The structure graph contains a repeated element or cycle.');
         }
         $this->seenElements[$identity] = true;
+        $this->inverse->element($dictionary);
         if ($this->values->dictionary($dictionary->get('P')) !== $parent) {
             throw new ReadingException('A structure element has an inconsistent parent reference.');
         }
@@ -198,7 +215,7 @@ final class SourceReadSession
             throw new ReadingException('A structure element requires its S type name.');
         }
         $page = $dictionary->get('Pg') !== null ? $this->page($dictionary->get('Pg')) : $page;
-        $replaced = $replaced || $this->values->value($dictionary, 'ActualText') instanceof StringType;
+        [$replaced, $replaceDirect] = $this->disposition($dictionary, $replaced);
         [$namespace, $namespaceIdentity] = $this->namespace($dictionary->get('NS'), $depth + 1);
         $children = [];
         foreach ($this->values->items($dictionary->get('K')) as $kid) {
@@ -210,7 +227,8 @@ final class SourceReadSession
                 if ($page === null || $resolved->integer() < 0) {
                     throw new ReadingException('A bare structure MCID requires an associated source page.');
                 }
-                $children[] = $this->content->marked($page, $resolved->integer());
+                $this->inverse->associate($page->dictionary, $dictionary, $resolved->integer());
+                $children[] = $replaceDirect ? new MarkedContent([], new StructureProperties(), $this->number($page)) : $this->content->marked($page, $resolved->integer());
             } elseif ($resolved instanceof DictionaryType && $resolved->get('S') !== null) {
                 $children[] = $this->element($kid, $resolved, $dictionary, $page, $depth + 1, $replaced);
             } elseif ($resolved instanceof DictionaryType && $this->values->name($resolved->get('Type')) === 'MCR') {
@@ -220,14 +238,20 @@ final class SourceReadSession
                 if ($contentPage === null || !$id instanceof IntegerType || $id->integer() < 0 || ($stream !== null && !$stream instanceof EncodedStream)) {
                     throw new ReadingException('An MCR requires its source page, nonnegative MCID and optional stream.');
                 }
-                $children[] = $this->content->marked($contentPage, $id->integer(), $stream instanceof EncodedStream ? $stream : null);
+                $this->inverse->associate($stream instanceof EncodedStream ? $stream->dictionary() : $contentPage->dictionary, $dictionary, $id->integer());
+                $children[] = $replaceDirect ? new MarkedContent([], new StructureProperties(), $this->number($contentPage)) : $this->content->marked($contentPage, $id->integer(), $stream instanceof EncodedStream ? $stream : null);
             } elseif ($resolved instanceof DictionaryType && $this->values->name($resolved->get('Type')) === 'OBJR') {
                 $objectPage = $resolved->get('Pg') === null ? $page : $this->page($resolved->get('Pg'));
                 $object = $resolved->get('Obj');
                 if ($object === null) {
                     throw new ReadingException('An OBJR requires its Obj reference.');
                 }
-                $children[] = $this->object($object, $objectPage, $depth + 1, $replaced);
+                $resolvedObject = $this->values->document->resolve($object);
+                $container = $resolvedObject instanceof EncodedStream ? $resolvedObject->dictionary() : $resolvedObject;
+                if ($container instanceof DictionaryType) {
+                    $this->inverse->associate($container, $dictionary);
+                }
+                $children[] = $this->object($object, $objectPage, $depth + 1, $replaceDirect);
             } else {
                 throw new ReadingException('A structure child is neither an element, marked-content reference nor object reference.');
             }
@@ -239,7 +263,68 @@ final class SourceReadSession
                 $classNames[] = $name;
             }
         }
-        return new StructureElement($this->values->key($source), $type, $children, $namespace, $this->values->properties($dictionary, $classNames), $this->attributes($dictionary->get('A')), $this->metadata->associatedFiles($dictionary), $namespaceIdentity);
+        return new StructureElement($this->values->key($source), $type, $children, $namespace, $this->values->properties($dictionary, $classNames), $this->attributes($dictionary->get('A')), $this->associated($dictionary), $namespaceIdentity);
+    }
+
+    /** @return array{bool, bool} Replacement of every descendant, then direct content only. */
+    private function disposition(DictionaryType $dictionary, bool $inherited): array
+    {
+        $identity = spl_object_id($dictionary);
+        if ($inherited || $this->values->value($dictionary, 'ActualText') instanceof StringType) {
+            $this->associated[$identity] = [];
+            return [true, true];
+        }
+        $type = $this->resolvedType($dictionary);
+        if (in_array($type, ['Private', 'Artifact', 'Annot'], true)) {
+            $this->associated[$identity] = [];
+            return [true, true];
+        }
+        if ($type === 'Formula' && $this->hasMathChild($dictionary)) {
+            $this->associated[$identity] = [];
+            return [false, false];
+        }
+        $all = $direct = false;
+        foreach ($this->associated($dictionary) as $file) {
+            $all = $all || $this->selection->replaces($file);
+            $direct = $direct || $this->selection->supplements($file);
+        }
+        return [$all, $all || $direct];
+    }
+
+    private function resolvedType(DictionaryType $dictionary): ?string
+    {
+        $type = $this->values->name($dictionary->get('S'));
+        if ($type === null) {
+            return null;
+        }
+        [$namespace, $identity] = $this->namespace($dictionary->get('NS'), 1);
+        return (new RoleResolver($this->roles, $this->selection->limits, $this->selection->policy))->resolve(new StructureElement('association-type', $type, namespace: $namespace, namespaceIdentity: $identity))->type;
+    }
+
+    private function hasMathChild(DictionaryType $dictionary): bool
+    {
+        foreach ($this->values->items($dictionary->get('K')) as $child) {
+            $child = $this->values->dictionary($child);
+            if ($child === null || $child->get('S') === null) {
+                continue;
+            }
+            [$namespace, $identity] = $this->namespace($child->get('NS'), 1);
+            $type = $this->values->name($child->get('S'));
+            if ($type !== null) {
+                $role = (new RoleResolver($this->roles, $this->selection->limits, $this->selection->policy))->resolve(new StructureElement('association-math', $type, namespace: $namespace, namespaceIdentity: $identity));
+                if ($role->type === 'math' && $role->namespace === 'http://www.w3.org/1998/Math/MathML') {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** @return list<AssociatedFile> */
+    private function associated(DictionaryType $owner): array
+    {
+        $identity = spl_object_id($owner);
+        return $this->associated[$identity] ??= $this->metadata->associatedFiles($owner, $this->selection);
     }
     /** @return array{?string, ?string} */
     private function namespace(?BasicType $source, int $depth): array
@@ -300,12 +385,31 @@ final class SourceReadSession
             $entries = [];
             foreach ($value->entries() as $entry) {
                 if (!in_array($entry->key->value, ['O', 'NS'], true)) {
-                    $entries[$entry->key->value] = $this->values->native($entry->value);
+                    $entries[$entry->key->value] = $owner === 'Table' && $entry->key->value === 'Headers' ? $this->headers($entry->value) : $this->values->native($entry->value);
                 }
             }
             $result[] = new AttributeObject($owner, $entries, $namespace, $identity);
         }
         return $result;
+    }
+
+    /** @return list<string> */
+    private function headers(BasicType $source): array
+    {
+        $value = $this->values->document->resolve($source);
+        if (!$value instanceof ArrayType) {
+            throw new ReadingException('Table Headers must be an array of structure-identifier byte strings.');
+        }
+        $headers = [];
+        foreach ($value as $header) {
+            $this->values->budget->consume('nodes');
+            $identifier = $this->values->identifier($header);
+            if ($identifier === null) {
+                throw new ReadingException('Table Headers entries must be structure-identifier byte strings.');
+            }
+            $headers[] = $identifier;
+        }
+        return $headers;
     }
     private function page(?BasicType $source): ReadPage
     {
@@ -346,13 +450,13 @@ final class SourceReadSession
         $page ??= $this->annotationPages[spl_object_id($object)] ?? null;
         $subtype = $this->values->name($object->get('Subtype'));
         if ($subtype === 'Link') {
-            $action = $this->values->dictionary($object->get('A'));
+            $seenActions = [];
+            $action = $this->navigationAction($object->get('A'), 1, $seenActions);
             if ($action !== null && $this->values->name($action->get('S')) === 'URI') {
                 return new LinkAnnotation(uri: $this->values->text($action->get('URI')));
             }
-            if ($action !== null && $this->values->name($action->get('S')) !== 'GoTo') {
-                $this->values->budget->diagnostic('Link action /' . ($this->values->name($action->get('S')) ?? 'unknown') . ' requires an explicit application navigation adapter and was not turned into a local destination.');
-                return new LinkAnnotation();
+            if ($object->get('A') !== null && $action === null) {
+                $this->values->budget->diagnostic('The link action sequence has no URI or GoTo action; other action types require an explicit application navigation adapter.');
             }
             $destination = $action?->get('SD') ?? $action?->get('D') ?? $object->get('Dest');
             return $this->destination($destination);
@@ -368,6 +472,42 @@ final class SourceReadSession
             return $this->widget($object, $membership);
         }
         return new GraphicContent('unsupported-annotation', $subtype ?? 'missing subtype', page: $page === null ? null : $this->number($page));
+    }
+
+    /** @param array<int, true> $seen */
+    private function navigationAction(?BasicType $source, int $depth, array &$seen): ?DictionaryType
+    {
+        if ($source === null) {
+            return null;
+        }
+        $this->values->budget->depth($depth);
+        $this->values->budget->consume('nodes');
+        $action = $this->values->document->resolve($source);
+        if (!$action instanceof DictionaryType && !$action instanceof ArrayType) {
+            throw new ReadingException('A link action sequence must contain action dictionaries.');
+        }
+        $identity = spl_object_id($action);
+        if (isset($seen[$identity])) {
+            throw new ReadingException('A link action sequence contains a cycle.');
+        }
+        $seen[$identity] = true;
+        try {
+            if ($action instanceof ArrayType) {
+                foreach ($action as $child) {
+                    $found = $this->navigationAction($child, $depth + 1, $seen);
+                    if ($found !== null) {
+                        return $found;
+                    }
+                }
+                return null;
+            }
+            if (in_array($this->values->name($action->get('S')), ['URI', 'GoTo'], true)) {
+                return $action;
+            }
+            return $this->navigationAction($action->get('Next'), $depth + 1, $seen);
+        } finally {
+            unset($seen[$identity]);
+        }
     }
     private function destination(?BasicType $destination): LinkAnnotation
     {
@@ -396,13 +536,22 @@ final class SourceReadSession
                     throw new ReadingException('Destination dictionaries contain a cycle.');
                 }
                 $seen[$identity] = true;
-                $destination = $destination->get('D');
+                $destination = $destination->get('SD') ?? $destination->get('D');
                 continue;
             }
             break;
         }
         if (!$destination instanceof ArrayType || count($destination) < 2) {
             throw new ReadingException('An explicit destination requires a target and fit name.');
+        }
+        $fit = $this->values->document->resolve($destination->items[1]);
+        if (!$fit instanceof NameType) {
+            throw new ReadingException('A destination fit type must be a name.');
+        }
+        try {
+            new DestinationView($fit, ...array_map($this->values->document->resolve(...), array_slice($destination->items, 2)));
+        } catch (\InvalidArgumentException $exception) {
+            throw new ReadingException('Invalid destination view: ' . $exception->getMessage(), previous: $exception);
         }
         $target = $destination->items[0];
         $key = $this->values->key($target);
@@ -411,6 +560,9 @@ final class SourceReadSession
         }
         $dictionary = $this->values->dictionary($target);
         if ($dictionary !== null && $dictionary->get('S') !== null) {
+            if (!isset($this->knownStructures[spl_object_id($dictionary)])) {
+                throw new ReadingException('A structure destination must belong to this source structure tree.');
+            }
             return new LinkAnnotation(structureTarget: $key);
         }
         $this->values->budget->diagnostic('An explicit link destination does not identify a known source page or structure element.');
@@ -443,14 +595,7 @@ final class SourceReadSession
                 }
             } return null;
         };
-        $names = [];
-        foreach (array_reverse($chain) as $field) {
-            $partial = $this->values->text($field->get('T'));
-            if ($partial !== null && $partial !== '') {
-                $names[] = $partial;
-            }
-        }
-        $name = implode('.', $names);
+        $name = $this->fieldName($annotation);
         if ($name === '') {
             throw new ReadingException('A widget requires a fully qualified source field name.');
         }
@@ -472,18 +617,8 @@ final class SourceReadSession
             }
             $options[] = new ChoiceOption($export, $display);
         }
-        $value = $inherit('V');
-        if ($value instanceof ArrayType) {
-            $fieldValue = [];
-            foreach ($value as $item) {
-                $text = $this->values->text($item);
-                if ($text === null) {
-                    throw new ReadingException('A choice-field selected value must be text.');
-                } $fieldValue[] = $text;
-            }
-        } else {
-            $fieldValue = $this->values->text($value) ?? $this->values->name($value);
-        }
+        $fieldValue = $this->fieldValue($inherit('V'));
+        $defaultValue = $this->fieldValue($inherit('DV'));
         $indices = [];
         foreach ($this->values->items($inherit('I')) as $index) {
             if (!$index instanceof IntegerType) {
@@ -503,7 +638,17 @@ final class SourceReadSession
             $file = $this->values->dictionary($action->get('F'));
             $target = $file === null ? null : $this->values->text($file->get('F'));
         }
-        $field = new FormField($name, $type, $this->values->integer($inherit('Ff')), $fieldValue, $options, $indices, $inherit('MaxLen') === null ? null : $this->values->integer($inherit('MaxLen')), $this->values->text($inherit('RV')), $actions, $actionType, $target, $action === null ? 0 : $this->values->integer($action->get('Flags')));
+        $actionFlags = $action === null ? 0 : $this->actionFlags($action);
+        $reset = $submit = null;
+        if ($actionType === 'ResetForm' && $action !== null) {
+            if (($actionFlags & ~1) !== 0) {
+                $this->values->budget->diagnostic('ResetForm flags outside the defined Include/Exclude bit were ignored.');
+            }
+            $reset = new ResetFormAction($this->actionFields($action), ($actionFlags & 1) !== 0);
+        } elseif ($actionType === 'SubmitForm' && $action !== null && $target !== null) {
+            $submit = new SubmitFormAction($target, $actionFlags, $this->actionFields($action));
+        }
+        $field = new FormField($name, $type, $this->values->integer($inherit('Ff')), $fieldValue, $options, $indices, $inherit('MaxLen') === null ? null : $this->values->integer($inherit('MaxLen')), $this->values->text($inherit('RV')), $actions, $actionType, $target, $actionFlags, defaultValue: $defaultValue, resetAction: $reset, submitAction: $submit, mappingName: $this->values->text($inherit('TM')));
         $appearance = $this->values->dictionary($annotation->get('AP'));
         $normal = $appearance === null ? null : $this->values->value($appearance, 'N');
         $states = [];
@@ -532,6 +677,80 @@ final class SourceReadSession
             $appearanceNodes = $this->content->stream($page, $normal, $page->attributes->resources, 1);
         }
         return new Widget($field, $page === null ? null : $this->number($page), $this->values->integer($annotation->get('F')), $rect, $pageBox, $this->values->name($annotation->get('AS')) ?? 'Off', $states, $caption === null ? null : $this->values->text($caption->get('CA')), $appearanceNodes, $this->values->name($annotation->get('H')), $border === null ? null : $this->values->name($border->get('S')), $border === null ? null : $this->values->number($border->get('W'), 1), $caption === null ? null : $this->numericArray($caption->get('BC')), $caption === null ? null : $this->numericArray($caption->get('BG')), $inherit('Q') === null ? null : $this->values->integer($inherit('Q')), $optionIndex, $type === FieldType::Signature ? 'Signature validation is not performed by HTML derivation.' : null, actions: $widgetActions);
+    }
+
+    private function fieldName(DictionaryType $field): string
+    {
+        $names = [];
+        $seen = [];
+        do {
+            $this->values->budget->depth(count($seen) + 1);
+            $identity = spl_object_id($field);
+            if (isset($seen[$identity])) {
+                throw new ReadingException('Form-field name inheritance contains a cycle.');
+            }
+            $seen[$identity] = true;
+            $partial = $this->values->text($field->get('T'));
+            if ($partial !== null && $partial !== '') {
+                array_unshift($names, $partial);
+            }
+            $parent = $field->get('Parent');
+            $field = $this->values->dictionary($parent);
+            if ($parent !== null && $field === null) {
+                throw new ReadingException('A form-field Parent must resolve to a field dictionary.');
+            }
+        } while ($field !== null);
+        return implode('.', $names);
+    }
+
+    /** @return string|list<string>|null */
+    private function fieldValue(?BasicType $value): string|array|null
+    {
+        if ($value instanceof ArrayType) {
+            $result = [];
+            foreach ($value as $item) {
+                $this->values->budget->consume('nodes');
+                $text = $this->values->text($item) ?? $this->values->name($item);
+                if ($text === null) {
+                    throw new ReadingException('A form-field value array must contain strings or names.');
+                }
+                $result[] = $text;
+            }
+            return $result;
+        }
+        return $this->values->text($value) ?? $this->values->name($value);
+    }
+
+    private function actionFlags(DictionaryType $action): int
+    {
+        $flags = $this->values->value($action, 'Flags');
+        if ($flags !== null && (!$flags instanceof IntegerType || $flags->integer() < 0)) {
+            throw new ReadingException('Form action Flags must be a nonnegative integer.');
+        }
+        return $flags instanceof IntegerType ? $flags->integer() : 0;
+    }
+
+    /** @return list<string>|null */
+    private function actionFields(DictionaryType $action): ?array
+    {
+        $fields = $this->values->value($action, 'Fields');
+        if ($fields === null) {
+            return null;
+        }
+        if (!$fields instanceof ArrayType) {
+            throw new ReadingException('A form action Fields selection must be an array.');
+        }
+        $names = [];
+        foreach ($fields as $field) {
+            $this->values->budget->consume('nodes');
+            $field = $this->values->document->resolve($field);
+            $name = $field instanceof DictionaryType ? $this->fieldName($field) : $this->values->text($field);
+            if ($name === null || $name === '') {
+                throw new ReadingException('A form action Fields entry must identify a named field by string or dictionary reference.');
+            }
+            $names[] = $name;
+        }
+        return array_values(array_unique($names));
     }
     /** @return array{int|float, int|float, int|float, int|float} */
     private function rectangle(?BasicType $value): array

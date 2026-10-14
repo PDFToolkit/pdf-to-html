@@ -25,7 +25,7 @@ final class ReadingSourceTest extends TestCase
 {
     public function testIndependentPdf20StructureContentAndMetadata(): void
     {
-        $document = (new ReadPdfSource())->read($this->document(), 'report.pdf');
+        $document = (new ReadPdfSource(policy: new \PDF\Html\DerivationPolicy(allowActiveContent: true)))->read($this->document(), 'report.pdf');
         self::assertSame('fr-FR', $document->language);
         self::assertSame('Independent tagged source', $document->title);
         self::assertSame([1 => 'Intro-i'], $document->pageLabels);

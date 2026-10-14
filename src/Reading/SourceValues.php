@@ -115,7 +115,8 @@ final readonly class SourceValues
             return null;
         }
     }
-    private function identifier(?BasicType $value): ?string
+    /** Preserve a PDF byte-string identity consistently for ID and Headers. */
+    public function identifier(?BasicType $value): ?string
     {
         $value = $value === null ? null : $this->document->resolve($value);
         if (!$value instanceof StringType) {

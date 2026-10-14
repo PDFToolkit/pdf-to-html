@@ -71,8 +71,7 @@ final class ReadingScenariosTest extends TestCase
     {
         $source = $this->read([7 => '<< /Type /StructElem /S /P /P 6 0 R /Pg 3 0 R /K 0 /Alt <00> >>']);
         self::assertNull($source->structure[0]->children[0]->properties->alternateDescription);
-        self::assertCount(1, $source->sourceDiagnostics);
-        self::assertStringContainsString('/Alt', $source->sourceDiagnostics[0]);
+        self::assertCount(1, array_filter($source->sourceDiagnostics, static fn (string $message): bool => str_contains($message, '/Alt')));
     }
 
     public function testXmpCannotDeclareExternalEntities(): void

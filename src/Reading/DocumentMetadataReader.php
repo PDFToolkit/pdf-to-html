@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PDF\Html\Reading;
 
+use PDF\Html\AssociatedFileSelection;
 use PDF\Html\Model\AssociatedFile;
 use PDF\Reading\EncodedStream;
 use PDF\Syntax\FileStructure\BasicType;
@@ -61,10 +62,19 @@ final readonly class DocumentMetadataReader
         return $text;
     }
     /** @return list<AssociatedFile> */
-    public function associatedFiles(DictionaryType $owner): array
+    public function associatedFiles(DictionaryType $owner, ?AssociatedFileSelection $selection = null, bool $catalog = false, bool $decode = true): array
     {
+        /** @var list<array{DictionaryType, ?EncodedStream, AssociatedFile}> $descriptors */
+        $descriptors = [];
         $files = [];
-        foreach ($this->values->items($owner->get('AF')) as $value) {
+        $sources = $this->values->items($owner->get('AF'));
+        if ($catalog) {
+            $supplement = $this->catalogSupplement($sources, $selection);
+            if ($supplement !== null) {
+                $sources = [$supplement];
+            }
+        }
+        foreach ($sources as $value) {
             $this->values->budget->consume('nodes');
             $file = $this->values->dictionary($value);
             if ($file === null) {
@@ -74,22 +84,58 @@ final readonly class DocumentMetadataReader
             $relationship = $this->values->name($file->get('AFRelationship')) ?? 'Unspecified';
             $embedded = $this->values->dictionary($file->get('EF'));
             $stream = $embedded === null ? null : ($this->values->value($embedded, 'UF') ?? $this->values->value($embedded, 'F'));
-            $bytes = null;
             $mediaType = 'application/octet-stream';
             if ($stream instanceof EncodedStream) {
-                $bytes = $this->values->document->streamData($stream);
-                $this->values->budget->consume('assets', strlen($bytes));
                 $mediaType = $this->values->name($stream->dictionary()->get('Subtype')) ?? $mediaType;
             } elseif ($embedded !== null) {
                 throw new ReadingException('An embedded associated file requires an EF stream.');
             }
-            $url = $this->values->name($file->get('FS')) === 'URL' ? $this->values->text($file->get('F')) : null;
+            // EF takes precedence over FS /URL (4.6.1, physical page 62).
+            $url = $embedded === null && $this->values->name($file->get('FS')) === 'URL' ? $this->values->text($file->get('F')) : null;
             if ($url !== null && $embedded === null) {
                 $mediaType = $this->urlMediaType($url);
             }
-            $files[] = new AssociatedFile($filename, $mediaType, $relationship, $bytes, $url);
+            $descriptors[] = [$file, $stream instanceof EncodedStream ? $stream : null, new AssociatedFile($filename, $mediaType, $relationship, url: $url)];
+        }
+        $headSupplement = null;
+        if ($catalog) {
+            foreach ($descriptors as $index => [, , $descriptor]) {
+                if ($descriptor->relationship === 'Supplement' && in_array(strtolower($descriptor->mediaType), ['text/html', 'application/xhtml+xml'], true) && ($selection === null || $selection->accepts($descriptor))) {
+                    $headSupplement = $index;
+                    break;
+                }
+            }
+        }
+        foreach ($descriptors as $index => [, $stream, $descriptor]) {
+            $applicable = $selection === null || ($catalog ? $headSupplement === null || $headSupplement === $index : in_array($descriptor->relationship, ['Alternative', 'Supplement'], true));
+            $bytes = null;
+            if ($decode && $stream !== null && $applicable && ($selection === null || $selection->accepts($descriptor))) {
+                $bytes = $this->values->document->streamData($stream);
+                $this->values->budget->consume('assets', strlen($bytes));
+            }
+            $files[] = new AssociatedFile($descriptor->filename, $descriptor->mediaType, $descriptor->relationship, $bytes, $descriptor->url);
         }
         return $files;
+    }
+
+    /** @param list<BasicType> $sources */
+    private function catalogSupplement(array $sources, ?AssociatedFileSelection $selection): ?BasicType
+    {
+        foreach ($sources as $source) {
+            $this->values->budget->consume('nodes');
+            $file = $this->values->dictionary($source);
+            if ($file === null || $this->values->name($file->get('AFRelationship')) !== 'Supplement') {
+                continue;
+            }
+            $embedded = $this->values->dictionary($file->get('EF'));
+            $stream = $embedded === null ? null : ($this->values->value($embedded, 'UF') ?? $this->values->value($embedded, 'F'));
+            $url = $embedded === null && $this->values->name($file->get('FS')) === 'URL' ? $this->values->text($file->get('F')) : null;
+            $type = $stream instanceof EncodedStream ? $this->values->name($stream->dictionary()->get('Subtype')) : ($url === null ? null : $this->urlMediaType($url));
+            if ($type !== null && in_array(strtolower($type), ['text/html', 'application/xhtml+xml'], true) && ($selection === null || $selection->accepts(new AssociatedFile('head-fragment', $type, 'Supplement', url: $url)))) {
+                return $source;
+            }
+        }
+        return null;
     }
     /** Deriving HTML 1.2, 4.6.3/Table 9, physical PDF pages 62–63; no resource is fetched. */
     private function urlMediaType(string $url): string

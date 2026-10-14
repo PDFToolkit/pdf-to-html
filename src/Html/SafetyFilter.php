@@ -409,7 +409,8 @@ final class SafetyFilter
             if ($this->policy->allowActiveContent) {
                 $allowed[] = 'import';
             }
-            if (!$this->policy->allowRemoteResources || $relations === false || $relations === [] || array_diff($relations, $allowed) !== []) {
+            if ($relations === false || $relations === [] || array_diff($relations, $allowed) !== []
+                || $this->url($element->attributes['href'] ?? '', true) === null) {
                 $this->diagnostics[] = new Diagnostic('blocked-head-resource', 'A head link was omitted by the resource policy.');
                 return false;
             }

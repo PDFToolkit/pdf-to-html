@@ -10,6 +10,8 @@ use PDF\Html\Forms\WidgetDeriver;
 use PDF\Html\Forms\AppearanceRenderer;
 use PDF\Html\Html\ContentModelRepair;
 use PDF\Html\Html\Element;
+use PDF\Html\Html\ExpansionText;
+use PDF\Html\Html\PageContentIdentifiers;
 use PDF\Html\Html\HtmlNode;
 use PDF\Html\Html\SafetyFilter;
 use PDF\Html\Html\Serializer;
@@ -18,6 +20,7 @@ use PDF\Html\Model\AssociatedFile;
 use PDF\Html\Model\AttributeObject;
 use PDF\Html\Model\ContentGroup;
 use PDF\Html\Model\GraphicContent;
+use PDF\Html\Model\GraphicViewport;
 use PDF\Html\Model\ImageContent;
 use PDF\Html\Model\LinkAnnotation;
 use PDF\Html\Model\MarkedContent;
@@ -38,10 +41,17 @@ final class DerivationSession
     private readonly RoleResolver $roles;
     private readonly AttributeDeriver $attributes;
     private readonly ClassName $className;
+    private readonly PageContentIdentifiers $pageIdentifiers;
     /** @var list<Diagnostic> */
     private array $diagnostics = [];
     /** @var array<string, string> */
     private array $identifiers = [];
+    /** @var array<string, string> */
+    private array $sourceIdentifiers = [];
+    /** @var array<string, string> */
+    private array $destinationAliases = [];
+    /** @var array<int, array{Element, list<string>}> Retain cell identity until output references are resolved. */
+    private array $tableHeaderTargets = [];
     /** @var array<string, true> */
     private array $usedIds = [];
     /** @var array<int, true> */
@@ -70,6 +80,7 @@ final class DerivationSession
         $this->roles = new RoleResolver($document->roleMappings, $limits, $policy);
         $this->attributes = new AttributeDeriver();
         $this->className = new ClassName();
+        $this->pageIdentifiers = new PageContentIdentifiers($limits);
     }
 
     public function derive(): DerivationResult
@@ -109,8 +120,8 @@ final class DerivationSession
         }
         array_unshift($body->children, $navigation);
         $this->safety->filter($body);
-        if ($this->policy->allowActiveContent) {
-            $scripts = new ScriptDeriver();
+        if ($this->policy->allowActiveContent || $this->policy->formActions->enabled()) {
+            $scripts = new ScriptDeriver($this->policy->allowActiveContent, $this->policy->formActions);
             $script = $scripts->derive($this->document, $this->renderedWidgets, $this->widgetBindings);
             foreach ($scripts->diagnostics as $message) {
                 $this->diagnostics[] = new Diagnostic('script-profile', $message);
@@ -118,7 +129,8 @@ final class DerivationSession
             if ($script !== null && $script !== '') {
                 $body->children[] = new Element('script', ['type' => 'text/javascript'], [new Text($script)]);
             }
-        } elseif ($this->hasScripts()) {
+        }
+        if (!$this->policy->allowActiveContent && $this->hasScripts()) {
             $this->diagnostics[] = new Diagnostic('scripts-disabled', 'PDF ECMAScript was not derived in the safe profile; use an explicitly trusted active-content profile for section 4.5 and Annex B.');
         }
         $head = new Element('head', [], [
@@ -147,6 +159,9 @@ final class DerivationSession
         if (strlen($serialized) > $this->limits->maximumOutputBytes) {
             throw new DerivationException('The derived HTML output byte limit was exceeded.');
         }
+        foreach ($this->pageIdentifiers->diagnostics as $message) {
+            $this->diagnostics[] = new Diagnostic('page-content-identifier', $message);
+        }
         return new DerivationResult($serialized, $this->css, $this->assets->all(), [...$this->diagnostics, ...$this->safety->diagnostics]);
     }
 
@@ -164,6 +179,12 @@ final class DerivationSession
                 throw new DerivationException('Structure IDs must be unique and cannot use reserved navigation/form identifiers.');
             }
             $this->identifiers[$node->key] = $id ?? '';
+            if ($node->properties->id !== null) {
+                if (isset($this->sourceIdentifiers[$node->properties->id])) {
+                    throw new DerivationException('Source structure identifiers must be unique before HTML attribute overrides.');
+                }
+                $this->sourceIdentifiers[$node->properties->id] = $id ?? '';
+            }
             if ($id !== null) {
                 $this->usedIds[$id] = true;
             }
@@ -296,14 +317,27 @@ final class DerivationSession
         if (in_array($type, ['L', 'TOC'], true) && $this->hasExplicitLabels($source)) {
             $css['list-style-type'] = 'none';
         }
-        $this->applyAttributes($element, $derived->html, $css);
+        $htmlAttributes = $derived->html;
+        if ($derived->tableHeaders !== null) {
+            $headers = [];
+            foreach ($derived->tableHeaders as $header) {
+                if (isset($this->sourceIdentifiers[$header])) {
+                    $headers[] = $this->sourceIdentifiers[$header];
+                } else {
+                    $this->diagnostics[] = new Diagnostic('unresolved-table-header', 'A source table-header identifier has no derived structure target.', $header);
+                }
+            }
+            $htmlAttributes['headers'] = implode(' ', array_unique($headers));
+            $this->tableHeaderTargets[spl_object_id($element)] = [$element, $headers];
+        }
+        $this->applyAttributes($element, $htmlAttributes, $css);
         if ($type === 'Lbl' && $tag === 'label' && $formLabelTarget !== null) {
             $element->attributes['for'] = $formLabelTarget;
         }
         if ($role->namespace === 'http://www.w3.org/1999/xhtml' && $tag === 'script' && $properties->actualText === null) {
             $scripts = [];
             foreach ($source->associatedFiles as $file) {
-                if (in_array($file->mediaType, ['text/javascript', 'application/javascript'], true)) {
+                if (in_array(strtolower($file->mediaType), ['text/javascript', 'application/javascript'], true)) {
                     foreach ($this->associated($file) ?? [] as $script) {
                         if ($script instanceof Element) {
                             $script->attributes = [...$element->attributes, ...$script->attributes];
@@ -341,15 +375,38 @@ final class DerivationSession
         $association = $properties->actualText === null && !($type === 'Formula' && $hasMath)
             ? $this->associationPlan($source, $element) : new AssociationPlan();
         if ($association->alternative) {
-            return [...$this->replacementPageAnchors($source->children), ...$association->nodes, ...$association->after];
+            $nodes = $association->nodes;
+            $target = null;
+            foreach ($nodes as $node) {
+                if ($node instanceof Element && isset($node->attributes['id'])) {
+                    $target = $node->attributes['id'];
+                    break;
+                }
+            }
+            $sourceId = $element->attributes['id'];
+            if ($target === null) {
+                // Alternatives may be plain text, a head import or a stylesheet/script only.
+                // Retain the structure destination at this exact replacement position.
+                array_unshift($nodes, new Element('span', ['id' => $sourceId]));
+            } elseif ($target !== $sourceId) {
+                $this->destinationAliases[$sourceId] = $target;
+            }
+            return [...$association->before, ...$this->pageIdentifiers->identify($this->replacementPageAnchors($source->children), $nodes), ...$association->after];
         }
         $children = [];
-        $groupImage = $type === 'Figure' && $this->policy->preferVisualFigures && $this->policy->includeGraphics && $this->renderer !== null && $properties->actualText === null && !$association->supplement
-            ? $this->renderer->render(new ContentGroup($source->children)) : null;
+        $visualFigure = $type === 'Figure' && $this->policy->preferVisualFigures && $properties->actualText === null && !$association->supplement;
+        if ($visualFigure && (!$this->policy->includeGraphics || $this->renderer === null)) {
+            throw new DerivationException('The visual-figure profile requires an explicitly supplied ContentRenderer and enabled graphics.');
+        }
+        $box = $visualFigure ? $this->boundingBox($source) : null;
+        $groupImage = $visualFigure ? $this->renderer?->render(new ContentGroup($source->children, viewport: $box === null ? null : new GraphicViewport(...$box))) : null;
+        if ($visualFigure && $groupImage === null) {
+            throw new DerivationException('The rendering engine did not produce the required grouped figure image.');
+        }
         if ($properties->actualText !== null) {
-            $children = [...$this->replacementPageAnchors($source->children), new Text($properties->actualText)];
+            $children = $this->pageIdentifiers->identify($this->replacementPageAnchors($source->children), [new Text($properties->actualText)]);
         } elseif ($groupImage !== null) {
-            $children = [...$this->replacementPageAnchors($source->children), $this->image($groupImage)];
+            $children = $this->pageIdentifiers->identify($this->replacementPageAnchors($source->children), [$this->image($groupImage)]);
         } else {
             $inserted = false;
             foreach ($source->children as $child) {
@@ -358,13 +415,15 @@ final class DerivationSession
                     continue;
                 }
                 if ($type === 'Form' && $derived->printField && $child instanceof Widget) {
-                    array_push($children, ...$this->pageAnchor($child->page));
+                    $markers = $this->pageAnchor($child->page);
+                    $appearance = [];
                     if ($this->appearanceRenderer !== null && $child->appearance !== []) {
-                        array_push($children, ...$this->appearanceRenderer->render($child->appearance));
+                        $appearance = $this->appearanceRenderer->render($child->appearance);
                     } else {
-                        $children[] = new Text($child->caption ?? $child->field->name);
+                        $appearance[] = new Text($child->caption ?? $child->field->name);
                         $this->diagnostics[] = new Diagnostic('print-field-appearance', 'A non-interactive PrintField has a textual fallback; provide AppearanceRenderer for its visual appearance.', $source->key);
                     }
+                    array_push($children, ...$this->pageIdentifiers->identify($markers, $appearance));
                     continue;
                 }
                 if ($association->supplement && !$child instanceof StructureElement) {
@@ -409,6 +468,9 @@ final class DerivationSession
         if ($type === 'Figure' && $inline && $properties->actualText === null && ($properties->expansion === null || $properties->expansion === '')) {
             $output = [];
             foreach ($element->children as $child) {
+                if ($child instanceof Text && $child->value !== '') {
+                    $child = new Element('span', ['data-pdf-graphic-text' => ''], [$child]);
+                }
                 if ($child instanceof Element) {
                     if (!in_array($child->tag, ['a', 'img'], true)) {
                         $child->tag = 'span';
@@ -430,12 +492,31 @@ final class DerivationSession
                 }
             }
             if (!$identified) {
-                array_unshift($output, new Element('span', ['id' => $attrs['id']]));
+                foreach ($output as $index => $child) {
+                    if ($child instanceof Element && $child->children !== []
+                        && ($child->attributes['role'] ?? '') !== 'doc-pagebreak'
+                        && ($child->attributes['data-pdf-se-type'] ?? '') !== 'Caption') {
+                        $contentAttrs = $element->attributes;
+                        unset($contentAttrs['alt']);
+                        $alt = $derived->html['alt'] ?? $properties->alternateDescription;
+                        if ($alt !== null) {
+                            $contentAttrs['role'] = $derived->html['role'] ?? 'img';
+                            $contentAttrs['aria-label'] = $derived->html['aria-label'] ?? $alt;
+                            $this->diagnostics[] = new Diagnostic('figure-text-alt-adaptation', 'A textual inline figure uses an atomic named group with role=img and aria-label; HTML span cannot carry alt.', $source->key);
+                        }
+                        $output[$index] = new Element('span', $contentAttrs, [$child]);
+                        $identified = true;
+                        break;
+                    }
+                }
+                if (!$identified) {
+                    array_unshift($output, new Element('span', ['id' => $attrs['id']]));
+                }
             }
-            return [...$output, ...$association->after];
+            return [...$association->before, ...$output, ...$association->after];
         }
         if ($type === 'NonStruct' && $derived->html === [] && $derived->css === []) {
-            return [new Element('span', ['id' => $attrs['id']]), ...$element->children];
+            return [...$association->before, new Element('span', ['id' => $attrs['id']]), ...$element->children, ...$association->after];
         }
         if (in_array($type, ['L', 'TOC'], true)) {
             $captions = [];
@@ -451,14 +532,14 @@ final class DerivationSession
             $element->children = $remaining;
             $list = [...$captions, $element];
             if (in_array($parent, ['L', 'TOC'], true) && $listKind !== 'dl') {
-                return [new Element('li', ['style' => 'list-style-type:none'], $list), ...$association->after];
+                return [...$association->before, new Element('li', ['style' => 'list-style-type:none'], $list), ...$association->after];
             }
-            return [...$list, ...$association->after];
+            return [...$association->before, ...$list, ...$association->after];
         }
         if ($type === 'Reference') {
             $this->flattenAnchors($element);
         }
-        return [$element, ...$association->after];
+        return [...$association->before, $element, ...$association->after];
     }
 
     /**
@@ -477,7 +558,8 @@ final class DerivationSession
             return [];
         }
         $page = property_exists($source, 'page') ? $source->page : null;
-        $output = $this->pageAnchor(is_int($page) ? $page : null);
+        $markers = $this->pageAnchor(is_int($page) ? $page : null);
+        $output = [];
         if ($source instanceof TextContent) {
             $output[] = new Text($source->text);
         } elseif ($source instanceof MarkedContent) {
@@ -498,7 +580,7 @@ final class DerivationSession
                 $this->diagnostics[] = new Diagnostic('graphic-omitted', 'Content was omitted; provide ContentRenderer when it matters to this reuse application: ' . $source->instructions, $source->kind);
             }
         } elseif ($source instanceof Widget) {
-            $rendered = (new WidgetDeriver($this->appearanceRenderer))->derive($source, 'pdf-widget-' . $this->widgetIndex($source));
+            $rendered = (new WidgetDeriver($this->appearanceRenderer, formActions: $this->policy->formActions))->derive($source, 'pdf-widget-' . $this->widgetIndex($source));
             $this->renderedWidgets[] = $source;
             $this->widgetBindings[] = new WidgetBinding($source, $rendered->field->attributes['id']);
             foreach ($rendered->diagnostics as $message) {
@@ -508,7 +590,7 @@ final class DerivationSession
         } else {
             throw new DerivationException('Unsupported source content object.');
         }
-        return $output;
+        return $this->pageIdentifiers->identify($markers, $output);
     }
 
     /**
@@ -726,14 +808,14 @@ final class DerivationSession
 
     private function linkTarget(StructureElement $source): ?string
     {
-        if ($this->roles->resolve($source)->type === 'Reference') {
-            foreach ($source->children as $child) {
-                if ($child instanceof StructureElement && $this->roles->resolve($child)->type === 'Link') {
-                    return $this->linkTarget($child);
+        $referenceRole = $this->roles->resolve($source)->type === 'Reference';
+        foreach ($source->children as $child) {
+            if ($referenceRole && $child instanceof StructureElement && $this->roles->resolve($child)->type === 'Link') {
+                $target = $this->linkTarget($child);
+                if ($target !== null) {
+                    return $target;
                 }
             }
-        }
-        foreach ($source->children as $child) {
             if ($child instanceof LinkAnnotation) {
                 if ($child->structureTarget !== null) {
                     $target = $this->identifiers[$child->structureTarget] ?? null;
@@ -837,7 +919,7 @@ final class DerivationSession
     private function interactiveForm(StructureElement $source, Widget $widget, array $ancestors, ?string $kind, DerivedAttributes $derived): array
     {
         $id = $this->identifiers[$source->key];
-        $rendering = (new WidgetDeriver($this->appearanceRenderer))->derive($widget, $id);
+        $rendering = (new WidgetDeriver($this->appearanceRenderer, formActions: $this->policy->formActions))->derive($widget, $id);
         $field = $rendering->field;
         foreach ($rendering->diagnostics as $message) {
             $this->diagnostics[] = new Diagnostic('widget-adaptation', $message, $source->key);
@@ -845,15 +927,31 @@ final class DerivationSession
         if ($source->properties->language !== null) {
             $field->attributes['lang'] = $source->properties->language;
         }
+        if ($source->properties->classes !== []) {
+            $field->attributes['class'] = implode(' ', array_map($this->className->encode(...), $source->properties->classes));
+        }
+        if ($source->properties->expansion !== null) {
+            $field->attributes['title'] = $source->properties->expansion;
+        }
         $field->attributes['data-pdf-se-type'] = 'Form';
+        $role = $this->roles->resolve($source);
+        if ($role->original !== []) {
+            $field->attributes['data-pdf-se-type-original'] = implode(' ', $role->original);
+        } elseif ($source->namespace === null) {
+            $field->attributes['data-pdf-se-type-original'] = $source->type;
+        }
         $this->applyAttributes($field, $derived->html, $derived->css);
         $output = [];
         foreach ($source->children as $child) {
             if ($child === $widget) {
                 $this->renderedWidgets[] = $widget;
                 $this->widgetBindings[] = new WidgetBinding($widget, $field->attributes['id'] ?? $id);
-                array_push($output, ...$this->pageAnchor($widget->page));
-                array_push($output, ...$rendering->nodes);
+                $nodes = [];
+                foreach ($rendering->nodes as $node) {
+                    $nodes[] = $node === $field && $source->properties->expansion !== null
+                        ? (new ExpansionText($this->limits))->wrap($field, $source->properties->expansion) : $node;
+                }
+                array_push($output, ...$this->pageIdentifiers->identify($this->pageAnchor($widget->page), $nodes));
             } else {
                 array_push($output, ...$this->content($child, [...$ancestors, 'Form'], $kind, $field->attributes['id'] ?? $id));
             }
@@ -885,7 +983,9 @@ final class DerivationSession
         $supplement = false;
         $replacement = false;
         $associated = [];
+        $before = [];
         $after = [];
+        $selection = new AssociatedFileSelection($this->policy, $this->limits);
         foreach ($source->associatedFiles as $file) {
             if (!in_array($file->relationship, ['Alternative', 'Supplement'], true)) {
                 continue;
@@ -894,16 +994,16 @@ final class DerivationSession
             if ($nodes === null) {
                 continue;
             }
-            if (in_array($file->mediaType, ['text/css', 'text/javascript', 'application/javascript'], true)) {
-                if ($file->mediaType === 'text/css') {
-                    array_push($this->extraHead, ...$nodes);
+            $replacement = $replacement || $selection->replaces($file);
+            $supplement = $supplement || $selection->supplements($file);
+            if (in_array(strtolower($file->mediaType), ['text/css', 'text/javascript', 'application/javascript'], true)) {
+                if (strtolower($file->mediaType) === 'text/css') {
+                    array_push($before, ...$nodes);
                 } else {
                     array_push($after, ...$nodes);
                 }
                 continue;
             }
-            $replacement = $replacement || $file->relationship === 'Alternative';
-            $supplement = $supplement || $file->relationship === 'Supplement';
             foreach ($nodes as $node) {
                 if ($node instanceof Element) {
                     $attrs = $element->attributes;
@@ -914,7 +1014,7 @@ final class DerivationSession
                     if ($source->properties->alternateDescription !== null && $node->tag === 'img') {
                         $node->attributes['alt'] = $source->properties->alternateDescription;
                     }
-                    if ($file->mediaType === 'image/svg+xml' && $node->tag === 'img') {
+                    if (strtolower($file->mediaType) === 'image/svg+xml' && $node->tag === 'img') {
                         $box = $this->boundingBox($source);
                         if ($box !== null) {
                             $node->attributes['width'] = (string) (int) round(abs($box[2] - $box[0]) * 4 / 3);
@@ -925,7 +1025,7 @@ final class DerivationSession
                 $associated[] = $node;
             }
         }
-        return new AssociationPlan($associated, $after, $replacement, $supplement);
+        return new AssociationPlan($associated, $after, $replacement, $supplement, $before);
     }
 
     /**
@@ -962,7 +1062,9 @@ final class DerivationSession
                     $this->diagnostics[] = new Diagnostic('associated-css-resources-blocked', 'A stylesheet that may reference other resources needs an explicit remote-resource policy.', $file->filename);
                     return null;
                 }
-                return [new Element('style', [], [new Text($this->safety->stylesheet($file->bytes ?? ''))])];
+                $sheet = $this->safety->stylesheet($file->bytes ?? '');
+                $name = $this->assets->add($file->filename, 'text/css', $sheet);
+                return [new Element('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $name])];
             }
             $this->diagnostics[] = new Diagnostic('associated-css-blocked', 'Associated stylesheets require an explicit active-content policy.', $file->filename);
             return null;
@@ -1003,7 +1105,7 @@ final class DerivationSession
     private function catalogAssociations(Element $head): void
     {
         foreach ($this->document->associatedFiles as $file) {
-            if ($file->relationship === 'Supplement' && in_array($file->mediaType, ['text/html', 'application/xhtml+xml'], true)) {
+            if ($file->relationship === 'Supplement' && in_array(strtolower($file->mediaType), ['text/html', 'application/xhtml+xml'], true)) {
                 $nodes = $this->associated($file, true);
                 if ($nodes !== null) {
                     array_push($head->children, ...$nodes);
@@ -1037,7 +1139,7 @@ final class DerivationSession
     }
 
     /**
-     * @return list<HtmlNode>
+     * @return list<Element>
      */
     private function pageAnchor(?int $page): array
     {
@@ -1086,7 +1188,7 @@ final class DerivationSession
 
     /**
      * @param list<SourceNode> $children
-     * @return list<HtmlNode>
+     * @return list<Element>
      */
     private function replacementPageAnchors(array $children): array
     {
@@ -1107,6 +1209,7 @@ final class DerivationSession
     {
         $ids = [];
         $anchors = [];
+        $tableCells = [];
         $stack = [$root];
         while ($stack !== []) {
             $node = array_pop($stack);
@@ -1123,10 +1226,31 @@ final class DerivationSession
             if ($node->tag === 'a') {
                 $anchors[] = $node;
             }
+            if (isset($this->tableHeaderTargets[spl_object_id($node)])) {
+                $tableCells[] = $node;
+            }
             array_push($stack, ...$node->children);
         }
+        foreach ($tableCells as $cell) {
+            $headers = [];
+            foreach ($this->tableHeaderTargets[spl_object_id($cell)][1] as $target) {
+                $target = $this->destinationAliases[$target] ?? $target;
+                if (isset($ids[$target])) {
+                    $headers[] = $target;
+                } else {
+                    $this->diagnostics[] = new Diagnostic('unresolved-table-header', 'A table-header target whose content was not derived has no output identifier.', $target);
+                }
+            }
+            $cell->attributes['headers'] = implode(' ', array_unique($headers));
+        }
         foreach ($anchors as $anchor) {
+            // References are resolved after alternatives and content-model repair.
             $href = $anchor->attributes['href'] ?? '';
+            $destination = str_starts_with($href, '#') ? rawurldecode(substr($href, 1)) : null;
+            if ($destination !== null && isset($this->destinationAliases[$destination])) {
+                $href = '#' . rawurlencode($this->destinationAliases[$destination]);
+                $anchor->attributes['href'] = $href;
+            }
             if (str_starts_with($href, '#') && !isset($ids[rawurldecode(substr($href, 1))])) {
                 unset($anchor->attributes['href']);
                 $this->diagnostics[] = new Diagnostic('unresolved-output-destination', 'A destination whose content was not derived has no output anchor.', $href);

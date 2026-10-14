@@ -11,8 +11,8 @@ use PDF\Html\Forms\AppearanceRenderer;
 final readonly class HtmlDeriver
 {
     public function __construct(
-        private DerivationPolicy $policy = new DerivationPolicy(),
-        private DerivationLimits $limits = new DerivationLimits(),
+        public DerivationPolicy $policy = new DerivationPolicy(),
+        public DerivationLimits $limits = new DerivationLimits(),
         private ?ContentRenderer $renderer = null,
         private ?AppearanceRenderer $appearanceRenderer = null,
     ) {

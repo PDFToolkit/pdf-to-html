@@ -26,6 +26,7 @@ final class AttributeDeriver
         $html = $css = $diagnostics = [];
         $position = $numbering = $noteType = null;
         $printField = false;
+        $tableHeaders = null;
         foreach ($ordered as [, , $attribute]) {
             $values = $attribute->values;
             $owner = $attribute->owner;
@@ -59,6 +60,9 @@ final class AttributeDeriver
                 foreach (['ColSpan' => 'colspan', 'RowSpan' => 'rowspan', 'Headers' => 'headers', 'Scope' => 'scope', 'Short' => 'abbr'] as $key => $target) {
                     if (array_key_exists($key, $values)) {
                         $value = $this->string($values[$key]);
+                        if ($key === 'Headers') {
+                            $tableHeaders = preg_split('/\s+/u', trim($value), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                        }
                         if ($key === 'Scope' && $value === 'Both') {
                             $diagnostics[] = 'Scope Both has no HTML scope value; explicit Headers associations are retained when supplied.';
                         } else {
@@ -69,7 +73,7 @@ final class AttributeDeriver
                     }
                 }
                 if (isset($values['TBorderStyle'])) {
-                    $css['border-style'] = strtolower($this->string($values['TBorderStyle']));
+                    $this->layout($css, 'BorderStyle', $values['TBorderStyle'], $diagnostics);
                 }
                 if (isset($values['TPadding'])) {
                     $css['padding'] = $this->lengths($values['TPadding']);
@@ -104,6 +108,9 @@ final class AttributeDeriver
                         continue;
                     }
                     $name = strtolower($key);
+                    if ($name === 'headers') {
+                        $tableHeaders = null;
+                    }
                     if (is_bool($value) && in_array($name, ['disabled','readonly','required','multiple','checked','selected','hidden','autofocus','novalidate','formnovalidate'], true)) {
                         if ($value) {
                             $html[$name] = '';
@@ -128,7 +135,7 @@ final class AttributeDeriver
                 $diagnostics[] = 'Unsupported attribute owner: '.$owner.'.';
             }
         }
-        return new DerivedAttributes($html, $css, $position, $numbering, $printField, $noteType, array_values(array_unique($diagnostics)));
+        return new DerivedAttributes($html, $css, $position, $numbering, $printField, $noteType, array_values(array_unique($diagnostics)), $tableHeaders);
     }
     private function priority(AttributeObject $attribute): int
     {

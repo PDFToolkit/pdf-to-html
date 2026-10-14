@@ -6,7 +6,7 @@ namespace PDF\Html\Model;
 
 final readonly class TextContent implements SourceNode
 {
-    public function __construct(public string $text, public ?int $page = null)
+    public function __construct(public string $text, public ?int $page = null, public ?GraphicProgram $source = null)
     {
     }
 }

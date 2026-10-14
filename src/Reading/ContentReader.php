@@ -6,6 +6,7 @@ namespace PDF\Html\Reading;
 
 use PDF\Html\Model\ContentGroup;
 use PDF\Html\Model\GraphicContent;
+use PDF\Html\Model\GraphicProgram;
 use PDF\Html\Model\ImageContent;
 use PDF\Html\Model\MarkedContent;
 use PDF\Html\Model\SourceNode;
@@ -88,7 +89,7 @@ final class ContentReader
         return $this->complete[$key] = $this->instructions($bytes, $page->attributes->resources, $page, $key, 1, initialMatrix: $this->pageMatrix($page));
     }
     /** @return list<SourceNode> */
-    public function stream(ReadPage $page, EncodedStream $stream, DictionaryType $resources, int $depth, ?DictionaryType $initialFont = null, ?ContentMatrix $initialMatrix = null): array
+    public function stream(ReadPage $page, EncodedStream $stream, DictionaryType $resources, int $depth, ?DictionaryType $initialFont = null, ?ContentMatrix $initialMatrix = null, ?GraphicProgram $parent = null): array
     {
         $this->values->budget->depth($depth);
         $key = $this->streamKey($page, $stream);
@@ -118,12 +119,17 @@ final class ContentReader
         }
         $this->loading[$identity] = true;
         try {
-            return $this->complete[$key] = $this->instructions($this->values->document->streamData($stream), $resources, $page, $key, $depth, $initialFont, $matrix);
+            $box = $this->values->value($stream->dictionary(), 'BBox');
+            if ($box !== null && !$box instanceof ArrayType) {
+                throw new ReadingException('A Form XObject BBox requires four numeric coordinates.');
+            }
+            $bounds = $box instanceof ArrayType ? $this->transformedBox($box, $matrix) : $this->pageBox($page);
+            return $this->complete[$key] = $this->instructions($this->values->document->streamData($stream), $resources, $page, $key, $depth, $initialFont, $matrix, $bounds, $parent, $stream);
         } finally {
             unset($this->loading[$identity]);
         }
     }
-    public function image(EncodedStream $stream, int $page, ?ContentMatrix $matrix = null): ImageContent|GraphicContent
+    public function image(EncodedStream $stream, int $page, ?ContentMatrix $matrix = null, ?GraphicProgram $source = null): ImageContent|GraphicContent
     {
         $key = $page . ':' . spl_object_id($stream);
         if ($matrix === null) {
@@ -133,14 +139,14 @@ final class ContentReader
             return $this->paintedImages[$key] ?? new GraphicContent('unsupported-image', 'An object-reference image is not painted on its associated page; its logical dimensions are unavailable.', page: $page);
         }
         [$logicalWidth, $logicalHeight] = $matrix->unitDimensions();
-        $image = $this->portableImage($stream, $page, $logicalWidth, $logicalHeight);
+        $image = $this->portableImage($stream, $page, $logicalWidth, $logicalHeight, $source);
         if (isset($this->paintedImages[$key]) && ($this->paintedImages[$key]->widthPoints !== $logicalWidth || $this->paintedImages[$key]->heightPoints !== $logicalHeight)) {
             $this->ambiguousImages[$key] = true;
         }
         $this->paintedImages[$key] ??= $image;
         return $image;
     }
-    private function portableImage(EncodedStream $stream, int $page, float $logicalWidth, float $logicalHeight): ImageContent|GraphicContent
+    private function portableImage(EncodedStream $stream, int $page, float $logicalWidth, float $logicalHeight, ?GraphicProgram $source = null): ImageContent|GraphicContent
     {
         $dictionary = $stream->dictionary();
         $pixelWidth = $this->values->value($dictionary, 'Width');
@@ -162,13 +168,13 @@ final class ContentReader
                 throw new ReadingException('A DCT image is missing its JPEG signature.');
             }
             $this->values->budget->consume('assets', strlen($bytes));
-            return new ImageContent($bytes, 'image/jpeg', $logicalWidth, $logicalHeight, $page);
+            return new ImageContent($bytes, 'image/jpeg', $logicalWidth, $logicalHeight, $page, $source);
         }
         if (in_array($color, ['DeviceRGB', 'DeviceGray'], true) && $bits === 8 && $dictionary->get('SMask') === null && $dictionary->get('Mask') === null && $dictionary->get('Decode') === null && $width <= 65535 && $height <= 65535) {
             try {
                 $pixels = $this->values->document->streamData($stream);
             } catch (\PDF\Reading\UnsupportedPdfFeature $exception) {
-                return new GraphicContent('unsupported-image', $exception->getMessage(), $logicalWidth, $logicalHeight, $page);
+                return new GraphicContent('unsupported-image', $exception->getMessage(), $logicalWidth, $logicalHeight, $page, $source);
             }
             $components = $color === 'DeviceRGB' ? 3 : 1;
             $row = (int) $width * $components;
@@ -185,25 +191,37 @@ final class ContentReader
             }
             $bytes = "\x89PNG\r\n\x1a\n" . $this->chunk('IHDR', pack('NNCCCCC', (int) $width, (int) $height, 8, $components === 3 ? 2 : 0, 0, 0, 0)) . $this->chunk('IDAT', $compressed) . $this->chunk('IEND', '');
             $this->values->budget->consume('assets', strlen($bytes));
-            return new ImageContent($bytes, 'image/png', $logicalWidth, $logicalHeight, $page);
+            return new ImageContent($bytes, 'image/png', $logicalWidth, $logicalHeight, $page, $source);
         }
-        return new GraphicContent('unsupported-image', 'Image conversion requires an explicit decoder for filters, masks, color spaces or sample depths.', $logicalWidth, $logicalHeight, $page);
+        return new GraphicContent('unsupported-image', 'Image conversion requires an explicit decoder for filters, masks, color spaces or sample depths.', $logicalWidth, $logicalHeight, $page, $source);
     }
     private function chunk(string $type, string $bytes): string
     {
         return pack('N', strlen($bytes)) . $type . $bytes . pack('N', crc32($type . $bytes));
     }
 
-    /** @return list<SourceNode> */
-    private function instructions(string $bytes, DictionaryType $resources, ReadPage $page, string $key, int $depth, ?DictionaryType $initialFont = null, ?ContentMatrix $initialMatrix = null): array
+    /**
+     * @param null|array{float, float, float, float} $boundingBox
+     * @return list<SourceNode>
+     */
+    private function instructions(string $bytes, DictionaryType $resources, ReadPage $page, string $key, int $depth, ?DictionaryType $initialFont = null, ?ContentMatrix $initialMatrix = null, ?array $boundingBox = null, ?GraphicProgram $parent = null, ?EncodedStream $sourceStream = null): array
     {
         $frames = [new MarkedContentFrame(null, new StructureProperties())];
         $font = $initialFont;
         $matrix = $initialMatrix ?? $this->pageMatrix($page);
+        $sourceMatrix = $matrix;
+        $boundingBox ??= $this->pageBox($page);
         $graphics = [];
         $textObject = false;
         $number = $this->pageNumber($page);
+        $instructions = [];
         foreach ((new ContentInstructionReader($this->values->budget, $this->values->document))->read($bytes, $resources) as $instruction) {
+            $this->values->budget->consume('nodes');
+            $instructions[] = $instruction;
+        }
+        // Arrays are shared copy-on-write and never mutated: no per-node prefix copies.
+        $program = fn (int $first, int $last): GraphicProgram => new GraphicProgram($instructions, $resources, $this->values->document, $sourceMatrix, $number, $boundingBox, $key, $first, $last, $initialFont, $parent, $sourceStream);
+        foreach ($instructions as $index => $instruction) {
             $operator = $instruction->operator;
             $operands = $instruction->operands;
             $frame = $this->frame($frames);
@@ -214,7 +232,7 @@ final class ContentReader
                 if (!$frame->suppressContent && !$frame->artifact) {
                     [$logicalWidth, $logicalHeight] = $matrix->unitDimensions();
                     $this->values->budget->consume('nodes');
-                    $image = $this->portableImage($instruction->inlineImage->stream(), $number, $logicalWidth, $logicalHeight);
+                    $image = $this->portableImage($instruction->inlineImage->stream(), $number, $logicalWidth, $logicalHeight, $program($index, $index));
                     if ($image instanceof GraphicContent) {
                         $this->values->budget->diagnostic('Inline image data could not be converted; its logical dimensions are retained in a placeholder: ' . $image->instructions);
                     }
@@ -239,7 +257,7 @@ final class ContentReader
                 }
                 $this->values->budget->depth($depth + count($frames));
                 $properties = $properties instanceof DictionaryType ? $this->values->properties($properties) : new StructureProperties();
-                $frames[] = new MarkedContentFrame($id instanceof IntegerType ? $id->integer() : null, $properties, $frame->artifact || $tag->value === 'Artifact', $frame->suppressContent || $properties->actualText !== null || ($id instanceof IntegerType && isset($this->replacedContent[$key][$id->integer()])));
+                $frames[] = new MarkedContentFrame($id instanceof IntegerType ? $id->integer() : null, $properties, $frame->artifact || $tag->value === 'Artifact', $frame->suppressContent || $properties->actualText !== null || ($id instanceof IntegerType && isset($this->replacedContent[$key][$id->integer()])), $index);
             } elseif ($operator === 'EMC') {
                 if (count($frames) === 1) {
                     throw new ReadingException('An EMC has no open marked-content sequence.');
@@ -248,7 +266,7 @@ final class ContentReader
                 if (!$closed instanceof MarkedContentFrame) {
                     throw new ReadingException('A marked-content stack is empty.');
                 }
-                $node = new MarkedContent($closed->children, $closed->properties, $number, $closed->artifact);
+                $node = new MarkedContent($closed->children, $closed->properties, $number, $closed->artifact, $program($closed->firstInstruction, $index));
                 $this->values->budget->consume('nodes');
                 if ($closed->identifier !== null) {
                     if (isset($this->marked[$key][$closed->identifier])) {
@@ -306,7 +324,7 @@ final class ContentReader
                             $text .= $this->fonts->decode($font, $part->value);
                         } catch (UnsupportedTextException $exception) {
                             $this->values->budget->consume('nodes');
-                            $frame->children[] = new GraphicContent('unmapped-text', $exception->getMessage(), page: $number);
+                            $frame->children[] = new GraphicContent('unmapped-text', $exception->getMessage(), page: $number, source: $program($index, $index));
                         }
                     } elseif (!$part instanceof NumericType || $operator !== 'TJ') {
                         throw new ReadingException('A text-showing operand has an invalid type.');
@@ -314,7 +332,7 @@ final class ContentReader
                 }
                 $this->values->budget->consume('nodes');
                 if ($text !== '') {
-                    $frame->children[] = new TextContent($text, $number);
+                    $frame->children[] = new TextContent($text, $number, $program($index, $index));
                 }
             } elseif ($operator === 'Do') {
                 $name = $operands[0] ?? null;
@@ -329,21 +347,22 @@ final class ContentReader
                 $subtype = $this->values->name($object->dictionary()->get('Subtype'));
                 $this->values->budget->consume('nodes');
                 if ($subtype === 'Form') {
-                    $frame->children[] = new ContentGroup($this->stream($page, $object, $resources, $depth + 1, $font, $matrix), $number);
+                    $source = $program($index, $index);
+                    $frame->children[] = new ContentGroup($this->stream($page, $object, $resources, $depth + 1, $font, $matrix, $source), $number, $source);
                 } elseif ($subtype === 'Image') {
-                    $frame->children[] = $this->image($object, $number, $matrix);
+                    $frame->children[] = $this->image($object, $number, $matrix, $program($index, $index));
                 } else {
-                    $frame->children[] = new GraphicContent('unsupported-xobject', $subtype ?? 'missing subtype', page: $number);
+                    $frame->children[] = new GraphicContent('unsupported-xobject', $subtype ?? 'missing subtype', page: $number, source: $program($index, $index));
                 }
             } elseif (in_array($operator, ['S', 's', 'f', 'F', 'f*', 'B', 'B*', 'b', 'b*', 'sh'], true)) {
                 if ($frame->suppressContent || $frame->artifact) {
                     continue;
                 }
                 $this->values->budget->consume('nodes');
-                $frame->children[] = new GraphicContent($operator === 'sh' ? 'shading' : 'path', $operator, page: $number);
+                $frame->children[] = new GraphicContent($operator === 'sh' ? 'shading' : 'path', $operator, page: $number, source: $program($index, $index));
             } elseif (!in_array($operator, ['m', 'l', 'c', 'v', 'y', 'h', 're', 'W', 'W*', 'n', 'cm', 'w', 'J', 'j', 'M', 'd', 'ri', 'i', 'gs', 'CS', 'cs', 'SC', 'SCN', 'sc', 'scn', 'G', 'g', 'RG', 'rg', 'K', 'k', 'Tc', 'Tw', 'Tz', 'TL', 'Tr', 'Ts', 'Td', 'TD', 'Tm', 'T*', 'MP', 'DP', 'BX', 'EX', 'd0', 'd1'], true)) {
                 $this->values->budget->consume('nodes');
-                $frame->children[] = new GraphicContent('unsupported-operator', $operator, page: $number);
+                $frame->children[] = new GraphicContent('unsupported-operator', $operator, page: $number, source: $program($index, $index));
             }
         }
         if (count($frames) !== 1 || $textObject || $graphics !== []) {
@@ -392,5 +411,37 @@ final class ContentReader
             270 => new ContentMatrix(0, $unit, -$unit, 0),
             default => throw new ReadingException('Page rotation is invalid.'),
         };
+    }
+
+    /** @return array{float, float, float, float} */
+    private function pageBox(ReadPage $page): array
+    {
+        return $this->transformedBox($page->attributes->cropBox, $this->pageMatrix($page));
+    }
+
+    /** @return array{float, float, float, float} */
+    private function transformedBox(ArrayType $box, ContentMatrix $matrix): array
+    {
+        $coordinates = $this->values->native($box);
+        if (!is_array($coordinates) || count($coordinates) !== 4) {
+            throw new ReadingException('A content bounding box requires four numeric coordinates.');
+        }
+        foreach ($coordinates as $coordinate) {
+            if ((!is_int($coordinate) && !is_float($coordinate)) || !is_finite($coordinate)) {
+                throw new ReadingException('A content bounding box requires finite numeric coordinates.');
+            }
+        }
+        [$left, $bottom, $right, $top] = array_values($coordinates);
+        $x = [];
+        $y = [];
+        foreach ([[$left, $bottom], [$left, $top], [$right, $bottom], [$right, $top]] as [$a, $b]) {
+            $x[] = $matrix->a * $a + $matrix->c * $b + $matrix->e;
+            $y[] = $matrix->b * $a + $matrix->d * $b + $matrix->f;
+        }
+        $bounds = [min($x), min($y), max($x), max($y)];
+        if (!is_finite($bounds[0]) || !is_finite($bounds[1]) || !is_finite($bounds[2]) || !is_finite($bounds[3]) || $bounds[2] <= $bounds[0] || $bounds[3] <= $bounds[1]) {
+            throw new ReadingException('A content bounding box has degenerate or overflowing transformed dimensions.');
+        }
+        return $bounds;
     }
 }

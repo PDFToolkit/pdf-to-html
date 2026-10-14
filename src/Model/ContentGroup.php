@@ -9,7 +9,7 @@ final readonly class ContentGroup implements SourceNode
     /**
      * @param list<SourceNode> $children
      */
-    public function __construct(public array $children, public ?int $page = null)
+    public function __construct(public array $children, public ?int $page = null, public ?GraphicProgram $source = null, public ?GraphicViewport $viewport = null)
     {
     }
 }

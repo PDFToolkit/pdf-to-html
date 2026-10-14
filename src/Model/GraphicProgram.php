@@ -8,6 +8,7 @@ use PDF\Html\Reading\ContentInstruction;
 use PDF\Html\Reading\ContentMatrix;
 use PDF\Reading\EncodedStream;
 use PDF\Reading\ReadDocument;
+use PDF\Reading\ReadPage;
 use PDF\Syntax\Object\DictionaryType;
 
 /**
@@ -33,7 +34,11 @@ final readonly class GraphicProgram
         public ?DictionaryType $initialFont = null,
         public ?self $parent = null,
         public ?EncodedStream $stream = null,
+        public ?ReadPage $pageContext = null,
     ) {
+        if ($pageContext !== null && $pageContext->document !== $document) {
+            throw new \InvalidArgumentException('A graphic program page context must belong to its source document.');
+        }
         if ($page < 1 || $container === '' || $firstInstruction < 0 || $lastInstruction < $firstInstruction || $lastInstruction >= count($instructions)) {
             throw new \InvalidArgumentException('A graphic program requires a page, container and valid inclusive instruction range.');
         }
@@ -54,6 +59,6 @@ final readonly class GraphicProgram
 
     public function withRange(int $firstInstruction, int $lastInstruction): self
     {
-        return new self($this->instructions, $this->resources, $this->document, $this->initialMatrix, $this->page, $this->boundingBox, $this->container, $firstInstruction, $lastInstruction, $this->initialFont, $this->parent, $this->stream);
+        return new self($this->instructions, $this->resources, $this->document, $this->initialMatrix, $this->page, $this->boundingBox, $this->container, $firstInstruction, $lastInstruction, $this->initialFont, $this->parent, $this->stream, $this->pageContext);
     }
 }

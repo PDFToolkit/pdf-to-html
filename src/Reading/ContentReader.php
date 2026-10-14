@@ -13,6 +13,7 @@ use PDF\Html\Model\SourceNode;
 use PDF\Html\Model\StructureProperties;
 use PDF\Html\Model\TextContent;
 use PDF\Reading\EncodedStream;
+use PDF\Reading\ObjectReference;
 use PDF\Reading\PageContentsReader;
 use PDF\Reading\ReadPage;
 use PDF\Syntax\FileStructure\BasicType;
@@ -20,6 +21,7 @@ use PDF\Syntax\Object\ArrayType;
 use PDF\Syntax\Object\DictionaryType;
 use PDF\Syntax\Object\IntegerType;
 use PDF\Syntax\Object\NameType;
+use PDF\Syntax\Object\NullType;
 use PDF\Syntax\Object\NumericType;
 use PDF\Syntax\Object\StringType;
 
@@ -220,7 +222,7 @@ final class ContentReader
             $instructions[] = $instruction;
         }
         // Arrays are shared copy-on-write and never mutated: no per-node prefix copies.
-        $program = fn (int $first, int $last): GraphicProgram => new GraphicProgram($instructions, $resources, $this->values->document, $sourceMatrix, $number, $boundingBox, $key, $first, $last, $initialFont, $parent, $sourceStream);
+        $program = fn (int $first, int $last): GraphicProgram => new GraphicProgram($instructions, $resources, $this->values->document, $sourceMatrix, $number, $boundingBox, $key, $first, $last, $initialFont, $parent, $sourceStream, $page);
         foreach ($instructions as $index => $instruction) {
             $operator = $instruction->operator;
             $operands = $instruction->operands;
@@ -307,6 +309,36 @@ final class ContentReader
                 $font = $category === null ? null : $this->values->dictionary($category->get($name->value));
                 if ($font === null) {
                     throw new ReadingException('A text font resource is missing.');
+                }
+            } elseif ($operator === 'gs') {
+                $name = $operands[0] ?? null;
+                if (count($operands) !== 1 || !$name instanceof NameType) {
+                    throw new ReadingException('gs requires one graphics-state resource name.');
+                }
+                $category = $this->values->dictionary($resources->get('ExtGState'));
+                $state = $category === null ? null : $this->values->dictionary($category->get($name->value));
+                if ($state === null) {
+                    throw new ReadingException('A graphics-state resource is missing or is not a dictionary.');
+                }
+                // ISO 32000-2 Table 57: gs can replace both the text font and size, without Tf.
+                $setting = $this->values->value($state, 'Font');
+                if ($setting !== null && !$setting instanceof NullType) {
+                    if (!$setting instanceof ArrayType || count($setting) !== 2) {
+                        throw new ReadingException('An ExtGState Font requires a two-element font-and-size array.');
+                    }
+                    $reference = $setting->items[0];
+                    $size = $this->values->document->resolve($setting->items[1]);
+                    if (!$reference instanceof ObjectReference) {
+                        throw new ReadingException('An ExtGState Font requires an indirect font dictionary reference.');
+                    }
+                    if (!$size instanceof NumericType) {
+                        throw new ReadingException('An ExtGState Font size must resolve to a finite PDF number.');
+                    }
+                    $replacement = $this->values->document->resolve($reference);
+                    if (!$replacement instanceof DictionaryType || $this->values->name($replacement->get('Type')) !== 'Font') {
+                        throw new ReadingException('An ExtGState Font reference must resolve to a font dictionary.');
+                    }
+                    $font = $replacement;
                 }
             } elseif (in_array($operator, ['Tj', 'TJ', "'", '"'], true)) {
                 if (!$textObject || $font === null) {

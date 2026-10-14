@@ -1,0 +1,26 @@
+{
+  "license": "MIT",
+  "sha256": "71e59db8aaf66079a1104f5aa504c0ee56d65fb197eb392c7fd3c4c6e7806c6f",
+  "images": [
+    "gray-raw",
+    "rgb-raw",
+    "rgb-flate",
+    "rgb-asciihex",
+    "rgb-ascii85",
+    "gray-runlength",
+    "gray-jpeg",
+    "cmyk-placeholder",
+    "mask-placeholder",
+    "lzw-placeholder",
+    "indexed-placeholder",
+    "two-bit-placeholder"
+  ],
+  "graySamplesHex": "20454920",
+  "rgbSamplesHex": "1080f0",
+  "jpegSha256": "ccdcca71a807fd17290db55c29dfd681a19495446809d7c5398cfc3563687db3",
+  "jpegSource": "PDFToolkit/pdf-images original MIT example gray.jpg",
+  "logicalCssPixels": [
+    27,
+    13
+  ]
+}

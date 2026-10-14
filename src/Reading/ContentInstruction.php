@@ -9,7 +9,7 @@ use PDF\Syntax\FileStructure\BasicType;
 final readonly class ContentInstruction
 {
     /** @param list<BasicType> $operands */
-    public function __construct(public string $operator, public array $operands)
+    public function __construct(public string $operator, public array $operands, public ?InlineImageData $inlineImage = null)
     {
     }
 }

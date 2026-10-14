@@ -6,18 +6,20 @@ namespace PDF\Html\Reading;
 
 use PDF\Reading\ByteCursor;
 use PDF\Reading\ReadBudget;
+use PDF\Reading\ReadDocument;
 use PDF\Reading\ReaderLimits;
 use PDF\Reading\SyntaxParser;
+use PDF\Syntax\Object\DictionaryType;
 
 /** Lexical operators and operands; string bytes never serve as operator delimiters. */
 final readonly class ContentInstructionReader
 {
-    public function __construct(private ReadingBudget $budget)
+    public function __construct(private ReadingBudget $budget, private ?ReadDocument $document = null)
     {
     }
 
     /** @return \Generator<int, ContentInstruction> */
-    public function read(string $bytes): \Generator
+    public function read(string $bytes, ?DictionaryType $resources = null): \Generator
     {
         $this->budget->consume('content', strlen($bytes));
         $cursor = new ByteCursor($bytes);
@@ -48,7 +50,12 @@ final readonly class ContentInstructionReader
                 throw new ReadingException('An invalid content-stream delimiter was found.');
             }
             if ($operator === 'BI') {
-                throw new ReadingException('Inline images require an explicit interpreter; ambiguous EI searching is not performed.');
+                if ($operands !== []) {
+                    throw new ReadingException('BI may not consume preceding content operands.');
+                }
+                $this->budget->consume('instructions');
+                yield new ContentInstruction('BI', [], (new InlineImageReader($this->budget, $this->document))->read($parser, $resources));
+                continue;
             }
             $this->budget->consume('instructions');
             yield new ContentInstruction($operator, $operands);

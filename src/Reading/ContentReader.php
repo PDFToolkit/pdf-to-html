@@ -151,6 +151,9 @@ final class ContentReader
         $width = $pixelWidth->integer();
         $height = $pixelHeight->integer();
         $filter = $this->values->value($dictionary, 'Filter');
+        if ($filter instanceof ArrayType && count($filter) === 1) {
+            $filter = $this->values->document->resolve($filter->items[0]);
+        }
         $color = $this->values->name($dictionary->get('ColorSpace'));
         $bits = $this->values->integer($dictionary->get('BitsPerComponent'), 8);
         if ($filter instanceof NameType && $filter->value === 'DCTDecode' && $dictionary->get('SMask') === null && $dictionary->get('Mask') === null && $dictionary->get('Decode') === null && in_array($color, ['DeviceGray', 'DeviceRGB'], true)) {
@@ -200,11 +203,24 @@ final class ContentReader
         $graphics = [];
         $textObject = false;
         $number = $this->pageNumber($page);
-        foreach ((new ContentInstructionReader($this->values->budget))->read($bytes) as $instruction) {
+        foreach ((new ContentInstructionReader($this->values->budget, $this->values->document))->read($bytes, $resources) as $instruction) {
             $operator = $instruction->operator;
             $operands = $instruction->operands;
             $frame = $this->frame($frames);
-            if ($operator === 'BMC' || $operator === 'BDC') {
+            if ($operator === 'BI') {
+                if ($instruction->inlineImage === null) {
+                    throw new ReadingException('A BI instruction requires its parsed inline image.');
+                }
+                if (!$frame->suppressContent && !$frame->artifact) {
+                    [$logicalWidth, $logicalHeight] = $matrix->unitDimensions();
+                    $this->values->budget->consume('nodes');
+                    $image = $this->portableImage($instruction->inlineImage->stream(), $number, $logicalWidth, $logicalHeight);
+                    if ($image instanceof GraphicContent) {
+                        $this->values->budget->diagnostic('Inline image data could not be converted; its logical dimensions are retained in a placeholder: ' . $image->instructions);
+                    }
+                    $frame->children[] = $image;
+                }
+            } elseif ($operator === 'BMC' || $operator === 'BDC') {
                 $tag = $operands[0] ?? null;
                 if (!$tag instanceof NameType) {
                     throw new ReadingException('Marked content requires a name tag.');

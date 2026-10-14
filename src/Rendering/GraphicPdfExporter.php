@@ -12,6 +12,8 @@ use PDF\Html\Model\GraphicProgram;
 use PDF\Html\Model\MarkedContent;
 use PDF\Html\Model\SourceNode;
 use PDF\Html\Model\StructureElement;
+use PDF\Html\Reading\PageTransform;
+use PDF\Reading\EncodedStream;
 use PDF\Document\ResourceDictionary;
 use PDF\Serialization\SerializationContext;
 use PDF\Syntax\DataStructure\Rectangle;
@@ -23,6 +25,7 @@ use PDF\Syntax\FileStructure\FileHeader;
 use PDF\Syntax\FileStructure\PdfVersion;
 use PDF\Syntax\Object\DictionaryObject\Entry;
 use PDF\Syntax\Object\IndirectReference;
+use PDF\Syntax\Object\DictionaryType;
 use PDF\Syntax\Object\NumericType;
 use PDF\Syntax\Object\NameType;
 use PDF\Syntax\Object\NullType;
@@ -86,10 +89,31 @@ final readonly class GraphicPdfExporter
                 throw new DerivationException('A nested graphics program requires its original Form stream.');
             }
         }
+        $rootForm = null;
+        $subtype = $root->stream?->dictionary->get('Subtype');
+        $subtype = $subtype === null ? null : $root->document->resolve($subtype);
+        if ($root->stream !== null && $subtype instanceof NameType && $subtype->value === 'Form') {
+            // The prefix already applies this Form's Matrix. Keep its clip, group and OC in a real XObject.
+            $entries = [];
+            foreach ($root->stream->dictionary->entries() as $entry) {
+                if ($entry->key->value !== 'Matrix') {
+                    $entries[] = $entry;
+                }
+            }
+            $dictionary = (new DictionaryType(...$entries))->with(new Entry(new NameType('Resources'), $root->resources));
+            $rootForm = new EncodedStream($dictionary, $root->stream->bytes);
+            $overrides[spl_object_id($rootForm)] = $contentBytes;
+        }
         $import = new GraphicsImportSession($root->document, $this->limits, $overrides, $budget);
         $resourceEntries = [];
-        foreach ($root->resources->entries() as $entry) {
-            $resourceEntries[] = new Entry($entry->key, $import->import($root->document->resolve($entry->value)));
+        if ($rootForm !== null) {
+            $resourceEntries[] = new Entry(new NameType('XObject'), new DictionaryType(new Entry(new NameType('PDFToolkitRoot'), new IndirectReference($import->import($rootForm)))));
+            $contentBytes = "/PDFToolkitRoot Do\n";
+            $budget->retain(strlen($contentBytes));
+        } else {
+            foreach ($root->resources->entries() as $entry) {
+                $resourceEntries[] = new Entry($entry->key, $import->import($root->document->resolve($entry->value)));
+            }
         }
         $resources = new ResourceDictionary(...$resourceEntries);
         $matrix = $root->initialMatrix;
@@ -101,7 +125,11 @@ final readonly class GraphicPdfExporter
         // Reader boxes are already in the physical coordinate system after initialMatrix.
         $box = $root->boundingBox;
         if ($content instanceof ContentGroup && $content->viewport !== null) {
-            $viewport = $content->viewport->transformed($matrix);
+            if ($rootForm !== null && $root->pageContext === null) {
+                throw new DerivationException('A standalone Form requires its page context for a default page-space viewport.');
+            }
+            $viewportMatrix = $rootForm !== null && $root->pageContext !== null ? (new PageTransform($root->pageContext))->matrix : $matrix;
+            $viewport = $content->viewport->transformed($viewportMatrix);
             $box = [$viewport->left, $viewport->bottom, $viewport->right, $viewport->top];
         }
         $rectangle = new Rectangle(...array_map(static fn (float $number): NumericType => new NumericType($number), $box));

@@ -428,21 +428,7 @@ final class ContentReader
     }
     private function pageMatrix(ReadPage $page): ContentMatrix
     {
-        $unitValue = $this->values->value($page->dictionary, 'UserUnit');
-        if ($unitValue !== null && !$unitValue instanceof NumericType) {
-            throw new ReadingException('Page UserUnit must be a positive finite number.');
-        }
-        $unit = $unitValue instanceof NumericType ? (float) $unitValue->value : 1.0;
-        if (!is_finite($unit) || $unit <= 0) {
-            throw new ReadingException('Page UserUnit must be a positive finite number.');
-        }
-        return match ($page->attributes->normalizedRotation()) {
-            0 => new ContentMatrix($unit, 0, 0, $unit),
-            90 => new ContentMatrix(0, -$unit, $unit, 0),
-            180 => new ContentMatrix(-$unit, 0, 0, -$unit),
-            270 => new ContentMatrix(0, $unit, -$unit, 0),
-            default => throw new ReadingException('Page rotation is invalid.'),
-        };
+        return (new PageTransform($page))->matrix;
     }
 
     /** @return array{float, float, float, float} */

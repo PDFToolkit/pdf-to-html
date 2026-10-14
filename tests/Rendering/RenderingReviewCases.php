@@ -70,6 +70,66 @@ final readonly class RenderingReviewCases
                 4 => $fixture->stream('/Figure <</MCID 0>> BDC 1 0 0 rg 50 50 20 20 re f EMC /Figure <</MCID 1>> BDC EMC'),
                 20 => '/2.0',
             ] + $base)->bytes)),
+            'standalone-form-clip' => $this->standaloneForm('clip'),
+            'standalone-form-group' => $this->standaloneForm('group'),
+            'standalone-form-oc' => $this->standaloneForm('oc'),
+            'standalone-form-viewport' => $this->standaloneForm('viewport'),
+            'standalone-form-null-unit' => $this->standaloneForm('null-unit'),
+            'standalone-form-indirect-null-unit' => $this->standaloneForm('indirect-null-unit'),
         ];
+    }
+
+    /** @return array<string, FileBytes> */
+    public function controls(): array
+    {
+        return [
+            'standalone-form-clip' => $this->standaloneForm('clip', true),
+            'standalone-form-group' => $this->standaloneForm('group', true),
+            'standalone-form-oc' => $this->standaloneForm('oc', true),
+            'standalone-form-viewport' => $this->standaloneForm('viewport', true),
+            'standalone-form-null-unit' => $this->standaloneForm('null-unit', true),
+            'standalone-form-indirect-null-unit' => $this->standaloneForm('indirect-null-unit', true),
+        ];
+    }
+
+    /** Whole-object OBJR association: the source page does not invoke this Form. */
+    private function standaloneForm(string $kind, bool $paint = false): FileBytes
+    {
+        $fixture = new PdfFixture();
+        $pageBox = '[0 0 20 10]';
+        $pageAttributes = '';
+        $matrix = '[1 0 1 1 0 0]';
+        $resources = '<< >>';
+        $formAttributes = '';
+        $catalogAttributes = '';
+        $content = '1 0 0 rg -100 -100 200 200 re f';
+        if ($kind === 'group') {
+            $resources = '<< /ExtGState << /Alpha << /ca 0.5 >> >> >>';
+            $formAttributes = '/Group << /Type /Group /S /Transparency /CS /DeviceCMYK /I true /K false >>';
+            $content = '/Alpha gs 1 0 0 0 k -100 -100 200 200 re f';
+        } elseif ($kind === 'oc') {
+            $formAttributes = '/OC 20 0 R';
+            $catalogAttributes = '/OCProperties << /OCGs [20 0 R] /D << /Name (Default) /BaseState /ON /OFF [20 0 R] /Order [20 0 R] >> >>';
+        } elseif ($kind === 'viewport') {
+            $pageBox = $paint ? '[8 -40 16 -16]' : '[0 0 40 30]';
+            $pageAttributes = $paint ? '' : '/CropBox [0 0 30 20] /Rotate 90 /UserUnit 2';
+            // The control uses independently authored physical page coordinates, without Rotate/UserUnit.
+            $matrix = $paint ? '[0 -4 2 -2 4 -10]' : '[2 0 1 1 5 2]';
+        } elseif ($kind === 'null-unit' || $kind === 'indirect-null-unit') {
+            $pageAttributes = $kind === 'null-unit' ? '/UserUnit null' : '/UserUnit 21 0 R';
+        }
+        return $fixture->build([
+            1 => '<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R ' . $catalogAttributes . ' >>',
+            3 => '<< /Type /Page /Parent 2 0 R /MediaBox ' . $pageBox . ' ' . $pageAttributes . ' /Resources << /XObject << /Fm 9 0 R >> >> /Contents 4 0 R >>',
+            4 => $fixture->stream($paint ? '/Fm Do' : ' '),
+            5 => '<< /Type /StructTreeRoot /K 6 0 R /ParentTree 14 0 R /ParentTreeNextKey 1 >>',
+            6 => '<< /Type /StructElem /S /Document /P 5 0 R /K 7 0 R >>',
+            7 => '<< /Type /StructElem /S /Figure /P 6 0 R /Pg 3 0 R /K << /Type /OBJR /Pg 3 0 R /Obj 9 0 R >> >>',
+            8 => null,
+            9 => $fixture->stream($content, '/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Matrix ' . $matrix . ' /Resources ' . $resources . ' /StructParent 0 ' . $formAttributes),
+            14 => '<< /Nums [0 7 0 R] >>',
+            20 => '<< /Type /OCG /Name (Hidden standalone Form) >>',
+            21 => 'null',
+        ]);
     }
 }

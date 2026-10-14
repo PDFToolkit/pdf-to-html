@@ -66,4 +66,20 @@ with tempfile.TemporaryDirectory(prefix="pdf-html-graphics-context-") as tempora
             assert blue == 400 and red == 0, (name, blue, red)
         elif name == "pdf17-standard-font":
             assert base64.b64decode(case["pdf"]).startswith(b"%PDF-1.7"), name
+        elif name.startswith("standalone-form-"):
+            forms = [reference.get_object() for reference in output.pages[0]["/Resources"]["/XObject"].values()]
+            assert len(forms) == 1 and forms[0]["/Subtype"] == "/Form", name
+            form = forms[0]
+            assert list(form["/BBox"]) == [0, 0, 10, 10] and "/Matrix" not in form, name
+            if name == "standalone-form-group":
+                assert form["/Group"]["/CS"] == "/DeviceCMYK", name
+                assert float(form["/Resources"]["/ExtGState"]["/Alpha"]["/ca"]) == 0.5, name
+                assert images["pdf"] != b"\xff\xff\xff" * width * height, name
+            elif name == "standalone-form-oc":
+                assert form["/OC"]["/Type"] == "/OCG", name
+                assert output.trailer["/Root"]["/OCProperties"]["/D"]["/OFF"][0].get_object()["/Name"] == "Hidden standalone Form", name
+                assert images["pdf"] == b"\xff\xff\xff" * width * height, name
+            elif name == "standalone-form-viewport":
+                assert list(output.pages[0].mediabox) == [8, -40, 16, -16], name
+                assert (width, height) == (8, 24), name
         print("Verified original graphics context with pypdf and Poppler:", name)

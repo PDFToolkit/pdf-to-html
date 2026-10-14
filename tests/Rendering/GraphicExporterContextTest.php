@@ -7,6 +7,8 @@ namespace PDF\Html\Tests\Rendering;
 use PDF\Html\DerivationException;
 use PDF\Html\Model\ContentGroup;
 use PDF\Html\Model\GraphicProgram;
+use PDF\Html\Model\GraphicContent;
+use PDF\Html\Model\GraphicViewport;
 use PDF\Html\Model\MarkedContent;
 use PDF\Html\Model\StructureElement;
 use PDF\Html\Reading\ReadPdfSource;
@@ -99,5 +101,57 @@ final class GraphicExporterContextTest extends TestCase
     {
         $bytes = (new GraphicPdfExporter())->export($this->group('indirect-catalog-version'))->bytes;
         self::assertStringStartsWith('%PDF-2.0', $bytes);
+    }
+
+    public function testAStandaloneObjrFormRetainsItsExactBoundingBoxClip(): void
+    {
+        $group = $this->group('standalone-form-clip');
+        $form = $group->children[0];
+        self::assertInstanceOf(ContentGroup::class, $form);
+        $path = $form->children[0];
+        self::assertInstanceOf(GraphicContent::class, $path);
+        self::assertInstanceOf(GraphicProgram::class, $path->source);
+        self::assertNull($path->source->parent);
+        self::assertNotNull($path->source->stream);
+        $rendering = (new GraphicPdfExporter())->export($group);
+        self::assertSame(20.0, $rendering->widthPoints);
+        self::assertSame(10.0, $rendering->heightPoints);
+        self::assertStringContainsString('/Subtype /Form', $rendering->bytes);
+        self::assertStringContainsString('/BBox [0 0 10 10]', $rendering->bytes);
+        self::assertStringContainsString("1 0 1 1 0 0 cm", $rendering->bytes);
+    }
+
+    public function testStandaloneFormTransparencyAndOptionalContentRemainInsideTheForm(): void
+    {
+        $groupBytes = (new GraphicPdfExporter())->export($this->group('standalone-form-group'))->bytes;
+        self::assertStringContainsString('/Subtype /Form', $groupBytes);
+        self::assertStringContainsString('/Group << /Type /Group /S /Transparency /CS /DeviceCMYK /I true /K false >>', $groupBytes);
+        self::assertStringContainsString('/ca 0.5', $groupBytes);
+        $optionalBytes = (new GraphicPdfExporter())->export($this->group('standalone-form-oc'))->bytes;
+        self::assertStringContainsString('/OCProperties', $optionalBytes);
+        self::assertStringContainsString('/OFF [', $optionalBytes);
+        self::assertMatchesRegularExpression('~/StructParent 0 /OC [0-9]+ 0 R~', $optionalBytes);
+    }
+
+    public function testAnObjrViewportUsesPageSpaceRatherThanTheFormsLocalMatrix(): void
+    {
+        $group = $this->group('standalone-form-viewport');
+        $rendering = (new GraphicPdfExporter())->export(new ContentGroup($group->children, viewport: new GraphicViewport(8, 4, 20, 8)));
+        self::assertSame(8.0, $rendering->widthPoints);
+        self::assertSame(24.0, $rendering->heightPoints);
+        self::assertStringContainsString('/MediaBox [8 -40 16 -16]', $rendering->bytes);
+        self::assertStringContainsString("0 -4 2 -2 4 -10 cm", $rendering->bytes);
+        self::assertStringNotContainsString('/Matrix [2 0 1 1 5 2]', $rendering->bytes);
+    }
+
+    public function testNullUserUnitDirectOrIndirectBehavesLikeItsAbsence(): void
+    {
+        $expected = (new GraphicPdfExporter())->export($this->group('standalone-form-clip'));
+        foreach (['standalone-form-null-unit', 'standalone-form-indirect-null-unit'] as $name) {
+            $rendering = (new GraphicPdfExporter())->export($this->group($name));
+            self::assertSame($expected->widthPoints, $rendering->widthPoints);
+            self::assertSame($expected->heightPoints, $rendering->heightPoints);
+            self::assertSame($expected->bytes, $rendering->bytes);
+        }
     }
 }

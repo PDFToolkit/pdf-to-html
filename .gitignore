@@ -1,0 +1,5 @@
+/vendor/
+/.cache/
+/_build/
+__pycache__/
+*.pyc

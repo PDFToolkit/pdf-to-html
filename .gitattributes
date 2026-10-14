@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.pdf binary
+/.github export-ignore
+/tests export-ignore
+/tools export-ignore
+/resources/reference-documents export-ignore
+/AGENTS.md export-ignore

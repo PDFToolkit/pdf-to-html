@@ -91,6 +91,19 @@ final class NormativeDerivationTest extends TestCase
         self::assertSame('const replacement = true;', $result->assets[0]->bytes);
     }
 
+    public function testIndirectCatalogVersionSelectsPdf20Utf8TextStrings(): void
+    {
+        $file = (new PdfFixture())->build([
+            1 => '<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /Version 20 0 R /Lang <EFBBBF66722D4652> >>',
+            7 => '<< /Type /StructElem /S /P /P 6 0 R /Pg 3 0 R /K 0 /ActualText <EFBBBF426F6E6A6F757220C3A974C3A9> >>',
+            20 => '/2.0',
+        ]);
+        $file = new \PDF\Reading\FileBytes(str_replace('%PDF-2.0', '%PDF-1.7', $file->bytes));
+        $html = (new PdfToHtml())->convert($file, 'version.pdf')->html;
+        self::assertStringContainsString('lang="fr-FR"', $html);
+        self::assertStringContainsString('Bonjour été', $html);
+    }
+
     public function testSafeResetPolicyEmitsOnlyLibraryOwnedRuntime(): void
     {
         $name = new Widget(new FormField('Name', FieldType::Text, value: 'Current', defaultValue: 'Default', actions: ['V' => 'document.cookie = "unsafe";']));

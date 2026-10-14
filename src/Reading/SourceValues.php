@@ -24,8 +24,8 @@ final readonly class SourceValues
     private TextStringDecoder $textDecoder;
     public function __construct(public ReadDocument $document, public ReadingBudget $budget)
     {
-        $version = $document->catalog()->get('Version');
-        $this->textDecoder = new TextStringDecoder($version instanceof NameType && $version->value === '2.0' ? PdfVersion::PDF20 : $document->header()->version);
+        $version = $this->name($document->catalog()->get('Version'));
+        $this->textDecoder = new TextStringDecoder($version === '2.0' ? PdfVersion::PDF20 : $document->header()->version);
     }
     public function value(DictionaryType $dictionary, string $key): ?BasicType
     {

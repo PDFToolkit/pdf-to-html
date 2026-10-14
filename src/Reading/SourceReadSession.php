@@ -494,6 +494,8 @@ final class SourceReadSession
         foreach (array_reverse($chain) as $field) {
             $actions = array_replace($actions, $this->metadata->additionalScripts($field));
         }
+        $actions = array_intersect_key($actions, array_fill_keys(['K', 'V', 'C', 'F'], true));
+        $widgetActions = array_intersect_key($this->metadata->additionalScripts($annotation), array_fill_keys(['Fo', 'Bl', 'E', 'X', 'D', 'U'], true));
         $action = $this->values->dictionary($annotation->get('A'));
         $actionType = $action === null ? null : $this->values->name($action->get('S'));
         $target = $action === null ? null : $this->values->text($action->get('F'));
@@ -529,7 +531,7 @@ final class SourceReadSession
         if ($normal instanceof EncodedStream && $page !== null) {
             $appearanceNodes = $this->content->stream($page, $normal, $page->attributes->resources, 1);
         }
-        return new Widget($field, $page === null ? null : $this->number($page), $this->values->integer($annotation->get('F')), $rect, $pageBox, $this->values->name($annotation->get('AS')) ?? 'Off', $states, $caption === null ? null : $this->values->text($caption->get('CA')), $appearanceNodes, $this->values->name($annotation->get('H')), $border === null ? null : $this->values->name($border->get('S')), $border === null ? null : $this->values->number($border->get('W'), 1), $caption === null ? null : $this->numericArray($caption->get('BC')), $caption === null ? null : $this->numericArray($caption->get('BG')), $inherit('Q') === null ? null : $this->values->integer($inherit('Q')), $optionIndex, $type === FieldType::Signature ? 'Signature validation is not performed by HTML derivation.' : null);
+        return new Widget($field, $page === null ? null : $this->number($page), $this->values->integer($annotation->get('F')), $rect, $pageBox, $this->values->name($annotation->get('AS')) ?? 'Off', $states, $caption === null ? null : $this->values->text($caption->get('CA')), $appearanceNodes, $this->values->name($annotation->get('H')), $border === null ? null : $this->values->name($border->get('S')), $border === null ? null : $this->values->number($border->get('W'), 1), $caption === null ? null : $this->numericArray($caption->get('BC')), $caption === null ? null : $this->numericArray($caption->get('BG')), $inherit('Q') === null ? null : $this->values->integer($inherit('Q')), $optionIndex, $type === FieldType::Signature ? 'Signature validation is not performed by HTML derivation.' : null, actions: $widgetActions);
     }
     /** @return array{int|float, int|float, int|float, int|float} */
     private function rectangle(?BasicType $value): array

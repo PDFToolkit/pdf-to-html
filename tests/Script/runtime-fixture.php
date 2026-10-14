@@ -16,6 +16,18 @@ if (($argv[1] ?? '') === '--without-form') {
     exit;
 }
 
+if (($argv[1] ?? '') === '--widget-actions') {
+    $field = new FormField('shared-widget', FieldType::Text, value: 'initial', actions: ['V' => 'event.rc = event.value !== "invalid";', 'Fo' => 'reportWidget("fallback", event);']);
+    $document = new TaggedDocument('widget-actions.pdf', [], documentScripts: ['function reportWidget(label, event) { app.alert(label + ":" + event.target.name + ":" + event.value); }']);
+    echo (new ScriptDeriver())->derive($document, [
+        new Widget($field, actions: ['Fo' => 'reportWidget("first-focus", event);', 'U' => 'this.getField("shared-widget").value = "first-value";']),
+        new Widget($field, actions: ['Fo' => 'reportWidget("second-focus", event);', 'U' => 'this.getField("shared-widget").value = "second-value";']),
+        new Widget(new FormField('legacy-widget', FieldType::Text, value: 'legacy', actions: ['Fo' => 'reportWidget("legacy-first-focus", event);'])),
+        new Widget(new FormField('legacy-widget', FieldType::Text, value: 'legacy', actions: ['Fo' => 'reportWidget("legacy-second-focus", event);'])),
+    ]);
+    exit;
+}
+
 $amount = new FormField('amount', FieldType::Text, value:'1', actions:['V' => 'event.rc = Number(event.value) >= 0;']);
 $total = new FormField('total', FieldType::Text, value:'0', actions:['C' => 'event.value = doubleAmount(this.getField("amount").value);', 'F' => 'event.value = "$" + event.value;']);
 $document = new TaggedDocument('runtime.pdf', [], documentScripts:[

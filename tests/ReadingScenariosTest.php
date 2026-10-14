@@ -324,6 +324,36 @@ final class ReadingScenariosTest extends TestCase
         self::assertStringNotContainsString('must-not-be-read', $result->html);
     }
 
+    public function testSharedFieldWidgetActionsRemainDistinctWhenReadFromPdf(): void
+    {
+        $source = $this->read([
+            3 => '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources <<>> /Contents 4 0 R /Annots [9 0 R 12 0 R] >>',
+            4 => $this->stream(''),
+            6 => '<< /Type /StructElem /S /Document /P 5 0 R /K [7 0 R 10 0 R] >>',
+            7 => '<< /Type /StructElem /S /Form /P 6 0 R /Pg 3 0 R /K << /Type /OBJR /Obj 9 0 R >> >>',
+            9 => '<< /Type /Annot /Subtype /Widget /Parent 11 0 R /P 3 0 R /Rect [0 0 80 20] /AA << /Fo 13 0 R >> >>',
+            10 => '<< /Type /StructElem /S /Form /P 6 0 R /Pg 3 0 R /K << /Type /OBJR /Obj 12 0 R >> >>',
+            11 => '<< /FT /Tx /T (shared) /V (initial) /Kids [9 0 R 12 0 R] /AA << /V 15 0 R >> >>',
+            12 => '<< /Type /Annot /Subtype /Widget /Parent 11 0 R /P 3 0 R /Rect [0 30 80 50] /AA << /Fo 14 0 R >> >>',
+            13 => '<< /S /JavaScript /JS (app.alert\("first focus"\);) >>',
+            14 => '<< /S /JavaScript /JS (app.alert\("second focus"\);) >>',
+            15 => '<< /S /JavaScript /JS (event.rc = event.value !== "invalid";) >>',
+        ]);
+        $first = $source->structure[0]->children[0]->children[0];
+        $second = $source->structure[0]->children[1]->children[0];
+        self::assertInstanceOf(\PDF\Html\Model\Widget::class, $first);
+        self::assertInstanceOf(\PDF\Html\Model\Widget::class, $second);
+        self::assertSame('shared', $first->field->name);
+        self::assertSame($first->field->actions, $second->field->actions);
+        self::assertSame(['V'], array_keys($first->field->actions));
+        self::assertSame('app.alert("first focus");', $first->actions['Fo']);
+        self::assertSame('app.alert("second focus");', $second->actions['Fo']);
+        $result = (new \PDF\Html\HtmlDeriver(new \PDF\Html\DerivationPolicy(allowActiveContent: true)))->derive($source);
+        self::assertCount(1, $result->assets);
+        self::assertStringContainsString('app.alert("first focus");', $result->assets[0]->bytes);
+        self::assertStringContainsString('app.alert("second focus");', $result->assets[0]->bytes);
+    }
+
     /** @return array<int, string> */
     private function imageObjects(string $content): array
     {

@@ -59,4 +59,31 @@ const withoutFormDocument={
 };
 vm.runInNewContext(withoutFormSource,{document:withoutFormDocument},{timeout:1000});
 assert.deepEqual(alerts,["document without form","page without form"]);
-console.log("PASS document-scoped shared functions and variables, page actions without forms, shared names, validation, calculations, reset, readonly and prototype field names");
+const widgetSource=execFileSync(process.env.PDF_RUNTIME_TEST_PHP ?? "php",[path.join(__dirname,"runtime-fixture.php"),"--widget-actions"],{encoding:"utf8"});
+const widgetFirst = new Control("shared-widget"), widgetSecond = new Control("shared-widget");
+const legacyFirst = new Control("legacy-widget"), legacySecond = new Control("legacy-widget");
+const widgetAlerts=[];
+const widgetDocument={
+ readyState:"complete",
+ querySelector:()=>({elements:[widgetFirst,widgetSecond,legacyFirst,legacySecond],addEventListener:()=>{}}),
+ defaultView:{alert:value=>widgetAlerts.push(value),addEventListener:()=>{}},
+ getElementById:()=>null
+};
+vm.runInNewContext(widgetSource,{document:widgetDocument},{timeout:1000});
+widgetFirst.handlers.focus[0]({});
+widgetSecond.handlers.focus[0]({});
+legacyFirst.handlers.focus[0]({});
+legacySecond.handlers.focus[0]({});
+assert.deepEqual(widgetAlerts,["first-focus:shared-widget:initial","second-focus:shared-widget:initial","legacy-first-focus:legacy-widget:legacy","legacy-second-focus:legacy-widget:legacy"]);
+widgetFirst.handlers.mouseup[0]({});
+assert.equal(widgetFirst.value,"first-value");
+assert.equal(widgetSecond.value,"first-value");
+widgetSecond.handlers.mouseup[0]({});
+assert.equal(widgetFirst.value,"second-value");
+assert.equal(widgetSecond.value,"second-value");
+widgetSecond.change("changed-by-second");
+assert.equal(widgetFirst.value,"changed-by-second");
+widgetFirst.change("invalid");
+assert.equal(widgetFirst.value,"changed-by-second");
+assert.equal(widgetSecond.value,"changed-by-second");
+console.log("PASS document-scoped scripts, per-widget actions and legacy compatibility, shared values, validation, calculations, reset, readonly and prototype field names");

@@ -25,19 +25,34 @@ final class ScriptDeriver
     {
         $this->diagnostics = [];
         $fields = [];
+        $widgetActions = [];
         $functions = [];
         foreach ($widgets as $widget) {
             $field = $widget->field;
-            if (isset($fields[$field->name])) {
-                continue;
+            if (!isset($fields[$field->name])) {
+                $actions = [];
+                foreach ($field->actions as $event => $source) {
+                    if (!in_array($event, ['K', 'V', 'C', 'F'], true)) {
+                        continue;
+                    }
+                    $key = 'f'.count($functions);
+                    $functions[$key] = $source;
+                    $actions[$event] = $key;
+                }
+                $fields[$field->name] = ['value' => $field->value, 'actions' => $actions, 'readonly' => ($field->flags & 1) !== 0];
             }
             $actions = [];
-            foreach ($field->actions as $event => $source) {
+            // Older source models mixed field and widget actions in FormField.
+            // Keep that input compatible without sharing annotation-specific events.
+            foreach ([...$field->actions, ...$widget->actions] as $event => $source) {
+                if (!in_array($event, ['Fo', 'Bl', 'E', 'X', 'D', 'U'], true)) {
+                    continue;
+                }
                 $key = 'f'.count($functions);
                 $functions[$key] = $source;
                 $actions[$event] = $key;
             }
-            $fields[$field->name] = ['value' => $field->value, 'actions' => $actions, 'readonly' => ($field->flags & 1) !== 0];
+            $widgetActions[$field->name][] = (object) $actions;
         }
         $pages = [];
         foreach ($document->pageScripts as $page => $actions) {
@@ -54,7 +69,7 @@ final class ScriptDeriver
         $this->diagnostics[] = 'Browser permission enforcement and document trust remain the host application responsibility.';
         $this->diagnostics[] = 'Document scripts share a strict lexical document module; arbitrary host globals and the full Acrobat API are not emulated.';
         $encode = static fn (mixed $value): string => json_encode($value, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
-        $config = $encode(['fields' => (object) $fields, 'pages' => (object) $pages]);
+        $config = $encode(['fields' => (object) $fields, 'widgets' => (object) $widgetActions, 'pages' => (object) $pages]);
         $bodies = [];
         foreach ($functions as $key => $source) {
             $bodies[] = $encode($key).":function(event){\n".$source."\n}";
@@ -156,10 +171,14 @@ function inputValue(field, element) {
 function install() {
  Object.entries(config.fields).forEach(([name, definition]) => { fieldMap.set(name, new Field(name, definition)); });
  rootForm?.addEventListener("reset", native => { native.preventDefault(); pdf.resetForm(); });
+ const widgetOccurrences = new Map();
  controls().forEach(el => {
   const field = fieldMap.get(el.name);
+  const occurrence = widgetOccurrences.get(el.name) ?? 0;
+  widgetOccurrences.set(el.name, occurrence + 1);
+  const actions = config.widgets[el.name]?.[occurrence] ?? {};
   for (const [browser, action, name] of [["focus","Fo","Focus"],["blur","Bl","Blur"],["mouseenter","E","MouseEnter"],["mouseleave","X","MouseExit"],["mousedown","D","MouseDown"],["mouseup","U","MouseUp"]]) {
-   el.addEventListener(browser, () => invoke(field.actions[action], eventFor(field, name, field.value)));
+   el.addEventListener(browser, () => invoke(actions[action], eventFor(field, name, field.value)));
   }
   el.addEventListener("beforeinput", native => {
    if (field.readonly) { native.preventDefault(); return; }

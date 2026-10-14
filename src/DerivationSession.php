@@ -181,6 +181,7 @@ final class DerivationSession
         } elseif ($node instanceof Widget) {
             $this->widgets[] = $node;
             $this->measure($node->field);
+            $this->measure($node->actions);
         } elseif ($node instanceof TextContent) {
             $this->measure($node->text);
         } elseif ($node instanceof ImageContent) {
@@ -996,7 +997,7 @@ final class DerivationSession
             return true;
         }
         foreach ($this->renderedWidgets as $widget) {
-            if ($widget->field->actions !== []) {
+            if ($widget->field->actions !== [] || $widget->actions !== []) {
                 return true;
             }
         }

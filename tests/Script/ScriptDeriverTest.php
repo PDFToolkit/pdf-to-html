@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace PDF\Html\Tests\Script;
 
 use PDF\Html\Forms\FieldType;
+use PDF\Html\DerivationException;
+use PDF\Html\DerivationLimits;
+use PDF\Html\HtmlDeriver;
 use PDF\Html\Model\FormField;
+use PDF\Html\Model\StructureElement;
 use PDF\Html\Model\TaggedDocument;
 use PDF\Html\Model\Widget;
 use PDF\Html\Script\ScriptDeriver;
@@ -33,6 +37,36 @@ final class ScriptDeriverTest extends TestCase
     {
         self::assertNull((new ScriptDeriver())->derive(new TaggedDocument('simple.pdf', []), []));
     }
+    public function testSharedFieldsKeepEveryWidgetsOwnAdditionalActions(): void
+    {
+        $field = new FormField('shared', FieldType::Text, value: 'initial', actions: [
+            'V' => 'event.rc = event.value !== "invalid";',
+            'Fo' => 'app.alert("legacy focus fallback");',
+        ]);
+        $widgets = [
+            new Widget($field, actions: ['Fo' => 'app.alert("first widget focus");', 'U' => 'this.getField("shared").value = "first";']),
+            new Widget($field, actions: ['Fo' => 'app.alert("second widget focus");', 'U' => 'this.getField("shared").value = "second";']),
+        ];
+        $output = (new ScriptDeriver())->derive(new TaggedDocument('widgets.pdf', []), $widgets);
+        self::assertNotNull($output);
+        self::assertSame(1, substr_count($output, 'event.rc = event.value !== "invalid";'));
+        self::assertStringContainsString('app.alert("first widget focus");', $output);
+        self::assertStringContainsString('app.alert("second widget focus");', $output);
+        self::assertStringContainsString('this.getField("shared").value = "first";', $output);
+        self::assertStringContainsString('this.getField("shared").value = "second";', $output);
+        self::assertStringNotContainsString('legacy focus fallback', $output);
+    }
+
+    public function testLegacyMixedFieldActionsRemainSpecificToEachWidget(): void
+    {
+        $first = new FormField('legacy', FieldType::Text, actions: ['Fo' => 'app.alert("legacy first widget");']);
+        $second = new FormField('legacy', FieldType::Text, actions: ['Fo' => 'app.alert("legacy second widget");']);
+        $output = (new ScriptDeriver())->derive(new TaggedDocument('legacy.pdf', []), [new Widget($first), new Widget($second)]);
+        self::assertNotNull($output);
+        self::assertStringContainsString('app.alert("legacy first widget");', $output);
+        self::assertStringContainsString('app.alert("legacy second widget");', $output);
+    }
+
     public function testDocumentAndPageScriptsDoNotRequireAnAcroForm(): void
     {
         $document = new TaggedDocument('plain.pdf', [], documentScripts:['app.alert("document");'], pageScripts:[1 => ['O' => 'app.alert("page");']]);
@@ -49,5 +83,24 @@ final class ScriptDeriverTest extends TestCase
         $output = (new ScriptDeriver())->derive(new TaggedDocument('plain.pdf', [], documentScripts:['var marker = "__METHODS__ __CONFIG__ __NUM_PAGES__";']), []);
         self::assertNotNull($output);
         self::assertStringContainsString('var marker = "__METHODS__ __CONFIG__ __NUM_PAGES__";', $output);
+    }
+
+    public function testWidgetOnlyActionsAreReportedByTheSafeProfile(): void
+    {
+        $document = new TaggedDocument('widget-only.pdf', [new StructureElement('form', 'Form', [
+            new Widget(new FormField('name', FieldType::Text), actions: ['Fo' => 'app.alert("focus");']),
+        ])]);
+        $result = (new HtmlDeriver())->derive($document);
+        self::assertSame([], $result->assets);
+        self::assertContains('scripts-disabled', array_map(static fn ($diagnostic): string => $diagnostic->code, $result->diagnostics));
+    }
+
+    public function testWidgetActionsCannotBypassCumulativeOutputBudget(): void
+    {
+        $document = new TaggedDocument('widget-only.pdf', [new StructureElement('form', 'Form', [
+            new Widget(new FormField('name', FieldType::Text), actions: ['Fo' => str_repeat('x', 2048)]),
+        ])]);
+        $this->expectException(DerivationException::class);
+        (new HtmlDeriver(limits: new DerivationLimits(maximumOutputBytes: 1024)))->derive($document);
     }
 }

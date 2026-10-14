@@ -224,7 +224,7 @@ final class DerivationSession
      * @param list<string> $ancestors
      * @return list<HtmlNode>
      */
-    private function structure(StructureElement $source, array $ancestors, ?string $listKind): array
+    private function structure(StructureElement $source, array $ancestors, ?string $listKind, ?string $formLabelTarget = null): array
     {
         $role = $this->roles->resolve($source);
         $type = $role->type;
@@ -281,6 +281,9 @@ final class DerivationSession
             $css['display'] = 'inline';
         }
         $this->applyAttributes($element, $derived->html, $css);
+        if ($type === 'Lbl' && $tag === 'label' && $formLabelTarget !== null) {
+            $element->attributes['for'] = $formLabelTarget;
+        }
         if ($role->namespace === 'http://www.w3.org/1999/xhtml' && $tag === 'script' && $properties->actualText === null) {
             $scripts = [];
             foreach ($source->associatedFiles as $file) {
@@ -311,6 +314,8 @@ final class DerivationSession
             return $this->interactiveForm($source, $widget, $ancestors, $kind, $derived);
         }
         $nextAncestors = [...$ancestors, $type];
+        // Each Form owns its labels; a non-interactive nested Form has no field target.
+        $nextFormLabelTarget = $type === 'Form' ? null : $formLabelTarget;
         $hasMath = false;
         foreach ($source->children as $child) {
             if ($child instanceof StructureElement && $child->type === 'math' && $child->namespace === 'http://www.w3.org/1998/Math/MathML') {
@@ -353,7 +358,7 @@ final class DerivationSession
                     }
                     continue;
                 }
-                array_push($children, ...$this->content($child, $nextAncestors, $kind));
+                array_push($children, ...$this->content($child, $nextAncestors, $kind, $nextFormLabelTarget));
             }
             if ($association->supplement && !$inserted) {
                 array_push($children, ...$association->nodes);
@@ -445,10 +450,10 @@ final class DerivationSession
      * @param list<string> $ancestors
      * @return list<HtmlNode>
      */
-    private function content(SourceNode $source, array $ancestors, ?string $listKind): array
+    private function content(SourceNode $source, array $ancestors, ?string $listKind, ?string $formLabelTarget = null): array
     {
         if ($source instanceof StructureElement) {
-            return $this->structure($source, $ancestors, $listKind);
+            return $this->structure($source, $ancestors, $listKind, $formLabelTarget);
         }
         if ($source instanceof LinkAnnotation) {
             return [];
@@ -461,12 +466,12 @@ final class DerivationSession
         if ($source instanceof TextContent) {
             $output[] = new Text($source->text);
         } elseif ($source instanceof MarkedContent) {
-            array_push($output, ...$this->marked($source, $ancestors, $listKind));
+            array_push($output, ...$this->marked($source, $ancestors, $listKind, $formLabelTarget));
         } elseif ($source instanceof ImageContent) {
             $output[] = $this->image($source);
         } elseif ($source instanceof ContentGroup) {
             foreach ($source->children as $child) {
-                array_push($output, ...$this->content($child, $ancestors, $listKind));
+                array_push($output, ...$this->content($child, $ancestors, $listKind, $formLabelTarget));
             }
         } elseif ($source instanceof GraphicContent) {
             $image = $this->policy->includeGraphics ? $this->renderer?->render($source) : null;
@@ -494,7 +499,7 @@ final class DerivationSession
      * @param list<string> $ancestors
      * @return list<HtmlNode>
      */
-    private function marked(MarkedContent $source, array $ancestors, ?string $listKind): array
+    private function marked(MarkedContent $source, array $ancestors, ?string $listKind, ?string $formLabelTarget): array
     {
         $p = $source->properties;
         $children = [];
@@ -502,7 +507,7 @@ final class DerivationSession
             $children[] = new Text($p->actualText);
         } else {
             foreach ($source->children as $child) {
-                array_push($children, ...$this->content($child, $ancestors, $listKind));
+                array_push($children, ...$this->content($child, $ancestors, $listKind, $formLabelTarget));
             }
         }
         if ($p->expansion !== null && $p->expansion !== '') {
@@ -619,7 +624,7 @@ final class DerivationSession
             'Link', 'Reference' => 'a', 'Ruby' => 'ruby', 'RB' => 'span', 'RP' => 'rp', 'RT' => 'rt',
             'Table' => 'table', 'TBody' => 'tbody', 'TD' => 'td', 'TFoot' => 'tfoot', 'TH' => 'th', 'THead' => 'thead', 'TR' => 'tr',
             'TOC' => 'ol', 'TOCI' => 'li', 'L' => $listKind ?? 'ul', 'LI' => $listKind === 'dl' ? 'div' : 'li', 'LBody' => $listKind === 'dl' ? 'dd' : 'div',
-            'Lbl' => $listKind === 'dl' && $parent === 'LI' ? 'dt' : ($parent === 'Form' ? ($this->hasFormLabelBlocks($source) ? 'div' : 'label') : ($this->hasBlockChildren($source) ? 'div' : 'span')),
+            'Lbl' => $this->labelTag($source, $parent, $ancestors, $listKind),
             'Caption' => $parent === 'Figure' && !$inline ? 'figcaption' : ($parent === 'Table' ? 'caption' : 'div'),
             'FENote', 'Formula' => $inline ? 'span' : 'div', 'Figure', 'Form' => 'figure',
             'Code' => $this->hasChildType($source, 'Sub') ? 'pre' : 'code',
@@ -658,7 +663,19 @@ final class DerivationSession
     private function hasBlockChildren(StructureElement $source): bool
     {
         foreach ($source->children as $child) {
-            if ($child instanceof StructureElement && in_array($this->roles->resolve($child)->type, ['P', 'Figure', 'Formula', 'Form', 'Caption', 'L', 'Table', 'Div', 'Sect'], true)) {
+            if (!$child instanceof StructureElement) {
+                continue;
+            }
+            $role = $this->roles->resolve($child);
+            if ($role->namespace === 'http://www.w3.org/1999/xhtml') {
+                if ((new ContentModelRepair($this->limits))->block(strtolower($role->type))) {
+                    return true;
+                }
+                continue;
+            }
+            if (in_array($role->type, ['Art', 'Aside', 'BibEntry', 'BlockQuote', 'Document', 'DocumentFragment', 'Div', 'Part', 'Title', 'Index', 'Sect', 'P', 'H', 'Note', 'FENote', 'Figure', 'Formula', 'Form', 'Caption', 'L', 'LI', 'LBody', 'TOC', 'TOCI', 'Table'], true)
+                || preg_match('/\AH[1-9][0-9]*\z/D', $role->type) === 1
+                || $role->type === 'Code' && $this->hasChildType($child, 'Sub')) {
                 return true;
             }
         }
@@ -805,28 +822,29 @@ final class DerivationSession
                 array_push($output, ...$this->pageAnchor($widget->page));
                 array_push($output, ...$rendering->nodes);
             } else {
-                $nodes = $this->content($child, [...$ancestors, 'Form'], $kind);
-                foreach ($nodes as $node) {
-                    if ($node instanceof Element) {
-                        $this->labelFor($node, $field->attributes['id'] ?? $id);
-                    }
-                    $output[] = $node;
-                }
+                array_push($output, ...$this->content($child, [...$ancestors, 'Form'], $kind, $field->attributes['id'] ?? $id));
             }
         }
         return $output;
     }
 
-    private function labelFor(Element $element, string $id): void
+    /**
+     * Deriving HTML 1.2, 4.3.5.4 and 4.3.5.11.1 (physical pages 28, 29 and 37).
+     * @param list<string> $ancestors
+     */
+    private function labelTag(StructureElement $source, ?string $parent, array $ancestors, ?string $listKind): string
     {
-        if ($element->tag === 'label') {
-            $element->attributes['for'] = $id;
+        if (in_array('Form', $ancestors, true)) {
+            return $this->hasFormLabelBlocks($source) ? 'div' : 'label';
         }
-        foreach ($element->children as $child) {
-            if ($child instanceof Element) {
-                $this->labelFor($child, $id);
-            }
+        if ($parent === 'LI' && $listKind === 'dl') {
+            return 'dt';
         }
+        if ($parent === 'LI' || $parent === 'Caption' || $parent === 'TOCI'
+            || $parent !== null && preg_match('/\AH[1-9][0-9]*\z/D', $parent) === 1) {
+            return $this->hasBlockChildren($source) ? 'div' : 'span';
+        }
+        return 'span';
     }
 
     private function associationPlan(StructureElement $source, Element $element): AssociationPlan

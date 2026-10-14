@@ -3,11 +3,14 @@ from pathlib import Path
 import argparse
 import hashlib
 import json
+import math
+import re
 import subprocess
 import tempfile
 
 import html5lib
 from pypdf import PdfReader
+from pypdf.generic import IndirectObject
 
 
 def check_html(html: str):
@@ -40,6 +43,22 @@ def main():
     assert len(pdf.pages) == expected["pages"]
     assert expected["text"] in pdf.pages[0].extract_text()
     assert pdf.trailer["/Root"]["/StructTreeRoot"]["/Type"] == "/StructTreeRoot"
+    # A successful text extraction does not prove that the PDF2 font metrics or
+    # widget default appearance are valid. Observe these independently as well.
+    for reference in pdf.pages[0]["/Resources"]["/Font"].values():
+        font = reference.get_object()
+        first, last = font["/FirstChar"], font["/LastChar"]
+        assert 0 <= first <= last <= 255
+        widths = font["/Widths"]
+        assert len(widths) == last - first + 1
+        assert all(math.isfinite(float(width)) for width in widths)
+        assert isinstance(font.raw_get("/FontDescriptor"), IndirectObject)
+        descriptor = font["/FontDescriptor"]
+        assert descriptor["/FontName"] == font["/BaseFont"]
+        assert all(key in descriptor for key in ("/Flags", "/FontBBox", "/ItalicAngle", "/Ascent", "/Descent", "/StemV", "/CapHeight"))
+    acroform = pdf.trailer["/Root"]["/AcroForm"]
+    default_font = re.search(r"/([A-Za-z0-9]+)\s+[0-9.]+\s+Tf\b", str(acroform["/DA"]))
+    assert default_font and "/" + default_font[1] in acroform["/DR"]["/Font"]
     with tempfile.TemporaryDirectory(prefix="pdf-html-oracle-") as directory:
         output = Path(directory) / "derived.html"
         completed = subprocess.run([args.php, str(root / "examples/01-derive-tagged-pdf.php"), str(fixture), str(output)], cwd=root, text=True, encoding="utf-8", capture_output=True, check=True)

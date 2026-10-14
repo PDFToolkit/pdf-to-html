@@ -11,6 +11,19 @@ from pypdf import PdfWriter
 from pypdf.generic import ArrayObject as A, DictionaryObject as D, NameObject as N, NumberObject as I, TextStringObject as T, ByteStringObject as B, DecodedStreamObject
 
 
+# Helvetica Adobe AFM advance widths for WinAnsi codes 32–126 (1000 units per em).
+# Retained scalar metrics keep this independent generator dependent on pypdf alone.
+HELVETICA_ASCII_WIDTHS = [
+    278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278,
+    556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556,
+    1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722,
+    778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278,
+    469, 556, 333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222,
+    833, 556, 556, 556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334,
+    260, 334, 584,
+]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='Compare reproducible in-memory output with committed bytes without writing.')
@@ -28,15 +41,37 @@ def main():
         value.set_data(data)
         if entries: value.update(entries)
         return obj(value)
-    font = obj(D({N('/Type'): N('/Font'), N('/Subtype'): N('/Type1'), N('/BaseFont'): N('/Helvetica'), N('/Encoding'): N('/WinAnsiEncoding')}))
-    cmap = stream(b'/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CMapName /Fixture def\n/CMapType 2 def\n1 begincodespacerange\n<00> <ff>\nendcodespacerange\n2 beginbfchar\n<01> <00E9>\n<02> <00660069>\nendbfchar\n1 beginbfrange\n<41> <43> <0041>\nendbfrange\nendcmap\nend\nend\n')
-    unicode_font = obj(D({N('/Type'): N('/Font'), N('/Subtype'): N('/Type1'), N('/BaseFont'): N('/Helvetica'), N('/ToUnicode'): cmap}))
+    # ISO 32000-2:2020 Table 109 (physical PDF p.329) requires metrics and an
+    # indirect descriptor even for the standard 14 fonts. Table 120, pp.358–360.
+    descriptor = obj(D({
+        N('/Type'): N('/FontDescriptor'), N('/FontName'): N('/Helvetica'),
+        N('/Flags'): I(32), N('/FontBBox'): A([I(-166), I(-225), I(1000), I(931)]),
+        N('/ItalicAngle'): I(0), N('/Ascent'): I(718), N('/Descent'): I(-207),
+        N('/CapHeight'): I(718), N('/XHeight'): I(523), N('/StemV'): I(88),
+        N('/MissingWidth'): I(0),
+    }))
+    font = obj(D({
+        N('/Type'): N('/Font'), N('/Subtype'): N('/Type1'), N('/BaseFont'): N('/Helvetica'),
+        N('/Encoding'): N('/WinAnsiEncoding'), N('/FirstChar'): I(32), N('/LastChar'): I(126),
+        N('/Widths'): obj(A([I(width) for width in HELVETICA_ASCII_WIDTHS])),
+        N('/FontDescriptor'): descriptor,
+    }))
+    cmap = stream(b'/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Fixture def\n/CMapType 2 def\n1 begincodespacerange\n<00> <ff>\nendcodespacerange\n2 beginbfchar\n<01> <00E9>\n<02> <00660069>\nendbfchar\n1 beginbfrange\n<41> <43> <0041>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n')
+    # Codes 1/2 paint the same eacute/fi glyphs described by the ToUnicode CMap.
+    # Undefined WinAnsi control codes 3–31 use .notdef/MissingWidth=0.
+    unicode_widths = [556, 500] + [0] * 29 + HELVETICA_ASCII_WIDTHS[:36]
+    unicode_font = obj(D({
+        N('/Type'): N('/Font'), N('/Subtype'): N('/Type1'), N('/BaseFont'): N('/Helvetica'),
+        N('/ToUnicode'): cmap, N('/FirstChar'): I(1), N('/LastChar'): I(67),
+        N('/Widths'): obj(A([I(width) for width in unicode_widths])), N('/FontDescriptor'): descriptor,
+        N('/Encoding'): D({N('/BaseEncoding'): N('/WinAnsiEncoding'), N('/Differences'): A([I(1), N('/eacute'), N('/fi')])}),
+    }))
     resources = D({N('/Font'): D({N('/F1'): font, N('/F2'): unicode_font})})
-    form = stream(b'/P <</MCID 0>> BDC BT /F2 12 Tf <0141424302> Tj ET EMC\n', {N('/Type'): N('/XObject'), N('/Subtype'): N('/Form'), N('/BBox'): A([I(0), I(0), I(100), I(20)]), N('/Resources'): resources, N('/StructParents'): I(1)})
+    form = stream(b'/P <</MCID 0>> BDC BT /F2 12 Tf 0 4 Td <0141424302> Tj ET EMC\n', {N('/Type'): N('/XObject'), N('/Subtype'): N('/Form'), N('/BBox'): A([I(0), I(0), I(100), I(20)]), N('/Resources'): resources, N('/StructParents'): I(1)})
     image = stream(b'\xff\x00\x00', {N('/Type'): N('/XObject'), N('/Subtype'): N('/Image'), N('/Width'): I(1), N('/Height'): I(1), N('/BitsPerComponent'): I(8), N('/ColorSpace'): N('/DeviceRGB')})
     page[N('/Resources')] = D({N('/Font'): resources[N('/Font')], N('/XObject'): D({N('/Fm'): form, N('/Im'): image}), N('/Properties'): D({N('/Replacement'): D({N('/MCID'): I(1), N('/ActualText'): B(b'\xef\xbb\xbfTexte rempla\xc3\xa7ant'), N('/Lang'): T('fr')})})})
     page[N('/StructParents')] = I(0)
-    page[N('/Contents')] = stream(b'/H1 <</MCID 0>> BDC BT /F1 14 Tf 20 180 Td (External tagged PDF) Tj ET EMC\n/P /Replacement BDC BT /F1 12 Tf (visual text) Tj ET EMC\n/Fm Do\n/Figure <</MCID 2>> BDC q 20 0 0 20 20 80 cm /Im Do Q EMC\n/Link <</MCID 3>> BDC BT /F1 12 Tf 20 50 Td (Read more) Tj ET EMC\n')
+    page[N('/Contents')] = stream(b'/H1 <</MCID 0>> BDC BT /F1 14 Tf 20 180 Td (External tagged PDF) Tj ET EMC\n/P /Replacement BDC BT /F1 12 Tf 20 150 Td (visual text) Tj ET EMC\nq 1 0 0 1 20 110 cm /Fm Do Q\n/Figure <</MCID 2>> BDC q 20 0 0 20 20 80 cm /Im Do Q EMC\n/Link <</MCID 3>> BDC BT /F1 12 Tf 20 50 Td (Read more) Tj ET EMC\n')
     root_dict = D({N('/Type'): N('/StructTreeRoot')})
     root_ref = obj(root_dict)
     document = D({N('/Type'): N('/StructElem'), N('/S'): N('/Document'), N('/P'): root_ref})
@@ -61,10 +96,16 @@ def main():
     link = D({N('/Type'): N('/Annot'), N('/Subtype'): N('/Link'), N('/Rect'): A([I(20), I(45), I(100), I(60)]), N('/P'): page.indirect_reference, N('/A'): D({N('/S'): N('/GoTo'), N('/D'): T('start')})})
     link_ref = obj(link)
     element('Link', A([I(3), D({N('/Type'): N('/OBJR'), N('/Obj'): link_ref, N('/Pg'): page.indirect_reference})]))
-    parent_field = D({N('/FT'): N('/Tx'), N('/T'): T('Person'), N('/Ff'): I(2), N('/V'): T('Ada'), N('/MaxLen'): I(50)})
+    default_appearance = T('/F1 12 Tf 0 g')
+    parent_field = D({N('/FT'): N('/Tx'), N('/T'): T('Person'), N('/Ff'): I(2), N('/V'): T('Ada'), N('/MaxLen'): I(50), N('/DA'): default_appearance})
     parent_field_ref = obj(parent_field)
     widget = D({N('/Type'): N('/Annot'), N('/Subtype'): N('/Widget'), N('/Parent'): parent_field_ref, N('/T'): T('Name'), N('/Rect'): A([I(20), I(10), I(180), I(30)]), N('/P'): page.indirect_reference, N('/F'): I(4), N('/AA'): D({N('/V'): D({N('/S'): N('/JavaScript'), N('/JS'): T('event.rc = true;')})})})
     widget_ref = obj(widget)
+    widget[N('/AP')] = D({N('/N'): stream(b'/Tx BMC q BT /F1 12 Tf 0 g 2 6 Td (Ada) Tj ET Q EMC\n', {
+        N('/Type'): N('/XObject'), N('/Subtype'): N('/Form'),
+        N('/BBox'): A([I(0), I(0), I(160), I(20)]),
+        N('/Resources'): D({N('/Font'): D({N('/F1'): font})}),
+    })})
     parent_field[N('/Kids')] = A([widget_ref])
     element('Form', D({N('/Type'): N('/OBJR'), N('/Obj'): widget_ref, N('/Pg'): page.indirect_reference}))
     document[N('/K')] = A(kids)
@@ -86,7 +127,7 @@ def main():
         N('/StructTreeRoot'): root_ref,
         N('/Lang'): T('fr-FR'),
         N('/MarkInfo'): D({N('/Marked'): __import__('pypdf').generic.BooleanObject(True)}),
-        N('/AcroForm'): obj(D({N('/Fields'): A([parent_field_ref])})),
+        N('/AcroForm'): obj(D({N('/Fields'): A([parent_field_ref]), N('/DA'): default_appearance, N('/DR'): D({N('/Font'): D({N('/F1'): font})})})),
         N('/AF'): A([associated]),
         N('/PageLabels'): obj(D({N('/Nums'): A([I(0), D({N('/S'): N('/r'), N('/P'): T('Intro-')})])})),
         N('/Names'): D({

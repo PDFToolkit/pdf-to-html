@@ -2,6 +2,15 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## 0.1.1 — 2026-10-14
+
+- Complete the independent PDF 2.0 fixture's simple-font metrics and indirect
+  descriptors, explicit Unicode glyph encoding and widget default appearance.
+- Extend the independent PDF oracle to reject omitted font metrics and missing
+  AcroForm appearance font resources before checking the derived HTML.
+- Preserve the production API and semantic output; refresh the fixture identity
+  and bilingual coverage evidence.
+
 ## 0.1.0 — 2026-10-14
 
 First public release following PDF Association **Deriving HTML from PDF 1.2**.

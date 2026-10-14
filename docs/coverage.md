@@ -125,6 +125,8 @@ CI runs PHP 8.3–8.5, PHPUnit, static analysis and formatting. It also runs:
    the PDF with pypdf, run the PHP conversion and parse the real result with
    html5lib's HTML5 parser. Check Unicode, title/language, forms, links, unique IDs,
    alternatives and asset hashes, plus six synthetic semantic transformations.
+   It also checks PDF 2.0 simple-font metrics, indirect descriptors and the
+   AcroForm default-appearance font resources independently of text extraction.
 4. [runtime.cjs](../tests/Script/runtime.cjs): execute the opt-in bridge in a bounded
    Node harness, exercising common field operations without a browser or network.
 
@@ -134,7 +136,7 @@ platform and advisory checks. These counts identify the reviewed candidate;
 the executable suite remains the source of truth for subsequent changes.
 
 The input has SHA-256
-`8a5bccc6c9e9491ee20ce13313230de5e4f96d7cadede5c825a4e957de7dbac3`.
+`53b69e6ab8bf438c5fd896990ce26e1fbd0eb8a8a475c4a1bbd9e8e90fab23c0`.
 Its one-pixel image is painted at 20 PDF points: reading preserves 20 × 20 points
 and derivation produces rounded **27 × 27 CSS pixels**, rather than treating the
 sample grid as its physical size. Matrix tests additionally cover q/Q, nested

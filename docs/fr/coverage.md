@@ -133,7 +133,9 @@ La CI exécute PHP 8.3–8.5, PHPUnit, l'analyse statique et le formatage. Elle 
    indépendamment avec pypdf, exécuter la conversion PHP et analyser le vrai résultat
    avec le parseur HTML5 d'html5lib. Contrôler Unicode, titre/langue, formulaires,
    liens, identifiants uniques, alternatives et empreintes des ressources, ainsi
-   que six transformations sémantiques synthétiques.
+   que six transformations sémantiques synthétiques. Vérifier aussi les métriques
+   des polices simples PDF 2.0, les descripteurs indirects et les ressources de
+   police de l'apparence AcroForm, indépendamment de l'extraction textuelle.
 4. [runtime.cjs](../../tests/Script/runtime.cjs) : exécuter le pont optionnel dans
    un harness Node borné, avec opérations courantes des champs, sans navigateur
    ni réseau.
@@ -144,7 +146,7 @@ Composer stricts, de plateforme et d'avis de sécurité. Ces nombres identifient
 le candidat vérifié ; la suite exécutable fait foi pour les évolutions suivantes.
 
 L'entrée porte l'empreinte SHA-256
-`8a5bccc6c9e9491ee20ce13313230de5e4f96d7cadede5c825a4e957de7dbac3`.
+`53b69e6ab8bf438c5fd896990ce26e1fbd0eb8a8a475c4a1bbd9e8e90fab23c0`.
 Son image d'un pixel est peinte sur 20 points PDF : la lecture conserve 20 × 20
 points et la dérivation produit **27 × 27 pixels CSS** après arrondi, au lieu de
 confondre échantillonnage et taille physique. Les tests matriciels couvrent aussi

@@ -2,6 +2,17 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## 0.1.1 — 2026-10-14
+
+- Complète les métriques des polices simples et leurs descripteurs indirects,
+  l'encodage explicite des glyphes Unicode et l'apparence du champ dans le PDF 2.0
+  de test produit indépendamment.
+- Renforce l'oracle PDF indépendant : il rejette les métriques manquantes et
+  l'absence de ressources de police pour l'apparence AcroForm avant de vérifier
+  le HTML dérivé.
+- Conserve l'API de production et la sortie sémantique ; actualise l'identité du
+  fixture et les preuves de couverture dans les deux langues.
+
 ## 0.1.0 — 2026-10-14
 
 Première version publique suivant **Deriving HTML from PDF 1.2** de PDF Association.

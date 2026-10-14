@@ -367,9 +367,15 @@ final class DerivationSession
         // Each Form owns its labels; a non-interactive nested Form has no field target.
         $nextFormLabelTarget = $type === 'Form' ? null : $formLabelTarget;
         $hasMath = false;
-        foreach ($source->children as $child) {
-            if ($child instanceof StructureElement && $child->type === 'math' && $child->namespace === 'http://www.w3.org/1998/Math/MathML') {
-                $hasMath = true;
+        if ($type === 'Formula') {
+            foreach ($source->children as $child) {
+                if ($child instanceof StructureElement) {
+                    $childRole = $this->roles->resolve($child);
+                    if ($childRole->type === 'math' && $childRole->namespace === 'http://www.w3.org/1998/Math/MathML') {
+                        $hasMath = true;
+                        break;
+                    }
+                }
             }
         }
         $association = $properties->actualText === null && !($type === 'Formula' && $hasMath)

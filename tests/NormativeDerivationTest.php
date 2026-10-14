@@ -76,6 +76,20 @@ final class NormativeDerivationTest extends TestCase
         }
     }
 
+    public function testRoleMappedMathMlTakesPrecedenceOverFormulaAlternatives(): void
+    {
+        $namespace = 'http://www.w3.org/1998/Math/MathML';
+        $math = new StructureElement('math', 'CustomMath', [new StructureElement('identifier', 'mi', [new TextContent('x')], namespace: $namespace)]);
+        $formula = new StructureElement('formula', 'Formula', [$math], associatedFiles: [
+            new AssociatedFile('formula.html', 'text/html', 'Alternative', '<p>Ignored formula alternative</p>'),
+        ]);
+        $document = new TaggedDocument('math.pdf', [$formula], roleMappings: [new RoleMapping('CustomMath', null, 'math', $namespace)]);
+        $html = (new HtmlDeriver())->derive($document)->html;
+        self::assertStringContainsString('<math', $html);
+        self::assertStringContainsString('>x</mi>', $html);
+        self::assertStringNotContainsString('Ignored formula alternative', $html);
+    }
+
     public function testAutomaticSourceInterpretationSharesTheDerivationPolicy(): void
     {
         $fixture = new PdfFixture();

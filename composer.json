@@ -22,7 +22,7 @@
         "php": "^8.3",
         "ext-dom": "*",
         "ext-mbstring": "*",
-        "pdftoolkit/pdf-reader": "^0.2.1",
+        "pdftoolkit/pdf-reader": "^0.2.3",
         "roukmoute/pdf": "^0.7.1",
         "php-64bit": "*"
     },
@@ -66,7 +66,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "0.1.x-dev"
+            "dev-main": "0.2.x-dev"
         }
     }
 }

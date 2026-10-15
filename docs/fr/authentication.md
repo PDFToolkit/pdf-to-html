@@ -2,8 +2,8 @@
 
 [English](../authentication.md) · [Français](authentication.md)
 
-La version 0.3.0 accepte l’authentification Standard de pdf-reader 0.3,
-configurée explicitement. Le convertisseur par défaut n’ouvre toujours aucun
+La version 0.3.1 nécessite pdf-reader 0.3.1 et accepte son authentification
+Standard configurée explicitement. Le convertisseur par défaut n’ouvre aucun
 fichier chiffré sans opération d’authentification sélectionnée. L’application
 fournit les octets et son identifiant ; aucune bibliothèque ne recherche de mot
 de passe et le nom descriptif n’est jamais ouvert implicitement.
@@ -34,6 +34,16 @@ arbitraire n’est pas réinterprété silencieusement comme des octets historiq
 Les backends AES nécessitent OpenSSL, sauf sélection explicite d’un autre
 backend. Le [guide du lecteur](https://pdftoolkit.github.io/fr/modules/reader/authentication.html)
 décrit les révisions, filtres cryptographiques et restrictions pris en charge.
+
+Reader 0.3.1 lie `EncryptMetadata=false` à la véritable référence `Metadata` du
+catalogue du document. Les métadonnées des pages et objets utilisent toujours
+leur filtre cryptographique sélectionné, sauf sélection explicite d’Identity.
+Les noms `Type` indirects des flux sont résolus avant de choisir le déchiffrement
+des fichiers incorporés ou des flux ordinaires. Le même correctif traite la clé
+V4 fixée à 128 bits en l’absence de Length global et les entrées de nom standard
+ignorées dans CF. Ces règles appartiennent au lecteur ; la dérivation reçoit
+les objets source authentifiés ainsi obtenus. Le core 0.8 reste compatible avec
+le modèle de dérivation immuable existant.
 
 `ReadPdfSource` reçoit `ReadDocument::permissions()` seulement après une
 authentification réussie. Il construit `AuthenticatedPermissions` avec le masque

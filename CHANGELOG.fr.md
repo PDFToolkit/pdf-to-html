@@ -4,6 +4,18 @@
 
 ## À venir
 
+## 0.3.1 — 2026-10-15
+
+- Exiger pdf-reader 0.3.1, avec ses corrections de l’exemption de chiffrement des
+  métadonnées du catalogue, de la résolution des Type indirects des fichiers
+  incorporés et des filtres cryptographiques V4. Les métadonnées des pages et
+  objets ne sont pas implicitement exemptées de déchiffrement.
+- Actualiser le verrouillage stable vers reader 0.3.1 et core 0.8.0, en conservant
+  le contrat d’exécution core 0.7.1/0.8 et le modèle de dérivation immuable.
+- Mettre à jour l’installation, la couverture et l’authentification en anglais et
+  français ; conserver les frontières explicites des mots de passe, permissions
+  et mécanismes MAC/CMS non pris en charge.
+
 ## 0.3.0 — 2026-10-15
 
 - Dépendance sur pdf-reader 0.3 publié ; core 0.7.1 ou 0.8 accepté. L’adaptation

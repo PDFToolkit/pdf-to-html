@@ -2,10 +2,11 @@
 
 [English](authentication.md) · [Français](fr/authentication.md)
 
-Version 0.3.0 accepts the explicitly configured Standard password authentication
-of pdf-reader 0.3. The default converter still opens no encrypted file without a
-selected authentication operation. The application supplies the bytes and its
-credential; neither library discovers passwords or opens a descriptive filename.
+Version 0.3.1 requires pdf-reader 0.3.1 and accepts its explicitly configured
+Standard password authentication. The default converter opens no encrypted
+file without a selected authentication operation. The application supplies the
+bytes and its credential; neither library discovers passwords or opens a
+descriptive filename.
 
 ```php
 use PDF\Html\PdfToHtml;
@@ -32,6 +33,15 @@ different contracts; an arbitrary UTF-8 password is not silently reinterpreted a
 historical bytes. AES backends require OpenSSL unless a different explicit
 backend is selected. See the [reader authentication guide](https://pdftoolkit.github.io/modules/reader/authentication.html)
 for supported revisions, crypt filters and source restrictions.
+
+Reader 0.3.1 binds `EncryptMetadata=false` to the actual `Metadata` reference of
+the document catalog. Page and object metadata still use their selected crypt
+filter unless they explicitly select Identity. Indirect stream `Type` names are
+resolved before choosing embedded-file versus ordinary-stream decryption.
+The same reader correction covers the fixed 128-bit V4 key when global Length
+is absent and ignored standard-name entries inside CF. These rules belong to
+the reader; derivation receives the resulting authenticated source objects.
+Core 0.8 remains compatible with the existing immutable derivation model.
 
 `ReadPdfSource` receives `ReadDocument::permissions()` only after successful
 authentication. It creates `AuthenticatedPermissions` using the effective mask:

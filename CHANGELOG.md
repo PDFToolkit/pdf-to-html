@@ -4,6 +4,17 @@
 
 ## Unreleased
 
+## 0.3.1 — 2026-10-15
+
+- Require pdf-reader 0.3.1, incorporating its catalog-metadata encryption
+  exemption, indirect embedded-file Type resolution and V4 crypt-filter fixes.
+  Page and object metadata are not implicitly exempted from decryption.
+- Refresh the stable dependency lock to reader 0.3.1 and core 0.8.0, preserving
+  the existing core 0.7.1/0.8 runtime contract and immutable derivation model.
+- Update the installation, coverage and authentication documentation in English
+  and French; retain explicit password, permissions and unsupported MAC/CMS
+  boundaries.
+
 ## 0.3.0 — 2026-10-15
 
 - Require released pdf-reader 0.3 and accept core 0.7.1 or 0.8. Native source

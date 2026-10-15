@@ -2,7 +2,7 @@
 
 [English](coverage.md) · [Français](fr/coverage.md)
 
-Version **0.3.0** implements the derivation mechanisms of the retained reference
+Version **0.3.1** implements the derivation mechanisms of the retained reference
 through native source interpretation, explicit policies and application ports.
 The [clause ledger](requirements.md) records every numbered rule, its decision
 and concrete evidence. Coverage is not universal PDF acceptance, browser layout
@@ -35,7 +35,7 @@ OCR, inferred tagging or reconstruction of arbitrary page layouts.
 3. **Application integration**: rendering engines, authentication, hosting assets,
    browser policies, submissions and permission enforcement remain explicit capabilities.
 
-## Mechanisms verified in 0.3.0
+## Mechanisms verified in 0.3.1
 
 | Reference and physical pages | Behavior | Concrete evidence |
 | --- | --- | --- |

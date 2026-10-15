@@ -7,7 +7,7 @@ selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
 Ce dépôt a été créé spécialement pour implémenter les règles de
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-La version 0.4.1 implémente les mécanismes de dérivation de la référence avec des
+La version 0.5.0 implémente les mécanismes de dérivation de la référence avec des
 profils de sécurité explicites, l’authentification native par mot de passe/clé publique/MAC et un
 rendu fourni par l’application. Le [guide de couverture](docs/fr/coverage.md) et le
 [registre des clauses](docs/fr/requirements.md) décrivent les comportements
@@ -67,7 +67,7 @@ octets ; le nom source est descriptif et n'est pas ouvert implicitement.
 
 Pour un fichier balisé chiffré, injecter un `DocumentReader` configuré avec
 `StandardPasswordAuthentication`, ou `PublicKeyAuthentication` avec le lecteur
-0.5. L’adaptateur natif exporte les permissions effectives authentifiées dans `data-pdf-perms` ; un mot de passe
+0.6. L’adaptateur natif exporte les permissions effectives authentifiées dans `data-pdf-perms` ; un mot de passe
 incorrect échoue avant la dérivation. Le port d’authentification existant reste
 disponible. Le [guide d’authentification](docs/fr/authentication.md) précise les
 encodages et frontières des gestionnaires de sécurité, PDF MAC et permissions

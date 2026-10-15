@@ -2,8 +2,8 @@
 
 [English](authentication.md) · [Français](fr/authentication.md)
 
-Version 0.4.3 accepts pdf-reader 0.4.1 or 0.5.2 and its explicitly configured
-Standard password authentication. Public-key authentication requires reader 0.5.2 or later in the 0.5 series.
+Version 0.5.0 requires pdf-reader `^0.6` and accepts its explicitly configured
+Standard password or public-key authentication.
 The default converter opens no encrypted file without a selected authentication operation. The application supplies the
 bytes and its credential; neither library discovers passwords or opens a
 descriptive filename.
@@ -72,7 +72,7 @@ by matching message text. A port must return actual authenticated source data
 and verified permissions. A different file, absent permissions or a missing MAC
 under a required policy is rejected before `TaggedPdfSource::read()`.
 
-## Public-key sources with reader 0.5.2
+## Public-key sources with reader 0.6
 
 Inject `PublicKeyAuthentication` when the application has explicitly selected
 CMS recipient decryption. The application supplies certificate DER and private-key
@@ -115,7 +115,7 @@ an unverified `/P` entry. Public-key bit 2 grants the effective full-access mask
 with `PublicKeyAuthenticationFailed` before source adaptation, without retrying
 the provider port. The application receiving the HTML still enforces permissions.
 
-Reader 0.5.2 normalizes historical s3 usage rights before the adapter emits
+Reader 0.6 normalizes historical s3 usage rights before the adapter emits
 `data-pdf-perms`: later form filling, accessibility extraction, assembly and
 printing quality bits derive from R2 bits 6, 5, 4 and 3. Reserved source bits 9–12
 cannot grant these rights. The raw CMS word and typed subfilter remain available
@@ -123,7 +123,7 @@ from the reader for inspection; HTML deliberately receives the effective mask.
 The native reader and explicit authentication-provider paths preserve that same
 mask, including when the converter is reused for another document.
 
-Reader 0.5 retains explicit s3/s4/s5 and cipher boundaries, separate document and
+Reader 0.6 retains explicit s3/s4/s5 and cipher boundaries, separate document and
 embedded-file keys, and PDF MAC checks for supported AESV3/AESV4 sources.
 `RequirePdfMac` applies identically to these sources. Successful CMS decryption
 and a valid MAC do not establish certificate trust or validate a digital signature.
@@ -136,8 +136,8 @@ permissions and absent/standalone/signature-attached MACs, plus ten historical
 s3 sources separating each broad R2 permission from reserved bits 9–12. It verifies the independent
 reader's source content and permission flags, then parses the PHP converter's
 HTML with HTML5 rules on both native and explicit-provider paths. It checks wrong certificates, required integrity and
-converter reuse with an unencrypted source. The original HTML API and Standard
-reader 0.4.1 compatibility remain unchanged.
+converter reuse with an unencrypted source. The HTML API and supported Standard
+authentication mechanisms remain unchanged.
 
 ## Require source integrity
 
@@ -159,7 +159,7 @@ This default still verifies any MAC indicated by the native source mechanism;
 it also accepts ordinary PDFs without a MAC. The required policy rejects such
 files, including a source stripped of all encryption/MAC indications.
 
-The reader supports Standard R5–R7, plus public-key AESV3/AESV4 with reader 0.5,
+The reader supports Standard R5–R7, plus public-key AESV3/AESV4 with reader 0.6,
 Standalone and AttachedToSig MAC locations, and document timestamps, with bounded CMS and exact original-byte coverage.
 See its [MAC contract](https://pdftoolkit.github.io/modules/reader/source-mac.html)
 for cryptographic and resource limits. MAC protection is tied to the encryption

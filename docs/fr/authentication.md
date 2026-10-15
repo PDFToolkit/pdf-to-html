@@ -2,8 +2,8 @@
 
 [English](../authentication.md) · [Français](authentication.md)
 
-La version 0.4.3 accepte pdf-reader 0.4.1 ou 0.5.2 et son authentification
-Standard configurée explicitement. La clé publique nécessite le lecteur 0.5.2 ou ultérieur de la série 0.5.
+La version 0.5.0 exige pdf-reader `^0.6` et accepte son authentification
+Standard ou par clé publique configurée explicitement.
 Le convertisseur par défaut n’ouvre aucun fichier chiffré sans opération
 d’authentification sélectionnée. L’application fournit les octets et son identifiant ; aucune bibliothèque ne recherche de mot
 de passe et le nom descriptif n’est jamais ouvert implicitement.
@@ -79,7 +79,7 @@ renvoyer de véritables données authentifiées et des permissions vérifiées. 
 autre fichier, l’absence de permissions ou un MAC manquant sous une politique
 obligatoire sont refusés avant `TaggedPdfSource::read()`.
 
-## Sources à clé publique avec le lecteur 0.5.2
+## Sources à clé publique avec le lecteur 0.6
 
 Injecter `PublicKeyAuthentication` lorsque l’application a choisi explicitement
 le déchiffrement CMS des destinataires. Elle fournit les octets DER du certificat
@@ -125,7 +125,7 @@ propriétaire par mot de passe. Un mauvais destinataire provoque
 `PublicKeyAuthenticationFailed` avant adaptation, sans nouvelle tentative par le
 port fournisseur. L’application recevant le HTML applique toujours les permissions.
 
-Le lecteur 0.5.2 normalise les droits historiques s3 avant l’émission de
+Le lecteur 0.6 normalise les droits historiques s3 avant l’émission de
 `data-pdf-perms` : les bits modernes de remplissage, extraction d’accessibilité,
 assemblage et qualité d’impression dérivent des bits R2 6, 5, 4 et 3. Les bits
 source réservés 9–12 n’accordent jamais ces droits. Le mot CMS brut et le sous-filtre
@@ -133,7 +133,7 @@ typé restent consultables dans le lecteur ; le HTML reçoit le masque effectif.
 Les chemins lecteur natif et fournisseur explicite conservent le même masque,
 y compris lorsque le convertisseur est réutilisé pour un autre document.
 
-Le lecteur 0.5 conserve des limites explicites de s3/s4/s5 et de chiffrements,
+Le lecteur 0.6 conserve des limites explicites de s3/s4/s5 et de chiffrements,
 des clés distinctes document/fichiers incorporés et les contrôles PDF MAC pour
 les sources AESV3/AESV4 acceptées. `RequirePdfMac` s’applique pareillement. Le
 succès du déchiffrement CMS et un MAC valide n’établissent pas la confiance dans
@@ -147,8 +147,8 @@ restreintes/complètes et MAC absents/standalone/attachés à une signature, plu
 sources historiques s3 distinguant chaque droit R2 des bits réservés 9–12. Il vérifie le contenu et les
 permissions avec le lecteur indépendant, puis analyse le HTML produit par PHP
 selon HTML5 sur les chemins natif et fournisseur explicite. Il contrôle mauvais certificats, intégrité obligatoire et réutilisation
-avec une source non chiffrée. L’API HTML et la compatibilité Standard avec le
-lecteur 0.4.1 restent inchangées.
+avec une source non chiffrée. L’API HTML et les mécanismes d’authentification Standard
+pris en charge restent inchangés.
 
 ## Exiger l’intégrité de la source
 
@@ -171,7 +171,7 @@ PDF ordinaires sans MAC. La politique obligatoire refuse ces fichiers, dont une
 source privée de tous ses indices de chiffrement ou de MAC.
 
 Le lecteur prend en charge Standard R5–R7, ainsi que la clé publique AESV3/AESV4
-avec le lecteur 0.5, les MAC Standalone/AttachedToSig et les horodatages
+avec le lecteur 0.6, les MAC Standalone/AttachedToSig et les horodatages
 documentaires, avec CMS borné et couverture exacte des octets
 originaux. Son [contrat MAC](https://pdftoolkit.github.io/fr/modules/reader/source-mac.html)
 précise les limites cryptographiques et de ressources. La protection dépend de

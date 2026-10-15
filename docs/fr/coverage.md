@@ -2,7 +2,7 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
-La version **0.4.3** implémente les mécanismes de dérivation de la référence
+La version **0.5.0** implémente les mécanismes de dérivation de la référence
 conservée par une interprétation source native, des politiques explicites et des
 ports propres à l'application. Le [registre des clauses](requirements.md) associe
 chaque règle numérotée à sa décision et à des preuves concrètes. La couverture
@@ -38,15 +38,15 @@ ni OCR, ni balisage inféré, ni reconstruction de mises en page arbitraires.
    hébergement des ressources, politiques navigateur, soumissions et application
    des permissions restent des capacités explicites.
 
-## Mécanismes vérifiés dans la version 0.4.3
+## Mécanismes vérifiés dans la version 0.5.0
 
-Les sources à clé publique du lecteur 0.5 utilisent le même contrat de masque
+Les sources à clé publique du lecteur 0.6 utilisent le même contrat de masque
 effectif. `tools/validate_public_key_authentication.py` produit indépendamment
 des sources balisées CMS et contrôle leur HTML5, le bit 2, les deux emplacements
 MAC, les mauvais certificats et la réutilisation du convertisseur. Dix sources s3
 supplémentaires vérifient que les bits réservés n’accordent pas de droits granulaires
 ultérieurs ; les chemins natif et fournisseur explicite conservent le masque
-normalisé de Reader 0.5.2 dans le HTML analysé selon HTML5.
+normalisé de Reader 0.6 dans le HTML analysé selon HTML5.
 
 L’authentification source utilise aussi la vérification MAC native du lecteur
 0.4. `SourceIntegrityTest` et `tools/validate_source_integrity.py` couvrent les
@@ -77,7 +77,7 @@ Le lecteur natif accepte la syntaxe PDF 1.0–2.0 et les chaînes UTF-8 PDF 2.0 
 son périmètre de références croisées/filtres. Syntaxes endommagées et mécanismes
 non pris en charge échouent explicitement. Les entrées chiffrées peuvent utiliser
 l’opération Standard native explicite, l’authentification par clé publique du
-lecteur 0.5 ou le port d’authentification distinct. L’adaptateur conserve les
+lecteur 0.6 ou le port d’authentification distinct. L’adaptateur conserve les
 permissions effectives ; un adaptateur personnalisé ne peut ni supprimer ni élever un masque natif vérifié. Un mot de
 passe incorrect échoue avant dérivation. Voir l’[authentification](authentication.md)
 et l’[oracle indépendant qpdf/pypdf/HTML5](../../tools/validate_authentication.py).

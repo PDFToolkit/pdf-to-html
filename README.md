@@ -7,7 +7,7 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.4.1 implements the reference's derivation mechanisms with explicit
+Version 0.5.0 implements the reference's derivation mechanisms with explicit
 security profiles, native password/public-key/MAC authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
@@ -63,7 +63,7 @@ authentication provider as explicit objects. Conversion still receives bytes;
 the source filename is descriptive and is not opened implicitly.
 
 For encrypted tagged files, inject a `DocumentReader` configured with
-`StandardPasswordAuthentication`, or `PublicKeyAuthentication` with reader 0.5.
+`StandardPasswordAuthentication`, or `PublicKeyAuthentication` with reader 0.6.
 The native adapter exports the authenticated effective permissions to `data-pdf-perms`; a wrong password fails
 before derivation. The existing authentication port remains available. Read the
 [authentication guide](docs/authentication.md) for credential encodings and

@@ -2,7 +2,7 @@
 
 [English](coverage.md) · [Français](fr/coverage.md)
 
-Version **0.4.3** implements the derivation mechanisms of the retained reference
+Version **0.5.0** implements the derivation mechanisms of the retained reference
 through native source interpretation, explicit policies and application ports.
 The [clause ledger](requirements.md) records every numbered rule, its decision
 and concrete evidence. Coverage is not universal PDF acceptance, browser layout
@@ -35,16 +35,16 @@ OCR, inferred tagging or reconstruction of arbitrary page layouts.
 3. **Application integration**: rendering engines, authentication, hosting assets,
    browser policies, submissions and permission enforcement remain explicit capabilities.
 
-## Mechanisms verified in 0.4.3
+## Mechanisms verified in 0.5.0
 
 Source authentication additionally uses reader 0.4's native PDF MAC verification.
 `SourceIntegrityTest` and `tools/validate_source_integrity.py` cover tagged R6
 standalone/attached and R7 standalone files, both authentication paths, exact
 source identity, required-policy preservation and effective user/owner rights.
-Reader 0.5 public-key sources use the same effective-mask contract.
+Reader 0.6 public-key sources use the same effective-mask contract.
 `tools/validate_public_key_authentication.py` independently produces tagged CMS
 sources and checks their HTML5 output, permission bit 2, both MAC locations,
-wrong certificates and converter reuse. Ten additional s3 sources verify that reserved permission bits cannot grant later granular rights; both native and explicit-provider paths preserve Reader 0.5.2’s normalized mask. This extends the Annex C boundary;
+wrong certificates and converter reuse. Ten additional s3 sources verify that reserved permission bits cannot grant later granular rights; both native and explicit-provider paths preserve Reader 0.6’s normalized mask. This extends the Annex C boundary;
 it does not authenticate generated HTML.
 
 | Reference and physical pages | Behavior | Concrete evidence |
@@ -68,7 +68,7 @@ They are executable implementation decisions, not a blanket certification claim.
 The native reader supports PDF 1.0–2.0 syntax and PDF 2.0 UTF-8 strings within
 its accepted cross-reference/filter mechanisms. Damaged syntax or unsupported
 reader mechanisms fail explicitly. Encrypted inputs can use the native reader’s
-explicit Standard password operation, public-key authentication with reader 0.5,
+explicit Standard password operation, public-key authentication with reader 0.6,
 or the separate authentication port.
 The adapter preserves authenticated effective permissions; custom adapters cannot
 drop or elevate a verified native mask. Wrong passwords fail before derivation.

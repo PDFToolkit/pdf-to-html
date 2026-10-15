@@ -7,8 +7,8 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.2.1 implements the reference's derivation mechanisms with explicit
-security profiles and application-supplied rendering/authentication capabilities.
+Version 0.3.0 implements the reference's derivation mechanisms with explicit
+security profiles, native password authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
 
@@ -19,14 +19,14 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 ## Install
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.2.1"
+composer require "pdftoolkit/pdf-to-html:^0.3"
 ```
 
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.2.1 uses pdf-reader 0.2.3+ for its typed encrypted-document boundary.
+Version 0.3.0 uses pdf-reader 0.3 and accepts core 0.7.1 or 0.8.
 
 ## Read, derive, then write
 
@@ -57,6 +57,13 @@ $result = (new \PDF\Html\PdfToHtml())->convert(
 Its constructor accepts the reader, source adapter, deriver and an optional
 authentication provider as explicit objects. Conversion still receives bytes;
 the source filename is descriptive and is not opened implicitly.
+
+For encrypted tagged files, inject a `DocumentReader` configured with
+`StandardPasswordAuthentication`. The native adapter exports the authenticated
+user/owner effective permissions to `data-pdf-perms`; a wrong password fails
+before derivation. The existing authentication port remains available. Read the
+[authentication guide](docs/authentication.md) for credential encodings and
+explicit security-handler, PDF MAC and viewer-enforcement boundaries.
 
 The default source adapter inherits the deriver's policy and limits. Associated
 Alternative/Supplement content is selected before decoding the PDF content it
@@ -124,6 +131,7 @@ provides the input PDF, rendered pages, executable PHP and actual HTML result.
 - [Clause ledger](docs/requirements.md): numbered rules, decisions and evidence.
 - [Policies](docs/policies.md): shared profiles, forms, scripts and rendering.
 - [Security](docs/security.md): budgets, HTML/CSS/URL validation and active content.
+- [Authentication](docs/authentication.md): native credentials and effective user/owner permissions.
 - [Retained reference](docs/reference.md): original PDF, license and fingerprint.
 - [Complete API and guides](https://pdftoolkit.github.io/modules/to-html/).
 

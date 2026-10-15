@@ -2,6 +2,30 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## Unreleased
+
+## 0.3.0 — 2026-10-15
+
+- Require released pdf-reader 0.3 and accept core 0.7.1 or 0.8. Native source
+  adaptation now carries `ReadDocument::permissions()` into immutable
+  `AuthenticatedPermissions` using the actual effective user/owner mask.
+- Support an explicitly injected reader configured with
+  `StandardPasswordAuthentication`. Credentials decrypt the actual tagged
+  source before derivation; owner access exports `-4`, while user restrictions
+  retain the source `/P` mask. Permissions remain scoped to one document.
+  Reject custom source models that drop or elevate the native verified mask.
+- Decode accepted LZW inline-image samples through reader 0.3; the original
+  independently produced fixture now yields actual gray pixels for its legacy
+  LZW fallback case. Verify its exact PNG samples independently.
+- Preserve the separate `AuthenticationProvider` boundary. Wrong native
+  passwords, unsupported handlers and adaptation failures never silently retry
+  through it. No CMS, certificate-trust or PDF MAC verification is claimed.
+- Add real qpdf AES-128/R4 and AES-256/R6 fixtures and independent qpdf/pypdf/
+  HTML5 checks, including newly generated encrypted object streams, incorrect
+  passwords, owner/user masks and converter reuse. Run them on PHP 8.3–8.5.
+- Document native authentication, explicit credential encodings, required
+  capabilities and receiving-viewer enforcement in English and French.
+
 ## 0.2.1 — 2026-10-15
 
 - Export directly referenced Form XObjects as actual isolated XObjects, retaining

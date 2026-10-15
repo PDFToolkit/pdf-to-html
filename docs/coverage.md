@@ -2,7 +2,7 @@
 
 [English](coverage.md) · [Français](fr/coverage.md)
 
-Version **0.2.1** implements the derivation mechanisms of the retained reference
+Version **0.3.0** implements the derivation mechanisms of the retained reference
 through native source interpretation, explicit policies and application ports.
 The [clause ledger](requirements.md) records every numbered rule, its decision
 and concrete evidence. Coverage is not universal PDF acceptance, browser layout
@@ -35,7 +35,7 @@ OCR, inferred tagging or reconstruction of arbitrary page layouts.
 3. **Application integration**: rendering engines, authentication, hosting assets,
    browser policies, submissions and permission enforcement remain explicit capabilities.
 
-## Mechanisms verified in 0.2.1
+## Mechanisms verified in 0.3.0
 
 | Reference and physical pages | Behavior | Concrete evidence |
 | --- | --- | --- |
@@ -57,7 +57,12 @@ They are executable implementation decisions, not a blanket certification claim.
 
 The native reader supports PDF 1.0–2.0 syntax and PDF 2.0 UTF-8 strings within
 its accepted cross-reference/filter mechanisms. Damaged syntax or unsupported
-reader mechanisms fail explicitly. Encrypted inputs use the authentication port.
+reader mechanisms fail explicitly. Encrypted inputs can use the native reader’s
+explicit Standard password operation or the separate authentication port.
+The adapter preserves effective user/owner permissions; custom adapters cannot
+drop or elevate a verified native mask. Wrong passwords fail before derivation.
+See [authentication](authentication.md) and the
+[independent qpdf/pypdf/HTML5 oracle](../tools/validate_authentication.py).
 
 Unicode uses embedded ToUnicode codespaces, bfchar/bfrange and embedded UseCMap
 inheritance or recognized simple-font encodings/Differences. Named external CMaps

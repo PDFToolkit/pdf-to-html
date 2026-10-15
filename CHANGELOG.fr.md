@@ -2,6 +2,34 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## À venir
+
+## 0.3.0 — 2026-10-15
+
+- Dépendance sur pdf-reader 0.3 publié ; core 0.7.1 ou 0.8 accepté. L’adaptation
+  native transmet désormais `ReadDocument::permissions()` aux
+  `AuthenticatedPermissions` immuables avec le véritable masque effectif
+  utilisateur/propriétaire.
+- Accepter un lecteur injecté configuré avec `StandardPasswordAuthentication`.
+  Les identifiants déchiffrent la source balisée réelle avant dérivation ;
+  l’accès propriétaire exporte `-4`, les restrictions utilisateur conservent le
+  masque `/P` source. Les permissions appartiennent à un seul document.
+  Refuser les modèles source personnalisés qui suppriment ou élèvent le masque
+  natif vérifié.
+- Décoder les pixels des images inline LZW acceptées via reader 0.3 ; la fixture
+  indépendante d’origine fournit désormais les véritables pixels gris de son
+  ancien cas de repli LZW. Vérifier indépendamment les échantillons PNG exacts.
+- Conserver le port `AuthenticationProvider` distinct. Un mot de passe natif
+  incorrect, gestionnaire non accepté ou échec d’adaptation n’y provoque aucune
+  nouvelle tentative silencieuse. Aucune vérification CMS, de confiance des
+  certificats ou de PDF MAC n’est revendiquée.
+- Ajouter des fixtures qpdf réelles AES-128/R4 et AES-256/R6 et des contrôles
+  indépendants qpdf/pypdf/HTML5 : object streams chiffrés générés à neuf, mots de
+  passe incorrects, masques propriétaire/utilisateur et réutilisation du
+  convertisseur. Exécution en PHP 8.3 à 8.5.
+- Documenter authentification native, encodages explicites, capacités requises
+  et application des permissions par le viewer, en français et en anglais.
+
 ## 0.2.1 — 2026-10-15
 
 - Exporter les Form XObjects référencés directement comme de vrais XObjects

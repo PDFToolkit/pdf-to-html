@@ -33,8 +33,15 @@ L'adaptateur par défaut de `PdfToHtml` utilise la politique du dériveur. Les
 fichiers bloqués ne sont pas décodés et ne suppriment pas l'original. Les
 politiques source/sortie doivent aussi correspondre lors d'un assemblage séparé.
 
-Seule l'`EncryptedPdfException` typée du lecteur pour `/Encrypt` vérifié déclenche
-l'authentification. Filtres non acceptés et erreurs d'adaptation ne la déclenchent
+Un lecteur configuré explicitement peut effectuer l’authentification Standard
+native et fournir les permissions utilisateur/propriétaire effectives. Un
+identifiant incorrect échoue avant adaptation. Les gestionnaires non acceptés
+et exigences de PDF MAC source restent des erreurs du lecteur ; ce module ne
+vérifie ni signatures CMS, ni confiance, ni PDF MAC. Voir
+l’[authentification](authentication.md).
+
+Seule l’`EncryptedPdfException` typée du lecteur pour `/Encrypt` vérifié déclenche
+le port d’authentification distinct. Filtres non acceptés et erreurs d’adaptation ne le déclenchent
 pas par la présence d'un mot ressemblant à une mention de chiffrement. Le
 fournisseur renvoie des permissions vérifiées, pas un masque supposé.
 [AuthenticationBoundaryTest](../../tests/AuthenticationBoundaryTest.php) vérifie

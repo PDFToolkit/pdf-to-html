@@ -31,8 +31,14 @@ The default `PdfToHtml` source adapter uses the deriver's policy. Blocked associ
 files are not decoded and do not suppress original content. Source/output policies
 must also match when an application wires its own stages.
 
+An explicitly configured reader can perform native Standard password
+authentication and provide actual effective user/owner permissions. Wrong
+credentials fail before adaptation. Unsupported security handlers and source
+PDF MAC requirements remain reader errors; this module does not verify CMS
+signatures, trust or PDF MAC. See [authentication](authentication.md).
+
 Only the reader's typed `EncryptedPdfException` for verified `/Encrypt` triggers
-authentication. Unsupported filters or adaptation errors do not trigger it by
+the separate authentication port. Unsupported filters or adaptation errors do not trigger it by
 containing an encryption-like word. A provider must return verified permissions,
 not just a guessed mask.
 [AuthenticationBoundaryTest](../tests/AuthenticationBoundaryTest.php) checks

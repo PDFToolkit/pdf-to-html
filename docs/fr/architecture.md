@@ -101,15 +101,17 @@ correspondances, ressources et pages. `DerivationLimits` borne parcours sémanti
 octets de sortie, ressources et chaînes de rôles. Chaque conversion possède ses
 propres budgets et caches.
 
-`PdfToHtml` coordonne ces étapes injectables. Un `AuthenticationProvider` optionnel
-est une capacité distincte de l'application : une entrée chiffrée nécessite des
-données authentifiées et des permissions vérifiées. Déclarer une version PDF,
-conserver un dictionnaire `/Encrypt` ou construire un objet de permissions
-n'implémente pas le déchiffrement.
+`PdfToHtml` coordonne ces étapes injectables. Un `DocumentReader` configuré avec
+`StandardPasswordAuthentication` authentifie et déchiffre les entrées acceptées
+avant adaptation ; `ReadPdfSource` transmet ses permissions effectives vérifiées
+au modèle source immuable. Un `AuthenticationProvider` optionnel reste une
+capacité distincte de l’application. Conserver un dictionnaire `/Encrypt` ou
+construire un objet de permissions n’implémente pas le déchiffrement. Voir
+l’[authentification native](authentication.md) pour les identifiants et limites.
 
 L'adaptateur par défaut reçoit politique et limites du dériveur. Les applications
 assemblant les étapes séparément fournissent les mêmes objets ; voir les
-[politiques](policies.md). L'authentification ne dépend que de l'exception typée
+[politiques](policies.md). Le port d’authentification distinct ne dépend que de l’exception typée
 `EncryptedPdfException` du lecteur pour `/Encrypt` vérifié ; les erreurs
 d'adaptation/filtres ne la déclenchent jamais par recherche de texte.
 

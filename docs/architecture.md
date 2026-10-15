@@ -96,15 +96,17 @@ source adaptation: depth, nodes, instructions, content/text bytes, mappings,
 assets and page count. `DerivationLimits` bounds semantic traversal, output bytes,
 assets and role-map chains. Each conversion owns fresh budgets and caches.
 
-`PdfToHtml` coordinates these injectable stages. An optional
-`AuthenticationProvider` is a separate application capability: encrypted input
-needs authenticated source data and verified permissions. Merely setting a PDF
-version, retaining an `/Encrypt` dictionary or constructing a permission object
-does not implement decryption.
+`PdfToHtml` coordinates these injectable stages. A `DocumentReader` configured
+with `StandardPasswordAuthentication` authenticates and decrypts supported input
+before adaptation; `ReadPdfSource` carries its verified effective permissions
+into the immutable source model. An optional `AuthenticationProvider` remains a
+separate application capability. Merely retaining an `/Encrypt` dictionary or
+constructing a permission object does not implement decryption. See
+[native authentication](authentication.md) for credentials and explicit limits.
 
 The default source adapter receives the deriver's policy and limits. Applications
 wiring separate stages pass the same objects explicitly; see [policies](policies.md).
-Authentication is dispatched only by the reader's typed `EncryptedPdfException`
+The separate authentication port is dispatched only by the reader's typed `EncryptedPdfException`
 for verified `/Encrypt`; adaptation/filter failures never request it by text matching.
 
 ## Supply interpretation and rendering capabilities

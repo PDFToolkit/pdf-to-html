@@ -2,7 +2,7 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
-La version **0.2.1** implémente les mécanismes de dérivation de la référence
+La version **0.3.0** implémente les mécanismes de dérivation de la référence
 conservée par une interprétation source native, des politiques explicites et des
 ports propres à l'application. Le [registre des clauses](requirements.md) associe
 chaque règle numérotée à sa décision et à des preuves concrètes. La couverture
@@ -38,7 +38,7 @@ ni OCR, ni balisage inféré, ni reconstruction de mises en page arbitraires.
    hébergement des ressources, politiques navigateur, soumissions et application
    des permissions restent des capacités explicites.
 
-## Mécanismes vérifiés dans la version 0.2.1
+## Mécanismes vérifiés dans la version 0.3.0
 
 | Référence et pages physiques | Comportement | Preuves concrètes |
 | --- | --- | --- |
@@ -60,8 +60,12 @@ annexes. Ce sont des décisions exécutables, sans certification générale impl
 
 Le lecteur natif accepte la syntaxe PDF 1.0–2.0 et les chaînes UTF-8 PDF 2.0 dans
 son périmètre de références croisées/filtres. Syntaxes endommagées et mécanismes
-non pris en charge échouent explicitement. Les entrées chiffrées utilisent le
-port d'authentification.
+non pris en charge échouent explicitement. Les entrées chiffrées peuvent utiliser
+l’opération Standard native explicite du lecteur ou le port d’authentification
+distinct. L’adaptateur conserve les permissions effectives ; un adaptateur
+personnalisé ne peut ni supprimer ni élever un masque natif vérifié. Un mot de
+passe incorrect échoue avant dérivation. Voir l’[authentification](authentication.md)
+et l’[oracle indépendant qpdf/pypdf/HTML5](../../tools/validate_authentication.py).
 
 Unicode utilise les codespaces ToUnicode incorporés, bfchar/bfrange et l'héritage
 UseCMap incorporé, ou les encodages simples/Differences reconnus. Les CMaps

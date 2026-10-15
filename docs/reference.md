@@ -20,9 +20,11 @@ or browser capability is supported. The original stays outside Composer archives
 
 The [clause ledger](requirements.md) links physical-page rules to executable
 evidence and marks native behavior, policies, HTML adaptations and application
-ports. The security/authentication boundary uses pdf-reader's typed
-`EncryptedPdfException`; rendering evidence combines independently parsed
-isolated PDFs with real Poppler pixels.
+ports. Native Standard authentication carries verified effective user/owner
+permissions; the separate provider boundary uses the reader’s typed
+`EncryptedPdfException`. Crypto evidence uses actual qpdf-encrypted tagged PDFs,
+pypdf decryption and HTML5 parsing; rendering evidence combines independently
+parsed isolated PDFs with real Poppler pixels.
 
 Current HTML/ARIA rules and the W3C MathML vocabulary supplement the integration
 decisions; they do not replace the PDF Association reference. The

@@ -46,7 +46,12 @@ mode reports them in `sourceDiagnostics`, later included in derivation diagnosti
 Cycles and cumulative-budget failures remain errors in both modes. Neither mode
 is a complete WTPDF, PDF/UA or accessibility certification service.
 
-`PdfToHtml` dispatches authentication only when the reader raises the typed
+Native `StandardPasswordAuthentication` belongs to the explicitly configured
+reader. It supplies verified user/owner effective permissions to `ReadPdfSource`;
+wrong passwords are errors, never a retry through another port. See
+[authentication](authentication.md).
+
+`PdfToHtml` dispatches the separate authentication port only when the reader raises the typed
 `EncryptedPdfException` for verified `/Encrypt`. Errors in later interpretation
 and unsupported filter names never select authentication by message text. The
 supplied `AuthenticationProvider` must return an authenticated source model and

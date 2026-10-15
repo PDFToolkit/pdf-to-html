@@ -48,7 +48,12 @@ dérivation. Les cycles et dépassements de budgets cumulatifs restent des erreu
 dans les deux modes. Aucun mode ne constitue une certification complète WTPDF,
 PDF/UA ou d'accessibilité.
 
-`PdfToHtml` ne déclenche l'authentification que lorsque le lecteur produit
+`StandardPasswordAuthentication` appartient au lecteur configuré explicitement.
+Il fournit les permissions effectives utilisateur/propriétaire vérifiées à
+`ReadPdfSource` ; un mot de passe incorrect est une erreur, sans nouvelle
+tentative par un autre port. Voir l’[authentification](authentication.md).
+
+`PdfToHtml` ne déclenche le port d’authentification distinct que lorsque le lecteur produit
 l'`EncryptedPdfException` typée pour `/Encrypt` vérifié. Les erreurs
 d'interprétation suivantes et noms de filtres non acceptés ne sélectionnent
 jamais l'authentification par texte. Le `AuthenticationProvider` fourni renvoie

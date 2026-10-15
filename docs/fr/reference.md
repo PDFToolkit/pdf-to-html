@@ -21,7 +21,10 @@ conversion ou fonctionnalité de navigateur. L'original reste hors des archives 
 Le [registre des clauses](requirements.md) relie les règles des pages physiques
 aux preuves exécutables et distingue comportements natifs, politiques,
 adaptations HTML et ports applicatifs. La frontière d'authentification utilise
-l'`EncryptedPdfException` typée de pdf-reader ; les preuves de rendu combinent
+les permissions effectives utilisateur/propriétaire de l’authentification native
+et l’`EncryptedPdfException` typée de pdf-reader pour le port distinct. Les preuves
+cryptographiques utilisent de vrais PDF balisés chiffrés par qpdf, déchiffrés
+par pypdf puis analysés en HTML5 ; les preuves de rendu combinent
 des PDF isolés analysés indépendamment et de vrais pixels Poppler.
 
 Les règles HTML/ARIA actuelles et le vocabulaire MathML W3C complètent les choix

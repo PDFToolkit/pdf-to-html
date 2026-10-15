@@ -16,9 +16,9 @@ from asn1crypto import keys, x509 as asn1_x509
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from pyhanko.pdf_utils.crypt.api import AuthStatus, PdfMacStatus
+from pyhanko.pdf_utils.crypt.api import AuthStatus, PdfMacStatus, SecurityHandlerVersion
 from pyhanko.pdf_utils.crypt.permissions import PubKeyPermissions
-from pyhanko.pdf_utils.crypt.pubkey import SimpleEnvelopeKeyDecrypter
+from pyhanko.pdf_utils.crypt.pubkey import SimpleEnvelopeKeyDecrypter, PubKeyAdbeSubFilter, PubKeySecurityHandler
 from pyhanko.pdf_utils.reader import PdfFileReader
 from pyhanko.pdf_utils.writer import copy_into_new_writer
 from pyhanko.sign import signers
@@ -45,12 +45,13 @@ def identity(directory, name):
         serialization.Encoding.DER, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
 
 
-def invoke(args, directory, filename, *, wrong=False, required=False):
+def invoke(args, directory, filename, *, wrong=False, required=False, provider=False):
     command = [args.php]
     if args.bootstrap:
         command += ['-d', 'auto_prepend_file=' + str(args.bootstrap.resolve())]
     command += [str(ROOT / 'tests/export-public-key.php'), str(directory), filename,
-        'wrong' if wrong else 'recipient', 'require-mac' if required else 'compatible']
+        'wrong' if wrong else 'recipient', 'require-mac' if required else 'compatible',
+        'provider' if provider else 'native']
     return subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
 
 
@@ -72,51 +73,73 @@ def main():
         wrong = SimpleEnvelopeKeyDecrypter.load(str(directory / 'wrong-key.pem'), str(directory / 'wrong.der'))
         signer = signers.SimpleSigner(signing_cert=cert, signing_key=key, cert_registry=SimpleCertificateStore())
         reports = []
-        for owner in (False, True):
-            for location in (None, 'Standalone', 'AttachedToSig'):
-                writer = copy_into_new_writer(PdfFileReader(io.BytesIO(source)))
-                perms = PubKeyPermissions.ALLOW_PRINTING | PubKeyPermissions.ALLOW_ASSISTIVE_TECHNOLOGY | PubKeyPermissions.TOLERATE_MISSING_PDF_MAC
-                if owner:
-                    perms |= PubKeyPermissions.ALLOW_ENCRYPTION_CHANGE
+        sources = [('s5', owner, location, 0, 0)
+            for owner in (False, True) for location in (None, 'Standalone', 'AttachedToSig')]
+        sources += [('s3', False, None, broad, reserved)
+            for broad in (0, 4, 8, 16, 32) for reserved in (0, 0xf00)]
+        for mode, owner, location, broad, reserved in sources:
+            writer = copy_into_new_writer(PdfFileReader(io.BytesIO(source)))
+            perms = PubKeyPermissions.ALLOW_PRINTING | PubKeyPermissions.ALLOW_ASSISTIVE_TECHNOLOGY | PubKeyPermissions.TOLERATE_MISSING_PDF_MAC
+            if owner:
+                perms |= PubKeyPermissions.ALLOW_ENCRYPTION_CHANGE
+            if mode == 's3':
+                perms = PubKeyPermissions.from_uint(broad | reserved) | PubKeyPermissions.TOLERATE_MISSING_PDF_MAC
+                handler = PubKeySecurityHandler.build_from_certs([cert], perms=perms, pdf_mac=False,
+                    version=SecurityHandlerVersion.RC4_40, keylen_bytes=5, use_crypt_filters=False)
+                handler.subfilter = PubKeyAdbeSubFilter.S3
+                # Select S3 before pyHanko serializes the encryption dictionary.
+                writer._assign_security_handler(handler)
+            else:
                 writer.encrypt_pubkey([cert], perms=perms, pdf_mac=location is not None)
-                output = io.BytesIO()
-                if location == 'AttachedToSig':
-                    signers.PdfSigner(signers.PdfSignatureMetadata(field_name='approval', md_algorithm='sha256'),
-                        signer=signer).sign_pdf(writer, output=output, bytes_reserved=16384)
-                else:
-                    writer.write(output)
-                data = output.getvalue()
-                name = f'owner{int(owner)}-{location or "unprotected"}.pdf'
-                (directory / name).write_bytes(data)
-                independently_read = PdfFileReader(io.BytesIO(data))
-                assert independently_read.decrypt_pubkey(wrong).status == AuthStatus.FAILED
-                result = independently_read.decrypt_pubkey(credential)
-                assert result.status == AuthStatus.USER
-                assert bool(result.permission_flags & PubKeyPermissions.ALLOW_ENCRYPTION_CHANGE) == owner
-                assert independently_read.root['/Pages']['/Kids'][0]['/Contents'].data == original_content
-                assert '/StructTreeRoot' in independently_read.root
-                if location:
-                    assert result.mac_status == PdfMacStatus.SUCCESSFUL
-                expected = -4 if owner else (-7484 if location else -3388)
+            output = io.BytesIO()
+            if location == 'AttachedToSig':
+                signers.PdfSigner(signers.PdfSignatureMetadata(field_name='approval', md_algorithm='sha256'),
+                    signer=signer).sign_pdf(writer, output=output, bytes_reserved=16384)
+            else:
+                writer.write(output)
+            data = output.getvalue()
+            name = f'{mode}-owner{int(owner)}-{location or "unprotected"}-{broad}-{reserved}.pdf'
+            (directory / name).write_bytes(data)
+            independently_read = PdfFileReader(io.BytesIO(data))
+            assert independently_read.decrypt_pubkey(wrong).status == AuthStatus.FAILED
+            result = independently_read.decrypt_pubkey(credential)
+            assert result.status == AuthStatus.USER
+            assert bool(result.permission_flags & PubKeyPermissions.ALLOW_ENCRYPTION_CHANGE) == owner
+            assert independently_read.root['/Pages']['/Kids'][0]['/Contents'].data == original_content
+            assert '/StructTreeRoot' in independently_read.root
+            if location:
+                assert result.mac_status == PdfMacStatus.SUCCESSFUL
+            expected = -4 if owner else (-7484 if location else -3388)
+            if mode == 's3':
+                # R2 broad rights, not source bits 9–12, determine the common mask.
+                specific = {0: 0, 4: 2048, 8: 1024, 16: 512, 32: 256}[broad]
+                expected = ((perms.as_uint32() & ~0xf03) | specific) - 0x100000000
+            paths = []
+            for provider in (False, True):
                 for required in ([False, True] if location else [False]):
-                    process = invoke(args, directory, name, required=required)
-                    assert process.returncode == 0, process.stderr
+                    process = invoke(args, directory, name, required=required, provider=provider)
+                    assert process.returncode == 0, process.stdout + process.stderr
                     actual = json.loads(process.stdout)
                     body = html5lib.parse(actual['html'], namespaceHTMLElements=False).find('body')
                     assert body is not None and body.attrib['data-pdf-perms'] == str(expected)
                     assert 'External tagged PDF' in ''.join(body.itertext())
                     assert actual['mask'] == expected and actual['mac'] == location
+                    assert actual['subFilter'] == 'adbe.pkcs7.' + mode, (name, actual['subFilter'])
+                    expected_source = perms.as_uint32() & ~4096 if location else perms.as_uint32()
+                    assert list(actual['sourcePermissions'].values()) == [expected_source]
                     assert any(item['code'] == 'viewer-permissions' for item in actual['diagnostics'])
                     if not required:
                         plain = html5lib.parse(actual['plainReuseHtml'], namespaceHTMLElements=False).find('body')
                         assert plain is not None and 'data-pdf-perms' not in plain.attrib
                         assert 'External tagged PDF' in ''.join(plain.itertext())
-                failed = invoke(args, directory, name, wrong=True)
+                    paths.append({'provider': provider, 'requireMac': required})
+                failed = invoke(args, directory, name, wrong=True, provider=provider)
                 assert failed.returncode != 0 and 'PublicKeyAuthenticationFailed' in failed.stderr + failed.stdout, (failed.returncode, failed.stdout, failed.stderr)
                 if location is None:
-                    failed = invoke(args, directory, name, required=True)
+                    failed = invoke(args, directory, name, required=True, provider=provider)
                     assert failed.returncode != 0 and 'MAC' in failed.stderr + failed.stdout, (failed.returncode, failed.stdout, failed.stderr)
-                reports.append({'source': name, 'mask': expected, 'mac': location, 'html5': True, 'wrong_identity_refused': True})
+            reports.append({'source': name, 'mask': expected, 'mac': location, 'html5': True,
+                'wrong_identity_refused': True, 'paths': paths})
         print(json.dumps({'pyhanko_sources': reports, 'required_integrity_and_converter_reuse': 'passed'}, indent=2))
 
 

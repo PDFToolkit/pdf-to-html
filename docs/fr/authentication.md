@@ -2,8 +2,8 @@
 
 [English](../authentication.md) · [Français](authentication.md)
 
-La version 0.4.1 accepte pdf-reader 0.4.1 ou 0.5 et son authentification
-Standard configurée explicitement. La clé publique nécessite le lecteur 0.5.
+La version 0.4.3 accepte pdf-reader 0.4.1 ou 0.5.2 et son authentification
+Standard configurée explicitement. La clé publique nécessite le lecteur 0.5.2 ou ultérieur de la série 0.5.
 Le convertisseur par défaut n’ouvre aucun fichier chiffré sans opération
 d’authentification sélectionnée. L’application fournit les octets et son identifiant ; aucune bibliothèque ne recherche de mot
 de passe et le nom descriptif n’est jamais ouvert implicitement.
@@ -79,7 +79,7 @@ renvoyer de véritables données authentifiées et des permissions vérifiées. 
 autre fichier, l’absence de permissions ou un MAC manquant sous une politique
 obligatoire sont refusés avant `TaggedPdfSource::read()`.
 
-## Sources à clé publique avec le lecteur 0.5
+## Sources à clé publique avec le lecteur 0.5.2
 
 Injecter `PublicKeyAuthentication` lorsque l’application a choisi explicitement
 le déchiffrement CMS des destinataires. Elle fournit les octets DER du certificat
@@ -125,6 +125,14 @@ propriétaire par mot de passe. Un mauvais destinataire provoque
 `PublicKeyAuthenticationFailed` avant adaptation, sans nouvelle tentative par le
 port fournisseur. L’application recevant le HTML applique toujours les permissions.
 
+Le lecteur 0.5.2 normalise les droits historiques s3 avant l’émission de
+`data-pdf-perms` : les bits modernes de remplissage, extraction d’accessibilité,
+assemblage et qualité d’impression dérivent des bits R2 6, 5, 4 et 3. Les bits
+source réservés 9–12 n’accordent jamais ces droits. Le mot CMS brut et le sous-filtre
+typé restent consultables dans le lecteur ; le HTML reçoit le masque effectif.
+Les chemins lecteur natif et fournisseur explicite conservent le même masque,
+y compris lorsque le convertisseur est réutilisé pour un autre document.
+
 Le lecteur 0.5 conserve des limites explicites de s3/s4/s5 et de chiffrements,
 des clés distinctes document/fichiers incorporés et les contrôles PDF MAC pour
 les sources AESV3/AESV4 acceptées. `RequirePdfMac` s’applique pareillement. Le
@@ -134,10 +142,11 @@ le certificat ni la validité d’une signature numérique. Le
 précise les combinaisons et limites de ressources acceptées.
 
 L’[oracle HTML à clé publique](../../tools/validate_public_key_authentication.py)
-produit six vraies sources balisées pyHanko avec permissions restreintes/complètes
-et MAC absents/standalone/attachés à une signature. Il vérifie le contenu et les
+produit seize vraies sources balisées pyHanko : six avec permissions
+restreintes/complètes et MAC absents/standalone/attachés à une signature, plus dix
+sources historiques s3 distinguant chaque droit R2 des bits réservés 9–12. Il vérifie le contenu et les
 permissions avec le lecteur indépendant, puis analyse le HTML produit par PHP
-selon HTML5. Il contrôle mauvais certificats, intégrité obligatoire et réutilisation
+selon HTML5 sur les chemins natif et fournisseur explicite. Il contrôle mauvais certificats, intégrité obligatoire et réutilisation
 avec une source non chiffrée. L’API HTML et la compatibilité Standard avec le
 lecteur 0.4.1 restent inchangées.
 

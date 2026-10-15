@@ -1,10 +1,10 @@
-# Native password authentication
+# Native source authentication
 
 [English](authentication.md) · [Français](fr/authentication.md)
 
-Version 0.4 requires pdf-reader 0.4.1 and accepts its explicitly configured
-Standard password authentication. The default converter opens no encrypted
-file without a selected authentication operation. The application supplies the
+Version 0.4.1 accepts pdf-reader 0.4.1 or 0.5 and its explicitly configured
+Standard password authentication. Public-key authentication requires reader 0.5.
+The default converter opens no encrypted file without a selected authentication operation. The application supplies the
 bytes and its credential; neither library discovers passwords or opens a
 descriptive filename.
 
@@ -49,9 +49,9 @@ stream is implicitly clear; page and object metadata retain their encryption.
 
 `ReadPdfSource` receives `ReadDocument::permissions()` only after successful
 authentication. It creates `AuthenticatedPermissions` using the effective mask:
-the authenticated user keeps the source `/P` restrictions, while authenticated
-owner access has mask `-4`. The HTML body carries `data-pdf-perms`, and the
-`viewer-permissions` diagnostic records that the receiving application must
+for Standard authentication, the user keeps the source `/P` restrictions, while
+authenticated owner access has mask `-4`. The HTML body carries `data-pdf-perms`,
+and the `viewer-permissions` diagnostic records that the receiving application must
 enforce these restrictions. Exporting a mask does not implement browser access
 control. Unencrypted input has no fabricated permission context; reusing a
 converter does not reuse permissions from a previous document.
@@ -71,6 +71,64 @@ errors, incorrect native passwords and unsupported handlers do not trigger it
 by matching message text. A port must return actual authenticated source data
 and verified permissions. A different file, absent permissions or a missing MAC
 under a required policy is rejected before `TaggedPdfSource::read()`.
+
+## Public-key sources with reader 0.5
+
+Inject `PublicKeyAuthentication` when the application has explicitly selected
+CMS recipient decryption. The application supplies certificate DER and private-key
+PEM bytes; the reader does not discover keys or open a credential filename.
+
+```php
+use PDF\Reading\Security\PublicKeyAuthentication;
+use PDF\Security\CertificateChain;
+use PDF\Security\OpenSslIdentity;
+use PDF\Security\OpenSslRecipientDecrypter;
+use PDF\Security\PublicKeyPermissionByteOrder;
+use PDF\Security\X509Certificate;
+use PDF\Syntax\Object\StringObject\HexadecimalString;
+
+$identity = new OpenSslIdentity(
+    new CertificateChain(new X509Certificate(new HexadecimalString($certificateDer))),
+    $privateKeyPem,
+    $privateKeyPassphrase,
+);
+$reader = new DocumentReader(authentication: new PublicKeyAuthentication(
+    new OpenSslRecipientDecrypter($identity),
+    PublicKeyPermissionByteOrder::MostSignificantFirst,
+));
+$result = (new PdfToHtml(reader: $reader))->convert(
+    new FileBytes($pdfBytes),
+    'certificate-protected.pdf',
+);
+```
+
+The byte order is mandatory. `MostSignificantFirst` interoperates with the
+independent pyHanko producer used by the oracle; `IsoLeastSignificantFirst`
+selects the source-literal legacy interpretation deliberately. It is not an
+automatic fallback. Multiple recipient decrypters can be supplied explicitly
+for independent crypt filters; filter/recipient/CMS budgets remain reader limits.
+
+`PublicKeyReadPermissions` provides the same `effectiveMask()` contract used by
+the HTML adapter. Restrictions come from authenticated CMS recipient words, not
+an unverified `/P` entry. Public-key bit 2 grants the effective full-access mask
+`-4`; it does not represent a password-owner identity. A wrong recipient fails
+with `PublicKeyAuthenticationFailed` before source adaptation, without retrying
+the provider port. The application receiving the HTML still enforces permissions.
+
+Reader 0.5 retains explicit s3/s4/s5 and cipher boundaries, separate document and
+embedded-file keys, and PDF MAC checks for supported AESV3/AESV4 sources.
+`RequirePdfMac` applies identically to these sources. Successful CMS decryption
+and a valid MAC do not establish certificate trust or validate a digital signature.
+See the [reader guide](https://pdftoolkit.github.io/modules/reader/authentication.html)
+for accepted combinations and resource limits.
+
+The [public-key HTML oracle](../tools/validate_public_key_authentication.py)
+creates six actual tagged pyHanko sources with restricted/full-access permissions
+and absent/standalone/signature-attached MACs. It verifies the independent
+reader's source content and permission flags, then parses the PHP converter's
+HTML with HTML5 rules. It checks wrong certificates, required integrity and
+converter reuse with an unencrypted source. The original HTML API and Standard
+reader 0.4.1 compatibility remain unchanged.
 
 ## Require source integrity
 
@@ -92,8 +150,8 @@ This default still verifies any MAC indicated by the native source mechanism;
 it also accepts ordinary PDFs without a MAC. The required policy rejects such
 files, including a source stripped of all encryption/MAC indications.
 
-The reader supports Standard R5–R7, Standalone and AttachedToSig MAC locations,
-and document timestamps, with bounded CMS and exact original-byte coverage.
+The reader supports Standard R5–R7, plus public-key AESV3/AESV4 with reader 0.5,
+Standalone and AttachedToSig MAC locations, and document timestamps, with bounded CMS and exact original-byte coverage.
 See its [MAC contract](https://pdftoolkit.github.io/modules/reader/source-mac.html)
 for cryptographic and resource limits. MAC protection is tied to the encryption
 key: a holder of that key can issue a new MAC. It grants no extra usage rights.

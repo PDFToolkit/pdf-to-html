@@ -2,6 +2,19 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## 0.4.1 - 2026-10-15
+
+- Accepter le lecteur stable `^0.4.1 || ^0.5`, en conservant l’API HTML et la
+  compatibilité avec le lecteur 0.4. L’authentification par clé publique du
+  lecteur 0.5 transmet son masque effectif vérifié par le même contrat natif.
+- Documenter le déchiffrement CMS explicite des destinataires, l’ordre obligatoire
+  des octets de permissions, le bit 2, la politique MAC et les obligations du
+  viewer en anglais et français.
+- Ajouter des sources balisées à clé publique produites indépendamment par
+  pyHanko et des contrôles HTML5 : permissions restreintes/complètes, deux
+  emplacements MAC, mauvais certificats et réutilisation du convertisseur.
+  Les certificats restent des identités de test, sans confiance revendiquée.
+
 ## 0.4.0 - 2026-10-15
 
 - Ajouter la politique explicite d’intégrité à `PdfToHtml` ; la composition

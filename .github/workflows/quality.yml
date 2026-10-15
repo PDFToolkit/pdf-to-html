@@ -50,6 +50,8 @@ jobs:
         run: python tools/validate_authentication.py --php php --qpdf qpdf
       - name: Validate MAC-required tagged derivation and authentication ports independently
         run: python tools/validate_source_integrity.py --php php --qpdf qpdf
+      - name: Validate native public-key permissions and MAC-bound HTML independently
+        run: python tools/validate_public_key_authentication.py --php php
       - name: Validate isolated graphics with pypdf and Poppler
         run: python tools/validate_graphics.py --php php
       - name: Compare exported graphics contexts against independent Poppler oracles

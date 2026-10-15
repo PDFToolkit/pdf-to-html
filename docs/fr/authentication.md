@@ -1,11 +1,11 @@
-# Authentification native par mot de passe
+# Authentification native de la source
 
 [English](../authentication.md) · [Français](authentication.md)
 
-La version 0.4 nécessite pdf-reader 0.4.1 et accepte son authentification
-Standard configurée explicitement. Le convertisseur par défaut n’ouvre aucun
-fichier chiffré sans opération d’authentification sélectionnée. L’application
-fournit les octets et son identifiant ; aucune bibliothèque ne recherche de mot
+La version 0.4.1 accepte pdf-reader 0.4.1 ou 0.5 et son authentification
+Standard configurée explicitement. La clé publique nécessite le lecteur 0.5.
+Le convertisseur par défaut n’ouvre aucun fichier chiffré sans opération
+d’authentification sélectionnée. L’application fournit les octets et son identifiant ; aucune bibliothèque ne recherche de mot
 de passe et le nom descriptif n’est jamais ouvert implicitement.
 
 ```php
@@ -51,8 +51,8 @@ est implicitement clair ; les métadonnées de page et d’objet restent chiffr�
 
 `ReadPdfSource` reçoit `ReadDocument::permissions()` seulement après une
 authentification réussie. Il construit `AuthenticatedPermissions` avec le masque
-effectif : l’utilisateur authentifié conserve les restrictions `/P` de la source,
-tandis que l’accès propriétaire authentifié utilise `-4`. Le body HTML porte
+effectif : pour Standard, l’utilisateur authentifié conserve les restrictions
+`/P` de la source, tandis que l’accès propriétaire authentifié utilise `-4`. Le body HTML porte
 `data-pdf-perms` et le diagnostic `viewer-permissions` rappelle que l’application
 destinataire doit appliquer ces restrictions. Exporter un masque ne réalise pas
 le contrôle d’accès du navigateur. Une entrée non chiffrée n’a pas de permissions
@@ -79,6 +79,68 @@ renvoyer de véritables données authentifiées et des permissions vérifiées. 
 autre fichier, l’absence de permissions ou un MAC manquant sous une politique
 obligatoire sont refusés avant `TaggedPdfSource::read()`.
 
+## Sources à clé publique avec le lecteur 0.5
+
+Injecter `PublicKeyAuthentication` lorsque l’application a choisi explicitement
+le déchiffrement CMS des destinataires. Elle fournit les octets DER du certificat
+et PEM de la clé privée ; le lecteur ne recherche aucune clé et n’ouvre aucun
+nom de fichier de credentials.
+
+```php
+use PDF\Reading\Security\PublicKeyAuthentication;
+use PDF\Security\CertificateChain;
+use PDF\Security\OpenSslIdentity;
+use PDF\Security\OpenSslRecipientDecrypter;
+use PDF\Security\PublicKeyPermissionByteOrder;
+use PDF\Security\X509Certificate;
+use PDF\Syntax\Object\StringObject\HexadecimalString;
+
+$identity = new OpenSslIdentity(
+    new CertificateChain(new X509Certificate(new HexadecimalString($certificateDer))),
+    $privateKeyPem,
+    $privateKeyPassphrase,
+);
+$reader = new DocumentReader(authentication: new PublicKeyAuthentication(
+    new OpenSslRecipientDecrypter($identity),
+    PublicKeyPermissionByteOrder::MostSignificantFirst,
+));
+$result = (new PdfToHtml(reader: $reader))->convert(
+    new FileBytes($pdfBytes),
+    'certificate-protected.pdf',
+);
+```
+
+L’ordre des octets est obligatoire. `MostSignificantFirst` interopère avec le
+producteur indépendant pyHanko de l’oracle ; `IsoLeastSignificantFirst` choisit
+délibérément l’interprétation historique littérale de la source. Ce n’est pas un
+repli automatique. Plusieurs déchiffreurs peuvent être fournis explicitement pour
+des filtres indépendants ; les budgets filtres/destinataires/CMS restent ceux du
+lecteur.
+
+`PublicKeyReadPermissions` fournit le même contrat `effectiveMask()` que celui
+utilisé par l’adaptateur HTML. Les restrictions viennent des mots de permissions
+CMS authentifiés, pas d’une entrée `/P` non vérifiée. Le bit 2 de clé publique
+accorde le masque effectif complet `-4` ; il ne représente pas une identité
+propriétaire par mot de passe. Un mauvais destinataire provoque
+`PublicKeyAuthenticationFailed` avant adaptation, sans nouvelle tentative par le
+port fournisseur. L’application recevant le HTML applique toujours les permissions.
+
+Le lecteur 0.5 conserve des limites explicites de s3/s4/s5 et de chiffrements,
+des clés distinctes document/fichiers incorporés et les contrôles PDF MAC pour
+les sources AESV3/AESV4 acceptées. `RequirePdfMac` s’applique pareillement. Le
+succès du déchiffrement CMS et un MAC valide n’établissent pas la confiance dans
+le certificat ni la validité d’une signature numérique. Le
+[guide du lecteur](https://pdftoolkit.github.io/fr/modules/reader/authentication.html)
+précise les combinaisons et limites de ressources acceptées.
+
+L’[oracle HTML à clé publique](../../tools/validate_public_key_authentication.py)
+produit six vraies sources balisées pyHanko avec permissions restreintes/complètes
+et MAC absents/standalone/attachés à une signature. Il vérifie le contenu et les
+permissions avec le lecteur indépendant, puis analyse le HTML produit par PHP
+selon HTML5. Il contrôle mauvais certificats, intégrité obligatoire et réutilisation
+avec une source non chiffrée. L’API HTML et la compatibilité Standard avec le
+lecteur 0.4.1 restent inchangées.
+
 ## Exiger l’intégrité de la source
 
 ```php
@@ -99,8 +161,9 @@ Ce défaut vérifie tout MAC signalé par le mécanisme natif et accepte aussi l
 PDF ordinaires sans MAC. La politique obligatoire refuse ces fichiers, dont une
 source privée de tous ses indices de chiffrement ou de MAC.
 
-Le lecteur prend en charge Standard R5–R7, les MAC Standalone/AttachedToSig et
-les horodatages documentaires, avec CMS borné et couverture exacte des octets
+Le lecteur prend en charge Standard R5–R7, ainsi que la clé publique AESV3/AESV4
+avec le lecteur 0.5, les MAC Standalone/AttachedToSig et les horodatages
+documentaires, avec CMS borné et couverture exacte des octets
 originaux. Son [contrat MAC](https://pdftoolkit.github.io/fr/modules/reader/source-mac.html)
 précise les limites cryptographiques et de ressources. La protection dépend de
 la clé de chiffrement : son détenteur peut émettre un nouveau MAC. Elle

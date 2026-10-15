@@ -7,8 +7,8 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.4.0 implements the reference's derivation mechanisms with explicit
-security profiles, native password/MAC authentication and application-supplied rendering.
+Version 0.4.1 implements the reference's derivation mechanisms with explicit
+security profiles, native password/public-key/MAC authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
 
@@ -26,7 +26,9 @@ Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.4 requires reader `^0.4.1` and core `^0.9`. The reader verifies indicated
+Version 0.4.1 accepts reader `^0.4.1 || ^0.5` and core `^0.9`.
+Reader 0.5 additionally supports explicitly selected public-key authentication.
+The reader verifies indicated
 ISO/TS 32004 source MACs before content interpretation. Explicit
 `SourceIntegrityPolicy::RequirePdfMac` rejects unprotected input as well.
 
@@ -61,8 +63,8 @@ authentication provider as explicit objects. Conversion still receives bytes;
 the source filename is descriptive and is not opened implicitly.
 
 For encrypted tagged files, inject a `DocumentReader` configured with
-`StandardPasswordAuthentication`. The native adapter exports the authenticated
-user/owner effective permissions to `data-pdf-perms`; a wrong password fails
+`StandardPasswordAuthentication`, or `PublicKeyAuthentication` with reader 0.5.
+The native adapter exports the authenticated effective permissions to `data-pdf-perms`; a wrong password fails
 before derivation. The existing authentication port remains available. Read the
 [authentication guide](docs/authentication.md) for credential encodings and
 explicit security-handler, PDF MAC and viewer-enforcement boundaries. Version

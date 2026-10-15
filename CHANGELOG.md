@@ -2,6 +2,17 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
+## 0.4.1 - 2026-10-15
+
+- Accept stable reader `^0.4.1 || ^0.5`, preserving the existing HTML API and
+  reader 0.4 compatibility. Reader 0.5 public-key authentication carries its
+  verified effective mask through the same native source adaptation contract.
+- Document explicit CMS recipient decryption, required permission byte order,
+  public-key bit 2, MAC policy and viewer obligations in English and French.
+- Add independently generated pyHanko tagged public-key sources and HTML5 checks
+  for restricted/full permissions, both MAC locations, wrong certificates and
+  converter reuse. Certificates remain test identities, without trust claims.
+
 ## 0.4.0 - 2026-10-15
 
 - Add explicit source-integrity policy to `PdfToHtml`; immutable reader

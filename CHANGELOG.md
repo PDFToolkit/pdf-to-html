@@ -10,7 +10,7 @@
 - Correct inline image alias precedence, balance compatibility sections independently, and preserve brace bytes in general content operators.
 - Route images carrying optional-content or alternate-image selections through the explicit rendering capability, preserving dimensions, source resources and OCProperties; direct pixels cannot assert the visible image. Add independent pypdf/Poppler comparisons.
 - Add ten independent tagged s3 sources and validate native/provider authentication paths, HTML5 masks, wrong identities, integrity requirements and converter reuse.
-- Accept stable core `^0.11` alongside `^0.9 || ^0.10`; preserve the published core lock and PHP requirements. Maintain complete English/French documentation.
+- Accept stable core `^0.11` alongside `^0.9 || ^0.10`; update the validation lock to published core `0.11.0`, preserving every other locked dependency and the PHP requirements. Maintain complete English/French documentation.
 
 ## 0.4.2 - 2026-10-15
 

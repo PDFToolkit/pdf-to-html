@@ -75,16 +75,16 @@
         },
         {
             "name": "roukmoute/pdf",
-            "version": "v0.9.1",
+            "version": "v0.11.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf.git",
-                "reference": "2e3f2241985e8705c99df535f1ceca266036bc10"
+                "reference": "25b426190b1c2b8d9d26a3fbf94f71c8014725b3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/2e3f2241985e8705c99df535f1ceca266036bc10",
-                "reference": "2e3f2241985e8705c99df535f1ceca266036bc10",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/25b426190b1c2b8d9d26a3fbf94f71c8014725b3",
+                "reference": "25b426190b1c2b8d9d26a3fbf94f71c8014725b3",
                 "shasum": ""
             },
             "require": {
@@ -96,9 +96,9 @@
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
-                "pdftoolkit/pdf-fonts": "^0.1.10",
-                "pdftoolkit/pdf-images": "^0.1.10",
-                "pdftoolkit/pdf-reader": "^0.3.2",
+                "pdftoolkit/pdf-fonts": "^0.1.12",
+                "pdftoolkit/pdf-images": "^0.1.12",
+                "pdftoolkit/pdf-reader": "^0.6",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^12.0"
             },
@@ -109,7 +109,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.9.x-dev"
+                    "dev-master": "0.11.x-dev"
                 }
             },
             "autoload": {
@@ -147,7 +147,7 @@
                 "issues": "https://github.com/PDFToolkit/pdf/issues",
                 "source": "https://github.com/PDFToolkit/pdf"
             },
-            "time": "2026-10-15T11:45:23+00:00"
+            "time": "2026-10-15T21:35:13+00:00"
         }
     ],
     "packages-dev": [

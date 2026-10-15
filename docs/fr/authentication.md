@@ -2,7 +2,7 @@
 
 [English](../authentication.md) · [Français](authentication.md)
 
-La version 0.4 nécessite pdf-reader 0.4 et accepte son authentification
+La version 0.4 nécessite pdf-reader 0.4.1 et accepte son authentification
 Standard configurée explicitement. Le convertisseur par défaut n’ouvre aucun
 fichier chiffré sans opération d’authentification sélectionnée. L’application
 fournit les octets et son identifiant ; aucune bibliothèque ne recherche de mot
@@ -44,6 +44,10 @@ V4 fixée à 128 bits en l’absence de Length global et les entrées de nom sta
 ignorées dans CF. Ces règles appartiennent au lecteur ; la dérivation reçoit
 les objets source authentifiés ainsi obtenus. Le core 0.9 fournit le vérificateur
 MAC natif utilisé par le lecteur.
+
+Le lecteur 0.4.1 conserve aussi les identités terminales Encrypt, Root et Metadata
+du catalogue dans les chaînes physiques bornées. Seul le vrai flux du catalogue
+est implicitement clair ; les métadonnées de page et d’objet restent chiffrées.
 
 `ReadPdfSource` reçoit `ReadDocument::permissions()` seulement après une
 authentification réussie. Il construit `AuthenticatedPermissions` avec le masque

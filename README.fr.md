@@ -28,7 +28,7 @@ PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
 
-La version 0.4 nécessite le lecteur `^0.4` et le core `^0.9`. Le lecteur vérifie
+La version 0.4 nécessite le lecteur `^0.4.1` et le core `^0.9`. Le lecteur vérifie
 les MAC sources ISO/TS 32004 signalés avant l’interprétation du contenu.
 La politique explicite `SourceIntegrityPolicy::RequirePdfMac` refuse aussi
 les entrées non protégées.

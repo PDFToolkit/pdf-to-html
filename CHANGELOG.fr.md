@@ -14,6 +14,8 @@
   indépendantes, contrôles adverses pyHanko/HTML5 et exemple à identifiants
   explicites. Le MAC source n’implique ni confiance dans une signature CMS ni
   authentification du HTML produit.
+- Exiger le lecteur 0.4.1 avec son correctif d’identité terminale des objets
+  chiffrés dans les chaînes physiques ; conserver des dépendances core stables.
 
 ## 0.3.2 — 2026-10-15
 

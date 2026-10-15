@@ -26,7 +26,7 @@ Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.4 requires reader `^0.4` and core `^0.9`. The reader verifies indicated
+Version 0.4 requires reader `^0.4.1` and core `^0.9`. The reader verifies indicated
 ISO/TS 32004 source MACs before content interpretation. Explicit
 `SourceIntegrityPolicy::RequirePdfMac` rejects unprotected input as well.
 

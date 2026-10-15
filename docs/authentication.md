@@ -2,7 +2,7 @@
 
 [English](authentication.md) · [Français](fr/authentication.md)
 
-Version 0.4 requires pdf-reader 0.4 and accepts its explicitly configured
+Version 0.4 requires pdf-reader 0.4.1 and accepts its explicitly configured
 Standard password authentication. The default converter opens no encrypted
 file without a selected authentication operation. The application supplies the
 bytes and its credential; neither library discovers passwords or opens a
@@ -42,6 +42,10 @@ The same reader correction covers the fixed 128-bit V4 key when global Length
 is absent and ignored standard-name entries inside CF. These rules belong to
 the reader; derivation receives the resulting authenticated source objects.
 Core 0.9 supplies the native MAC verifier used by the reader.
+
+Reader 0.4.1 also preserves terminal Encrypt, Root and catalog Metadata identities
+through bounded physical reference chains. Only the actual catalog metadata
+stream is implicitly clear; page and object metadata retain their encryption.
 
 `ReadPdfSource` receives `ReadDocument::permissions()` only after successful
 authentication. It creates `AuthenticatedPermissions` using the effective mask:

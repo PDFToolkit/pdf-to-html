@@ -14,6 +14,8 @@
   independent tagged fixtures, pyHanko/HTML5 adversarial checks and an explicit
   credential example. Source MAC verification implies neither CMS-signature
   trust nor authentication of the derived HTML.
+- Require reader 0.4.1, including its correction for terminal encrypted-object
+  identities through physical reference chains; retain stable core dependencies.
 
 ## 0.3.2 — 2026-10-15
 

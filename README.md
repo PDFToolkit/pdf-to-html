@@ -7,7 +7,7 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.3.1 implements the reference's derivation mechanisms with explicit
+Version 0.3.2 implements the reference's derivation mechanisms with explicit
 security profiles, native password authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
@@ -19,16 +19,22 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 ## Install
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.3.1"
+composer require "pdftoolkit/pdf-to-html:^0.3.2"
 ```
 
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.3.1 requires pdf-reader 0.3.1 or later within 0.3.x and accepts core
+Version 0.3.2 requires pdf-reader 0.3.1 or later within 0.3.x and accepts core
 0.7.1 or 0.8. The reader correction distinguishes document-level metadata from
 encrypted page or object metadata and resolves embedded-file stream types.
+
+The released dependency lock selects core 0.8.1. Applications also using the
+core's incremental signed-document writing should select core 0.8.1 or later
+within 0.8.x for its conservative historical-permission checks, then update
+their Composer lock. The converter's compatible core requirement remains
+`^0.7.1 || ^0.8`.
 
 ## Read, derive, then write
 

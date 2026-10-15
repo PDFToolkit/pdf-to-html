@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+## 0.3.2 — 2026-10-15
+
+- Update the stable dependency lock to core 0.8.1, which adds conservative
+  historical-permission controls to the core's incremental signed-document
+  writer. The HTML converter does not consume a new core API; its compatible
+  runtime requirement remains `^0.7.1 || ^0.8`.
+- Refresh the English and French release documentation and recommend core 0.8.1
+  for applications also performing incremental signed-document writes.
+
 ## 0.3.1 — 2026-10-15
 
 - Require pdf-reader 0.3.1, incorporating its catalog-metadata encryption

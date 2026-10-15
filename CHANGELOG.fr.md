@@ -4,6 +4,16 @@
 
 ## À venir
 
+## 0.3.2 — 2026-10-15
+
+- Actualiser le verrouillage stable vers le core 0.8.1, qui ajoute des contrôles
+  conservateurs des permissions historiques à son écriture incrémentale de
+  documents signés. Le convertisseur HTML n’utilise aucune nouvelle API du core ;
+  sa dépendance d’exécution compatible reste `^0.7.1 || ^0.8`.
+- Actualiser la documentation de version en anglais et français et recommander
+  le core 0.8.1 aux applications qui écrivent aussi des révisions incrémentales
+  de documents signés.
+
 ## 0.3.1 — 2026-10-15
 
 - Exiger pdf-reader 0.3.1, avec ses corrections de l’exemption de chiffrement des

@@ -7,7 +7,7 @@ selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
 Ce dépôt a été créé spécialement pour implémenter les règles de
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-La version 0.3.1 implémente les mécanismes de dérivation de la référence avec des
+La version 0.3.2 implémente les mécanismes de dérivation de la référence avec des
 profils de sécurité explicites, l’authentification native par mot de passe et un
 rendu fourni par l’application. Le [guide de couverture](docs/fr/coverage.md) et le
 [registre des clauses](docs/fr/requirements.md) décrivent les comportements
@@ -21,17 +21,23 @@ de convertir tout PDF.
 ## Installer
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.3.1"
+composer require "pdftoolkit/pdf-to-html:^0.3.2"
 ```
 
 PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3,
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
 
-La version 0.3.1 nécessite pdf-reader 0.3.1 ou ultérieur dans la branche 0.3.x et
+La version 0.3.2 nécessite pdf-reader 0.3.1 ou ultérieur dans la branche 0.3.x et
 accepte le core 0.7.1 ou 0.8. Le correctif du lecteur distingue les métadonnées
 du document de celles chiffrées des pages ou objets et résout les types des flux
 de fichiers incorporés.
+
+Le verrouillage publié sélectionne le core 0.8.1. Les applications qui utilisent
+aussi son écriture incrémentale de documents signés devraient sélectionner le
+core 0.8.1 ou ultérieur dans la branche 0.8.x pour ses contrôles conservateurs
+des permissions historiques, puis actualiser leur verrouillage Composer.
+La dépendance compatible du convertisseur reste `^0.7.1 || ^0.8`.
 
 ## Lire, dériver, puis écrire
 

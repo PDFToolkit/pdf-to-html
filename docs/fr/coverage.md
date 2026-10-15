@@ -2,7 +2,7 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
-La version **0.3.1** implémente les mécanismes de dérivation de la référence
+La version **0.3.2** implémente les mécanismes de dérivation de la référence
 conservée par une interprétation source native, des politiques explicites et des
 ports propres à l'application. Le [registre des clauses](requirements.md) associe
 chaque règle numérotée à sa décision et à des preuves concrètes. La couverture
@@ -38,7 +38,7 @@ ni OCR, ni balisage inféré, ni reconstruction de mises en page arbitraires.
    hébergement des ressources, politiques navigateur, soumissions et application
    des permissions restent des capacités explicites.
 
-## Mécanismes vérifiés dans la version 0.3.1
+## Mécanismes vérifiés dans la version 0.3.2
 
 | Référence et pages physiques | Comportement | Preuves concrètes |
 | --- | --- | --- |

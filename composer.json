@@ -23,7 +23,7 @@
         "ext-dom": "*",
         "ext-mbstring": "*",
         "pdftoolkit/pdf-reader": "^0.4.1 || ^0.5",
-        "roukmoute/pdf": "^0.9",
+        "roukmoute/pdf": "^0.9 || ^0.10",
         "php-64bit": "*"
     },
     "require-dev": {

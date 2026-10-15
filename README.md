@@ -26,7 +26,7 @@ Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.4.1 accepts reader `^0.4.1 || ^0.5` and core `^0.9`.
+Version 0.4.2 accepts reader `^0.4.1 || ^0.5` and core `^0.9 || ^0.10`.
 Reader 0.5 additionally supports explicitly selected public-key authentication.
 The reader verifies indicated
 ISO/TS 32004 source MACs before content interpretation. Explicit

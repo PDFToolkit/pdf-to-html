@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2b713df89ccb41b8b2dd55994efc3b10",
+    "content-hash": "7235d31503854db86731a40630d531a3",
     "packages": [
         {
             "name": "pdftoolkit/pdf-reader",

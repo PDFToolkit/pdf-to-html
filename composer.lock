@@ -75,16 +75,16 @@
         },
         {
             "name": "roukmoute/pdf",
-            "version": "v0.8.0",
+            "version": "v0.8.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf.git",
-                "reference": "ae2374be61a455f87a0225c94b25b5252f2457b9"
+                "reference": "af12829ea280e37ad8117d68c6bf29999ea9d887"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/ae2374be61a455f87a0225c94b25b5252f2457b9",
-                "reference": "ae2374be61a455f87a0225c94b25b5252f2457b9",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/af12829ea280e37ad8117d68c6bf29999ea9d887",
+                "reference": "af12829ea280e37ad8117d68c6bf29999ea9d887",
                 "shasum": ""
             },
             "require": {
@@ -147,7 +147,7 @@
                 "issues": "https://github.com/PDFToolkit/pdf/issues",
                 "source": "https://github.com/PDFToolkit/pdf"
             },
-            "time": "2026-10-15T07:58:54+00:00"
+            "time": "2026-10-15T09:39:34+00:00"
         }
     ],
     "packages-dev": [

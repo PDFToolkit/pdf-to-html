@@ -40,7 +40,7 @@ final readonly class ContentInstructionReader
                 continue;
             }
             $operator = '';
-            while (!$cursor->eof() && !str_contains("\0\t\n\f\r ()<>[]{}/%", $cursor->peek())) {
+            while (!$cursor->eof() && !str_contains("\0\t\n\f\r ()<>[]/%", $cursor->peek())) {
                 if (strlen($operator) >= 128) {
                     throw new ReadingException('A content operator exceeds its lexical limit.');
                 }

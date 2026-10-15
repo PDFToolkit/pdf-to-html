@@ -134,3 +134,5 @@ budget de profondeur existant. Les instructions prises en charge conservent leur
 sens ; les instructions inconnues sont ignorées dans la section, tout en restant
 présentes dans le programme source. Hors section, elles conservent le substitut
 explicite d'opérateur non pris en charge.
+
+EC3 issue365 (page physique 38) réserve les délimiteurs accolades aux fonctions de calcul de type 4. Les noms d’opérateurs de contenu conservent les accolades ; les noms d’opérandes utilisent la même syntaxe PDF générale corrigée dans Reader 0.6.

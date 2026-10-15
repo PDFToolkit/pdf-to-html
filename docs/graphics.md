@@ -124,3 +124,5 @@ fail. Nesting uses the existing depth budget. Supported instructions retain thei
 meaning inside a section; unrecognised instructions are ignored there while their
 source program remains available. Outside a section they retain the explicit
 unsupported-operator placeholder.
+
+EC3 issue365 (physical page 38) reserves brace delimiters for Type 4 calculator functions. Content operator names retain brace bytes; operand-name parsing uses the same corrected general PDF syntax in Reader 0.6.

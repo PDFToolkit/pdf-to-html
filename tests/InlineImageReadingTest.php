@@ -17,6 +17,12 @@ use PHPUnit\Framework\TestCase;
 
 final class InlineImageReadingTest extends TestCase
 {
+    public function testBracesAreOrdinaryBytesInContentOperatorNames(): void
+    {
+        $instructions = $this->instructions('BX 1 Future{Operator} EX q Q');
+        self::assertSame(['BX', 'Future{Operator}', 'EX', 'q', 'Q'], array_column($instructions, 'operator'));
+    }
+
     public function testExactRawLengthDoesNotInterpretEiInsideSamples(): void
     {
         $instructions = $this->instructions("BI /W 4 /H 1 /BPC 8 /CS /G ID  EI  EI q Q");

@@ -58,6 +58,15 @@ with tempfile.TemporaryDirectory(prefix="pdf-html-graphics-context-") as tempora
         elif name == "page-transparency-group":
             assert output.pages[0]["/Group"]["/CS"] == "/DeviceCMYK"
             assert images["pdf"] != b"\xff\xff\xff" * width * height, name
+        elif name in ("image-optional-content", "image-alternates"):
+            image = output.pages[0]["/Resources"]["/XObject"]["/Im"]
+            assert output.trailer["/Root"]["/OCProperties"]["/D"]["/OFF"][0].get_object()["/Name"] == "Hidden image"
+            if name == "image-optional-content":
+                assert image["/OC"]["/Type"] == "/OCG"
+                assert images["pdf"] == b"\xff\xff\xff" * width * height
+            else:
+                assert image["/Alternates"][0]["/Image"]["/Subtype"] == "/Image"
+                assert image["/Alternates"][0]["/DefaultForPrinting"]
         elif name == "hidden-optional-content":
             properties = output.trailer["/Root"]["/OCProperties"]
             assert properties["/D"]["/OFF"][0].get_object()["/Name"] == "Hidden layer"

@@ -126,3 +126,10 @@ source program remains available. Outside a section they retain the explicit
 unsupported-operator placeholder.
 
 EC3 issue365 (physical page 38) reserves brace delimiters for Type 4 calculator functions. Content operator names retain brace bytes; operand-name parsing uses the same corrected general PDF syntax in Reader 0.6.
+
+Images with `OC` or `Alternates` require the explicit rendering capability (EC3
+issue79, physical pages 279–280). Direct RGB/gray pixel extraction cannot decide
+which image is visible or selected for printing. These images keep their logical
+dimensions and complete source program in an `unsupported-image-context` graphic;
+the isolated export retains image resources and the catalog `OCProperties`. The
+fallback is a placeholder with a diagnostic, not an assertion of visible pixels.

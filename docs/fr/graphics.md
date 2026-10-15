@@ -136,3 +136,11 @@ présentes dans le programme source. Hors section, elles conservent le substitut
 explicite d'opérateur non pris en charge.
 
 EC3 issue365 (page physique 38) réserve les délimiteurs accolades aux fonctions de calcul de type 4. Les noms d’opérateurs de contenu conservent les accolades ; les noms d’opérandes utilisent la même syntaxe PDF générale corrigée dans Reader 0.6.
+
+Les images avec `OC` ou `Alternates` nécessitent le port de rendu explicite (EC3
+issue79, pages physiques 279–280). L’extraction directe des pixels RGB/gris ne peut
+pas décider quelle image est visible ou sélectionnée pour l’impression. Ces images
+conservent leurs dimensions logiques et leur programme source complet dans un
+élément `unsupported-image-context` ; l’export isolé garde les ressources d’image
+et les `OCProperties` du catalogue. Le repli est un substitut avec diagnostic, sans
+revendiquer que les pixels bruts correspondent à l’image visible.

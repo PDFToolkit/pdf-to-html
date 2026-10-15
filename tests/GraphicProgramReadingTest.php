@@ -134,6 +134,37 @@ final class GraphicProgramReadingTest extends TestCase
         $this->marked('/P <</MCID 0>> BDC ' . str_repeat('0 0 m 1 1 l S ', 100) . 'EMC', limits: new ReadingLimits(maximumNodes: 64));
     }
 
+    /** @return iterable<string, array{string}> */
+    public static function imageContexts(): iterable
+    {
+        yield 'optional content' => ['/OC 10 0 R'];
+        yield 'alternates' => ['/Alternates [<< /Image 11 0 R /DefaultForPrinting true >>]'];
+    }
+
+    #[DataProvider('imageContexts')]
+    public function testImageContextCannotBeBypassedByDirectPixelExtraction(string $context): void
+    {
+        $marked = $this->marked('/Figure <</MCID 0>> BDC q 20 0 0 10 0 0 cm /Im Do Q EMC', [
+            1 => '<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /OCProperties << /OCGs [10 0 R] /D << /BaseState /ON /OFF [10 0 R] >> >> >>',
+            3 => '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Im 9 0 R >> >> /Contents 4 0 R >>',
+            9 => $this->stream("\xff\x00\x00", '/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB ' . $context),
+            10 => '<< /Type /OCG /Name (Hidden image) >>',
+            11 => $this->stream("\x00\x00\xff", '/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB'),
+        ]);
+        $image = $marked->children[0];
+        self::assertInstanceOf(GraphicContent::class, $image);
+        self::assertSame('unsupported-image-context', $image->kind);
+        self::assertSame(20.0, $image->widthPoints);
+        self::assertSame(10.0, $image->heightPoints);
+        self::assertInstanceOf(GraphicProgram::class, $image->source);
+        self::assertStringContainsString('explicit rendering capability', $image->instructions);
+        $export = (new \PDF\Html\Rendering\GraphicPdfExporter())->export($image)->bytes;
+        self::assertStringContainsString('/OCProperties', $export);
+        self::assertStringContainsString('/OFF [', $export);
+        self::assertStringContainsString('/Type /OCG', $export);
+        self::assertStringContainsString(str_contains($context, '/Alternates') ? '/Alternates [' : '/OC ', $export);
+    }
+
     public function testCompatibilitySectionsBalanceIndependentlyOfOtherOperatorFamilies(): void
     {
         $marked = $this->marked('/P <</MCID 0>> BDC BX q BX 123 FutureOperator EX BT /F1 12 Tf (Hello) Tj EX ET Q EMC');

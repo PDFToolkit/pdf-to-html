@@ -158,6 +158,12 @@ final class ContentReader
         }
         $width = $pixelWidth->integer();
         $height = $pixelHeight->integer();
+        foreach (['OC', 'Alternates'] as $context) {
+            $value = $this->values->value($dictionary, $context);
+            if ($value !== null && !$value instanceof NullType) {
+                return new GraphicContent('unsupported-image-context', 'Image visibility and alternate selection require the explicit rendering capability; original resources and optional-content configuration are retained.', $logicalWidth, $logicalHeight, $page, $source);
+            }
+        }
         $filter = $this->values->value($dictionary, 'Filter');
         if ($filter instanceof ArrayType && count($filter) === 1) {
             $filter = $this->values->document->resolve($filter->items[0]);

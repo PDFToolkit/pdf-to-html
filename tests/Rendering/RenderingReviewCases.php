@@ -45,6 +45,8 @@ final readonly class RenderingReviewCases
             4 => $fixture->stream('/Figure <</MCID 0>> BDC BT /F1 20 Tf 20 100 Td (B) Tj ET EMC /Figure <</MCID 1>> BDC EMC'),
         ] + $base);
         return [
+            'image-optional-content' => $this->imageContext(false),
+            'image-alternates' => $this->imageContext(true),
             'inherited-text-clip' => $form,
             'nested-artifact' => $artifact,
             'deep-resource' => $fixture->build($chain + $base),
@@ -77,6 +79,21 @@ final readonly class RenderingReviewCases
             'standalone-form-null-unit' => $this->standaloneForm('null-unit'),
             'standalone-form-indirect-null-unit' => $this->standaloneForm('indirect-null-unit'),
         ];
+    }
+
+    private function imageContext(bool $alternates): FileBytes
+    {
+        $fixture = new PdfFixture();
+        $context = $alternates ? '/Alternates [<< /Image 21 0 R /DefaultForPrinting true >>]' : '/OC 20 0 R';
+        return $fixture->build([
+            1 => '<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /OCProperties << /OCGs [20 0 R] /D << /BaseState /ON /OFF [20 0 R] >> >> >>',
+            3 => '<< /Type /Page /Parent 2 0 R /StructParents 0 /MediaBox [0 0 20 10] /Resources << /XObject << /Im 9 0 R >> >> /Contents 4 0 R >>',
+            4 => $fixture->stream('/Figure <</MCID 0>> BDC q 20 0 0 10 0 0 cm /Im Do Q EMC'),
+            7 => '<< /Type /StructElem /S /Figure /P 6 0 R /Pg 3 0 R /K 0 >>',
+            9 => $fixture->stream("\xff\x00\x00", '/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB ' . $context),
+            20 => '<< /Type /OCG /Name (Hidden image) >>',
+            21 => $fixture->stream("\x00\x00\xff", '/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB'),
+        ]);
     }
 
     /** @return array<string, FileBytes> */

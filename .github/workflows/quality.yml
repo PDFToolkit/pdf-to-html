@@ -35,7 +35,7 @@ jobs:
       - run: composer check-platform-reqs
       - run: composer audit --locked
       - run: composer check
-      - run: python -m pip install --require-hashes -r tools/validation-requirements.txt -r tools/authentication-validation-requirements.txt
+      - run: python -m pip install --require-hashes -r tools/source-integrity-validation-requirements.txt
       - run: python tools/validate_reference.py
       - run: python tools/build_reading_fixture.py --check
       - run: python tools/build_glyph_list.py --check
@@ -44,9 +44,12 @@ jobs:
       - name: Validate inline images with independent PDF, HTML5 and pixel parsers
         run: python tools/validate_inline_derivation.py --php php
       - name: Install the independent graphics rendering oracle
-        run: sudo apt-get update && sudo apt-get install --yes poppler-utils qpdf
+        run: sudo apt-get update && sudo apt-get install --yes poppler-utils
+      - uses: ./.github/actions/setup-qpdf
       - name: Validate native password authentication and effective permissions independently
         run: python tools/validate_authentication.py --php php --qpdf qpdf
+      - name: Validate MAC-required tagged derivation and authentication ports independently
+        run: python tools/validate_source_integrity.py --php php --qpdf qpdf
       - name: Validate isolated graphics with pypdf and Poppler
         run: python tools/validate_graphics.py --php php
       - name: Compare exported graphics contexts against independent Poppler oracles
@@ -70,3 +73,7 @@ jobs:
         run: |
           php examples/02-export-figure.php tests/Fixtures/tagged.pdf "$RUNNER_TEMP/figure.pdf"
           php examples/03-safe-form-reset.php "$RUNNER_TEMP/safe-reset.html"
+      - name: Execute the explicit source MAC example
+        env:
+          PDFTOOLKIT_PASSWORD: native-user
+        run: php examples/04-authenticate-source-mac.php tests/Fixtures/source-integrity/tagged-mac-r6-standalone.pdf "$RUNNER_TEMP/authenticated.html"

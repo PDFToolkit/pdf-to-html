@@ -125,3 +125,12 @@ de syntaxe, de référence directe et de budget ; les noms décodés dupliqués 
 invalides. Seuls les paramètres effectifs de filtre et d'espace colorimétrique sont
 interprétés. La fin des données reste vérifiée par le codec ou les dimensions des
 échantillons, et les opérateurs de contenu suivants sont conservés.
+
+Les sections de compatibilité `BX`/`EX` s'équilibrent indépendamment de `q`/`Q`,
+`BT`/`ET` et des paires de contenu marqué, selon EC3 issue302 (pages physiques 126
+et 736). Une section ouverte, une fermeture sans ouverture ou des opérandes sur
+ces opérateurs sans paramètre provoquent une erreur. L'imbrication consomme le
+budget de profondeur existant. Les instructions prises en charge conservent leur
+sens ; les instructions inconnues sont ignorées dans la section, tout en restant
+présentes dans le programme source. Hors section, elles conservent le substitut
+explicite d'opérateur non pris en charge.

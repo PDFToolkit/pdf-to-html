@@ -21,6 +21,7 @@ use PDF\Syntax\Object\NameType;
 use PDF\Syntax\Object\NumericType;
 use PDF\Syntax\Object\StringType;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class GraphicProgramReadingTest extends TestCase
 {
@@ -131,6 +132,41 @@ final class GraphicProgramReadingTest extends TestCase
         $this->expectException(ReadingException::class);
         $this->expectExceptionMessage('cumulative source nodes');
         $this->marked('/P <</MCID 0>> BDC ' . str_repeat('0 0 m 1 1 l S ', 100) . 'EMC', limits: new ReadingLimits(maximumNodes: 64));
+    }
+
+    public function testCompatibilitySectionsBalanceIndependentlyOfOtherOperatorFamilies(): void
+    {
+        $marked = $this->marked('/P <</MCID 0>> BDC BX q BX 123 FutureOperator EX BT /F1 12 Tf (Hello) Tj EX ET Q EMC');
+        self::assertCount(1, $marked->children);
+        self::assertInstanceOf(TextContent::class, $marked->children[0]);
+        self::assertSame('Hello', $marked->children[0]->text);
+        self::assertNotNull($marked->source);
+        self::assertContains('FutureOperator', array_column($marked->source->instructions, 'operator'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function unbalancedCompatibilitySections(): iterable
+    {
+        yield 'EX without BX' => ['EX'];
+        yield 'BX without EX' => ['BX'];
+        yield 'nested BX missing one EX' => ['BX BX EX'];
+        yield 'extra EX' => ['BX EX EX'];
+        yield 'BX with operands' => ['1 BX EX'];
+        yield 'EX with operands' => ['BX 1 EX'];
+    }
+
+    #[DataProvider('unbalancedCompatibilitySections')]
+    public function testMalformedCompatibilitySectionsFail(string $content): void
+    {
+        $this->expectException(ReadingException::class);
+        $this->marked('/P <</MCID 0>> BDC ' . $content . ' EMC');
+    }
+
+    public function testCompatibilityNestingConsumesTheExistingDepthBudget(): void
+    {
+        $this->expectException(ReadingException::class);
+        $this->expectExceptionMessage('source traversal depth');
+        $this->marked('/P <</MCID 0>> BDC ' . str_repeat('BX ', 20) . str_repeat('EX ', 20) . 'EMC', limits: new ReadingLimits(maximumDepth: 12));
     }
 
     /** @param array<int, string> $overrides */

@@ -116,3 +116,11 @@ regardless of order, including `L`/`Length`. Every source value still undergoes
 syntax, directness and budget checks; duplicate decoded names remain invalid.
 Only effective filter and colour-space values are interpreted. The codec/sample
 endpoint remains independently checked, and following content operators survive.
+
+Compatibility sections `BX`/`EX` now balance independently from `q`/`Q`, `BT`/`ET`
+and marked-content pairs, as clarified by EC3 issue302 (physical pages 126 and
+736). Unmatched or unclosed sections and operands on these zero-operand operators
+fail. Nesting uses the existing depth budget. Supported instructions retain their
+meaning inside a section; unrecognised instructions are ignored there while their
+source program remains available. Outside a section they retain the explicit
+unsupported-operator placeholder.

@@ -215,6 +215,7 @@ final class ContentReader
         $boundingBox ??= $this->pageBox($page);
         $graphics = [];
         $textObject = false;
+        $compatibilityDepth = 0;
         $number = $this->pageNumber($page);
         $instructions = [];
         foreach ((new ContentInstructionReader($this->values->budget, $this->values->document, $this->inlineImages))->read($bytes, $resources) as $instruction) {
@@ -277,6 +278,16 @@ final class ContentReader
                     $this->marked[$key][$closed->identifier] = $node;
                 }
                 $this->frame($frames)->children[] = $node;
+            } elseif ($operator === 'BX') {
+                if ($operands !== []) {
+                    throw new ReadingException('BX does not accept operands.');
+                }
+                $this->values->budget->depth($depth + ++$compatibilityDepth);
+            } elseif ($operator === 'EX') {
+                if ($operands !== [] || $compatibilityDepth === 0) {
+                    throw new ReadingException('EX requires a matching BX and no operands.');
+                }
+                --$compatibilityDepth;
             } elseif ($operator === 'q') {
                 $graphics[] = new ContentGraphicsState($font, $matrix);
                 $this->values->budget->depth($depth + count($graphics));
@@ -392,13 +403,13 @@ final class ContentReader
                 }
                 $this->values->budget->consume('nodes');
                 $frame->children[] = new GraphicContent($operator === 'sh' ? 'shading' : 'path', $operator, page: $number, source: $program($index, $index));
-            } elseif (!in_array($operator, ['m', 'l', 'c', 'v', 'y', 'h', 're', 'W', 'W*', 'n', 'cm', 'w', 'J', 'j', 'M', 'd', 'ri', 'i', 'gs', 'CS', 'cs', 'SC', 'SCN', 'sc', 'scn', 'G', 'g', 'RG', 'rg', 'K', 'k', 'Tc', 'Tw', 'Tz', 'TL', 'Tr', 'Ts', 'Td', 'TD', 'Tm', 'T*', 'MP', 'DP', 'BX', 'EX', 'd0', 'd1'], true)) {
+            } elseif ($compatibilityDepth === 0 && !in_array($operator, ['m', 'l', 'c', 'v', 'y', 'h', 're', 'W', 'W*', 'n', 'cm', 'w', 'J', 'j', 'M', 'd', 'ri', 'i', 'gs', 'CS', 'cs', 'SC', 'SCN', 'sc', 'scn', 'G', 'g', 'RG', 'rg', 'K', 'k', 'Tc', 'Tw', 'Tz', 'TL', 'Tr', 'Ts', 'Td', 'TD', 'Tm', 'T*', 'MP', 'DP', 'd0', 'd1'], true)) {
                 $this->values->budget->consume('nodes');
                 $frame->children[] = new GraphicContent('unsupported-operator', $operator, page: $number, source: $program($index, $index));
             }
         }
-        if (count($frames) !== 1 || $textObject || $graphics !== []) {
-            throw new ReadingException('Content has unclosed marked-content, text or graphics state.');
+        if (count($frames) !== 1 || $textObject || $graphics !== [] || $compatibilityDepth !== 0) {
+            throw new ReadingException('Content has unclosed marked-content, text, graphics or compatibility state.');
         }
         return $frames[0]->children;
     }

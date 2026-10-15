@@ -22,6 +22,7 @@ use PDF\Html\Model\RoleMapping;
 use PDF\Html\Model\SourceNode;
 use PDF\Html\Model\StructureElement;
 use PDF\Html\Model\TaggedDocument;
+use PDF\Html\Model\AuthenticatedPermissions;
 use PDF\Html\Model\Widget;
 use PDF\Reading\EncodedStream;
 use PDF\Reading\PageTreeLimits;
@@ -162,7 +163,8 @@ final class SourceReadSession
         foreach ($tree as $index => $page) {
             $pageScripts[$index + 1] = $this->metadata->additionalScripts($page->dictionary);
         }
-        return new TaggedDocument($filename, $structure, $this->values->text($catalog->get('Lang')), $this->metadata->title($catalog), $classes, $this->roles, $this->metadata->associatedFiles($catalog, $this->selection, catalog: true), $catalog->get('AcroForm') !== null, null, $this->metadata->pageLabels($catalog, count($tree)), $scripts, $pageScripts, $this->values->budget->diagnostics);
+        $permissions = $this->values->document->permissions();
+        return new TaggedDocument($filename, $structure, $this->values->text($catalog->get('Lang')), $this->metadata->title($catalog), $classes, $this->roles, $this->metadata->associatedFiles($catalog, $this->selection, catalog: true), $catalog->get('AcroForm') !== null, $permissions === null ? null : new AuthenticatedPermissions($permissions->effectiveMask(), true), $this->metadata->pageLabels($catalog, count($tree)), $scripts, $pageScripts, $this->values->budget->diagnostics);
     }
 
     /**

@@ -41,6 +41,11 @@ final readonly class PdfToHtml
             }
             return $this->deriver->derive($document);
         }
-        return $this->deriver->derive($this->source->read($parsed, $filename));
+        $document = $this->source->read($parsed, $filename);
+        $permissions = $parsed->permissions();
+        if ($permissions !== null && ($document->permissions === null || !$document->permissions->authenticated || $document->permissions->mask !== $permissions->effectiveMask())) {
+            throw new DerivationException('Source adaptation must preserve the native reader’s verified effective permissions.');
+        }
+        return $this->deriver->derive($document);
     }
 }

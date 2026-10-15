@@ -1,0 +1,21 @@
+{
+  "producer": "qpdf 12.4.2; original MIT tagged fixture; public test credentials native-user/native-owner",
+  "plainSource": "tagged.pdf",
+  "plainSourceSha256": "53b69e6ab8bf438c5fd896990ce26e1fbd0eb8a8a475c4a1bbd9e8e90fab23c0",
+  "fixtures": [
+    {
+      "file": "tagged-aes128.pdf",
+      "revision": 4,
+      "permissions": -3392,
+      "sha256": "29e7f0608fb1a42e47d8ef429de807cbcf5011939de0473cca584e7d265f10c4",
+      "bytes": 8677
+    },
+    {
+      "file": "tagged-aes256.pdf",
+      "revision": 6,
+      "permissions": -3392,
+      "sha256": "c51e8d3402089bab93f4225b5f7265280e4396dd39ddbd19c3471a147233f6ea",
+      "bytes": 8911
+    }
+  ]
+}

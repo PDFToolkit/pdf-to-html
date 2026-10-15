@@ -4,37 +4,40 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0e5bdf371b17125433d66827618a62d2",
+    "content-hash": "2404d4ec47d4835a38e42438c6df7fcf",
     "packages": [
         {
             "name": "pdftoolkit/pdf-reader",
-            "version": "v0.2.3",
+            "version": "v0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf-reader.git",
-                "reference": "8c7d013dafd6c5821eecc27af8c8af225d4de584"
+                "reference": "8d17ba1a9724acc8499150d377f42df22e4c2eec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/8c7d013dafd6c5821eecc27af8c8af225d4de584",
-                "reference": "8c7d013dafd6c5821eecc27af8c8af225d4de584",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/8d17ba1a9724acc8499150d377f42df22e4c2eec",
+                "reference": "8d17ba1a9724acc8499150d377f42df22e4c2eec",
                 "shasum": ""
             },
             "require": {
                 "ext-ctype": "*",
                 "ext-zlib": "*",
                 "php": "^8.3",
-                "roukmoute/pdf": "^0.2 || ^0.3 || ^0.4 || ^0.5 || ^0.6 || ^0.7"
+                "roukmoute/pdf": "^0.7.1 || ^0.8"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^12.0"
             },
+            "suggest": {
+                "ext-openssl": "Required only when explicitly selecting native AES password authentication."
+            },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.2.x-dev"
+                    "dev-master": "0.3.x-dev"
                 }
             },
             "autoload": {
@@ -68,7 +71,7 @@
                 "issues": "https://github.com/PDFToolkit/pdf-reader/issues",
                 "source": "https://github.com/PDFToolkit/pdf-reader"
             },
-            "time": "2026-10-14T22:48:25+00:00"
+            "time": "2026-10-15T06:42:49+00:00"
         },
         {
             "name": "roukmoute/pdf",

@@ -114,7 +114,7 @@ final class InlineImageReadingTest extends TestCase
         self::assertSame(12, substr_count($result->html, '<img '));
         self::assertSame(12, substr_count($result->html, 'width="27" height="13"'));
         self::assertCount(4, $result->assets);
-        self::assertCount(5, array_filter($result->diagnostics, static fn ($item): bool => $item->code === 'source-interpretation' && str_contains($item->message, 'placeholder')));
+        self::assertCount(4, array_filter($result->diagnostics, static fn ($item): bool => $item->code === 'source-interpretation' && str_contains($item->message, 'placeholder')));
     }
 
     /** @return list<\PDF\Html\Reading\ContentInstruction> */

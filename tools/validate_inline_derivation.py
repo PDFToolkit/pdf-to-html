@@ -1,6 +1,7 @@
 """Independent PDF/HTML5/PNG oracle for framed inline images and dimensioned fallbacks."""
 from pathlib import Path
 import argparse
+import base64
 import hashlib
 import json
 import struct
@@ -81,8 +82,14 @@ def main():
                 jpeg_hash = asset['sha256']
         assert samples == {manifest['graySamplesHex'], manifest['rgbSamplesHex']}
         assert jpeg_hash == manifest['jpegSha256']
-        assert sum(item['code'] == 'image-placeholder' for item in report['diagnostics']) == 5
-    print('Verified 12 inline images using pypdf, HTML5, PNG CRC/sample decoding and JPEG bytes; five dimensioned placeholders')
+        # Keep the original fixture's label unchanged: reader 0.3 now actually
+        # decodes this formerly unavailable LZW image to the original gray rows.
+        lzw = next(node for node in output_images if node.attrib['alt'] == 'lzw-placeholder')
+        location = lzw.attrib['src']
+        data = base64.b64decode(location.removeprefix('data:image/png;base64,'), validate=True) if location.startswith('data:image/png;base64,') else (Path(directory) / location).read_bytes()
+        assert png_samples(data).hex() == manifest['graySamplesHex']
+        assert sum(item['code'] == 'image-placeholder' for item in report['diagnostics']) == 4
+    print('Verified 12 inline images including native LZW gray samples using pypdf, HTML5, PNG CRC/sample decoding and JPEG bytes; four dimensioned placeholders')
 
 
 if __name__ == '__main__':

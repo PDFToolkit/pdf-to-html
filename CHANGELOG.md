@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
-## Unreleased
+## 0.4.0 - 2026-10-15
 
 - Add explicit source-integrity policy to `PdfToHtml`; immutable reader
   composition preserves the strongest requirement before source adaptation.

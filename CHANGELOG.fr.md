@@ -2,7 +2,7 @@
 
 [English](CHANGELOG.md) · [Français](CHANGELOG.fr.md)
 
-## À venir
+## 0.4.0 - 2026-10-15
 
 - Ajouter la politique explicite d’intégrité à `PdfToHtml` ; la composition
   immuable du lecteur conserve l’exigence la plus forte avant adaptation.

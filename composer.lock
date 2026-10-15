@@ -4,27 +4,27 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fb48eeedbca85507c1d2b48db5b3ad10",
+    "content-hash": "f790f21b8b570eef8e3094e467f82c1d",
     "packages": [
         {
             "name": "pdftoolkit/pdf-reader",
-            "version": "v0.3.1",
+            "version": "v0.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf-reader.git",
-                "reference": "7284c010180f25caaff451654957563d3ae85ad5"
+                "reference": "3743621ad499c839512e50d08a03153bb982defa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/7284c010180f25caaff451654957563d3ae85ad5",
-                "reference": "7284c010180f25caaff451654957563d3ae85ad5",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/3743621ad499c839512e50d08a03153bb982defa",
+                "reference": "3743621ad499c839512e50d08a03153bb982defa",
                 "shasum": ""
             },
             "require": {
                 "ext-ctype": "*",
                 "ext-zlib": "*",
                 "php": "^8.3",
-                "roukmoute/pdf": "^0.7.1 || ^0.8"
+                "roukmoute/pdf": "^0.9"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
@@ -37,7 +37,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.3.x-dev"
+                    "dev-master": "0.4.x-dev"
                 }
             },
             "autoload": {
@@ -55,7 +55,7 @@
                     "email": "contact@roukmoute.fr"
                 }
             ],
-            "description": "An explicit, bounded PDF 1.0-2.0 object reader for PHP 8.3+",
+            "description": "A bounded PDF object reader with native password and source PDF MAC authentication for PHP 8.3+",
             "homepage": "https://pdftoolkit.github.io/modules/reader/",
             "keywords": [
                 "iso-32000-1",
@@ -71,20 +71,20 @@
                 "issues": "https://github.com/PDFToolkit/pdf-reader/issues",
                 "source": "https://github.com/PDFToolkit/pdf-reader"
             },
-            "time": "2026-10-15T07:49:17+00:00"
+            "time": "2026-10-15T11:39:04+00:00"
         },
         {
             "name": "roukmoute/pdf",
-            "version": "v0.8.1",
+            "version": "v0.9.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf.git",
-                "reference": "af12829ea280e37ad8117d68c6bf29999ea9d887"
+                "reference": "2e3f2241985e8705c99df535f1ceca266036bc10"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/af12829ea280e37ad8117d68c6bf29999ea9d887",
-                "reference": "af12829ea280e37ad8117d68c6bf29999ea9d887",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/2e3f2241985e8705c99df535f1ceca266036bc10",
+                "reference": "2e3f2241985e8705c99df535f1ceca266036bc10",
                 "shasum": ""
             },
             "require": {
@@ -96,9 +96,9 @@
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
-                "pdftoolkit/pdf-fonts": "^0.1.9",
-                "pdftoolkit/pdf-images": "^0.1.9",
-                "pdftoolkit/pdf-reader": "^0.3.1",
+                "pdftoolkit/pdf-fonts": "^0.1.10",
+                "pdftoolkit/pdf-images": "^0.1.10",
+                "pdftoolkit/pdf-reader": "^0.3.2",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^12.0"
             },
@@ -109,7 +109,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.8.x-dev"
+                    "dev-master": "0.9.x-dev"
                 }
             },
             "autoload": {
@@ -147,7 +147,7 @@
                 "issues": "https://github.com/PDFToolkit/pdf/issues",
                 "source": "https://github.com/PDFToolkit/pdf"
             },
-            "time": "2026-10-15T09:39:34+00:00"
+            "time": "2026-10-15T11:45:23+00:00"
         }
     ],
     "packages-dev": [

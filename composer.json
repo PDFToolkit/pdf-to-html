@@ -1,7 +1,7 @@
 {
     "name": "pdftoolkit/pdf-to-html",
     "type": "library",
-    "description": "Object-oriented tagged PDF to semantic HTML derivation following PDF Association Deriving HTML 1.2 for PHP 8.3+",
+    "description": "Semantic HTML from tagged PDF with explicit objects, source PDF MAC policy and authenticated permissions for PHP 8.3+",
     "keywords": [
         "pdf",
         "html",
@@ -22,8 +22,8 @@
         "php": "^8.3",
         "ext-dom": "*",
         "ext-mbstring": "*",
-        "pdftoolkit/pdf-reader": "^0.3.1",
-        "roukmoute/pdf": "^0.7.1 || ^0.8",
+        "pdftoolkit/pdf-reader": "^0.4.1",
+        "roukmoute/pdf": "^0.9",
         "php-64bit": "*"
     },
     "require-dev": {
@@ -66,7 +66,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "0.3.x-dev"
+            "dev-main": "0.4.x-dev"
         }
     }
 }

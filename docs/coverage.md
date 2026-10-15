@@ -188,3 +188,5 @@ MathML authorities: [official RelaxNG modules](https://www.w3.org/Math/RelaxNG/m
 [content markup](https://www.w3.org/TR/MathML3/chapter4.html) and
 [MathML Core](https://www.w3.org/TR/mathml-core/).
 See [security](security.md) before enabling an active-content policy.
+
+Supported inline inputs currently require PDF whitespace after `ID`, including ASCIIHex/ASCII85 cases where EC3 issue20 permits an exception. The reader fails explicitly on a missing separator; it does not scan ambiguous binary boundaries.

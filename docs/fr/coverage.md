@@ -200,3 +200,5 @@ Références MathML : [modules RelaxNG officiels](https://www.w3.org/Math/RelaxN
 [balisage de contenu](https://www.w3.org/TR/MathML3/chapter4.html) et
 [MathML Core](https://www.w3.org/TR/mathml-core/).
 Lire la [sécurité](security.md) avant d'autoriser le contenu actif.
+
+Les entrées inline prises en charge exigent actuellement un blanc PDF après `ID`, y compris pour les cas ASCIIHex/ASCII85 où EC3 issue20 permet une exception. Un séparateur absent provoque une erreur explicite ; le lecteur ne recherche pas de frontière ambiguë dans les données binaires.

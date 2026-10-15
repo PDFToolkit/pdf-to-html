@@ -19,15 +19,15 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 ## Install
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.4"
+composer require "pdftoolkit/pdf-to-html:^0.5"
 ```
 
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.4.2 accepts reader `^0.4.1 || ^0.5` and core `^0.9 || ^0.10`.
-Reader 0.5 additionally supports explicitly selected public-key authentication.
+Version 0.5.0 accepts reader `^0.6` and core `^0.9 || ^0.10 || ^0.11`.
+Reader 0.6 additionally supports explicitly selected public-key authentication with normalized historical s3 permissions.
 The reader verifies indicated
 ISO/TS 32004 source MACs before content interpretation. Explicit
 `SourceIntegrityPolicy::RequirePdfMac` rejects unprotected input as well.

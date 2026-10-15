@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "filename": "ISO_32000-2_sponsored_EC3.pdf",
+    "sha256": "90f4b666d46405dd62630a98d514158b4de5304b749523c4081680ac4fe2e230"
+  },
+  "scope": "Targeted HTML source interpretation, not a general PDF renderer or conformance validator.",
+  "issues": [
+    {
+      "issue": 3,
+      "anchors": [
+        {
+          "physicalPdfPage": 283,
+          "objectIdentifier": [
+            11685,
+            0
+          ]
+        }
+      ],
+      "implementation": [
+        "src/Reading/InlineImageReader.php"
+      ],
+      "tests": [
+        "tests/InlineImageReadingTest.php"
+      ]
+    },
+    {
+      "issue": 302,
+      "anchors": [
+        {
+          "physicalPdfPage": 126,
+          "objectIdentifier": [
+            2393,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 736,
+          "objectIdentifier": [
+            6850,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 736,
+          "objectIdentifier": [
+            6856,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 736,
+          "objectIdentifier": [
+            6860,
+            0
+          ]
+        }
+      ],
+      "implementation": [
+        "src/Reading/ContentReader.php"
+      ],
+      "tests": [
+        "tests/GraphicProgramReadingTest.php"
+      ]
+    },
+    {
+      "issue": 365,
+      "anchors": [
+        {
+          "physicalPdfPage": 38,
+          "objectIdentifier": [
+            1444,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 38,
+          "objectIdentifier": [
+            1448,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 38,
+          "objectIdentifier": [
+            1452,
+            0
+          ]
+        }
+      ],
+      "implementation": [
+        "src/Reading/ContentInstructionReader.php"
+      ],
+      "tests": [
+        "tests/InlineImageReadingTest.php"
+      ]
+    },
+    {
+      "issue": 79,
+      "anchors": [
+        {
+          "physicalPdfPage": 279,
+          "objectIdentifier": [
+            11616,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 279,
+          "objectIdentifier": [
+            11624,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 279,
+          "objectIdentifier": [
+            11632,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 279,
+          "objectIdentifier": [
+            11638,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 280,
+          "objectIdentifier": [
+            11651,
+            0
+          ]
+        },
+        {
+          "physicalPdfPage": 280,
+          "objectIdentifier": [
+            11657,
+            0
+          ]
+        }
+      ],
+      "implementation": [
+        "src/Reading/ContentReader.php",
+        "src/Rendering/GraphicPdfExporter.php"
+      ],
+      "tests": [
+        "tests/GraphicProgramReadingTest.php",
+        "tools/validate_graphics_context.py"
+      ]
+    }
+  ]
+}

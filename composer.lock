@@ -4,27 +4,27 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7235d31503854db86731a40630d531a3",
+    "content-hash": "7179e85824427a3bb3484671d11005fd",
     "packages": [
         {
             "name": "pdftoolkit/pdf-reader",
-            "version": "v0.5.0",
+            "version": "v0.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf-reader.git",
-                "reference": "9659316f1ff159a4706c34c4b1c6947f9afe3b91"
+                "reference": "c623665d2a54013fe937d10203322c27a8096094"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/9659316f1ff159a4706c34c4b1c6947f9afe3b91",
-                "reference": "9659316f1ff159a4706c34c4b1c6947f9afe3b91",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/c623665d2a54013fe937d10203322c27a8096094",
+                "reference": "c623665d2a54013fe937d10203322c27a8096094",
                 "shasum": ""
             },
             "require": {
                 "ext-ctype": "*",
                 "ext-zlib": "*",
                 "php": "^8.3",
-                "roukmoute/pdf": "^0.9"
+                "roukmoute/pdf": "^0.9 || ^0.10 || ^0.11"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
@@ -37,7 +37,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.5.x-dev"
+                    "dev-master": "0.6.x-dev"
                 }
             },
             "autoload": {
@@ -71,7 +71,7 @@
                 "issues": "https://github.com/PDFToolkit/pdf-reader/issues",
                 "source": "https://github.com/PDFToolkit/pdf-reader"
             },
-            "time": "2026-10-15T15:11:47+00:00"
+            "time": "2026-10-15T18:44:59+00:00"
         },
         {
             "name": "roukmoute/pdf",

@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+## 0.5.0 - 2026-10-15
+
+- Require the published Reader `^0.6` for corrected general tokenisation, explicit PDF 2.0 structural policy and normalized historical s3 permission masks; retain the original CMS word through the authentication contract.
+- Correct inline image alias precedence, balance compatibility sections independently, and preserve brace bytes in general content operators.
+- Route images carrying optional-content or alternate-image selections through the explicit rendering capability, preserving dimensions, source resources and OCProperties; direct pixels cannot assert the visible image. Add independent pypdf/Poppler comparisons.
+- Add ten independent tagged s3 sources and validate native/provider authentication paths, HTML5 masks, wrong identities, integrity requirements and converter reuse.
+- Accept stable core `^0.11` alongside `^0.9 || ^0.10`; preserve the published core lock and PHP requirements. Maintain complete English/French documentation.
+
 ## 0.4.2 - 2026-10-15
 
 - Accept stable core `^0.10` while retaining the previously supported core series.

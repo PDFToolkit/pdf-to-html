@@ -21,15 +21,15 @@ de convertir tout PDF.
 ## Installer
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.4"
+composer require "pdftoolkit/pdf-to-html:^0.5"
 ```
 
 PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3,
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
 
-La version 0.4.2 accepte le lecteur `^0.4.1 || ^0.5` et le core `^0.9 || ^0.10`.
-Le lecteur 0.5 ajoute l’authentification par clé publique sur sélection explicite.
+La version 0.5.0 accepte le lecteur `^0.6` et le core `^0.9 || ^0.10 || ^0.11`.
+Le lecteur 0.6 prend en charge l’authentification par clé publique sur sélection explicite et normalise les permissions historiques s3.
 Le lecteur vérifie
 les MAC sources ISO/TS 32004 signalés avant l’interprétation du contenu.
 La politique explicite `SourceIntegrityPolicy::RequirePdfMac` refuse aussi

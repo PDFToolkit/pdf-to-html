@@ -21,6 +21,11 @@ use PDF\Reading\EncryptedPdfException;
 use PDF\Reading\FileBytes;
 use PDF\Reading\ParseException;
 use PDF\Reading\UnsupportedPdfFeature;
+use PDF\Reading\DocumentReader;
+use PDF\Reading\ReadDocument;
+use PDF\Reading\Security\SourceIntegrityPolicy;
+use PDF\Reading\Security\StandardPasswordAuthentication;
+use PDF\Security\PreparedPassword;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -30,12 +35,10 @@ final class AuthenticationBoundaryTest extends TestCase
     {
         $file = $this->encryptedFixture();
         $provider = $this->createMock(AuthenticationProvider::class);
-        $provider->expects(self::once())->method('authenticate')->with(self::identicalTo($file), 'encrypted.pdf')->willReturn($this->authenticatedDocument());
-        $source = $this->createMock(TaggedPdfSource::class);
-        $source->expects(self::never())->method('read');
-        $result = (new PdfToHtml(source: $source, authentication: $provider))->convert($file, 'encrypted.pdf');
-        self::assertStringContainsString('Authenticated content', $result->html);
-        self::assertStringContainsString('data-pdf-perms="-44"', $result->html);
+        $provider->expects(self::once())->method('authenticate')->with(self::identicalTo($file), 'encrypted.pdf', SourceIntegrityPolicy::AcceptUnprotected)->willReturn($this->authenticatedDocument($file));
+        $result = (new PdfToHtml(authentication: $provider))->convert($file, 'encrypted.pdf');
+        self::assertStringContainsString('External tagged PDF', $result->html);
+        self::assertStringContainsString('data-pdf-perms="-3392"', $result->html);
         self::assertContains('viewer-permissions', array_column($result->diagnostics, 'code'));
     }
 
@@ -48,10 +51,12 @@ final class AuthenticationBoundaryTest extends TestCase
     public function testAuthenticationWithoutVerifiedPermissionsIsRejected(): void
     {
         $provider = $this->createMock(AuthenticationProvider::class);
-        $provider->expects(self::once())->method('authenticate')->willReturn(new TaggedDocument('encrypted.pdf', [new StructureElement('p', 'P', [new TextContent('Unverified content')])]));
+        $file = $this->encryptedFixture();
+        $limits = new \PDF\Reading\ReaderLimits();
+        $provider->expects(self::once())->method('authenticate')->willReturn(new ReadDocument($file, new \PDF\Syntax\FileStructure\FileHeader(), new \PDF\Syntax\Object\DictionaryType(), new \PDF\Reading\CrossReference\Index(), $limits, new \PDF\Reading\ReadBudget($limits), new \PDF\Reading\StreamDecoder($limits)));
         $this->expectException(DerivationException::class);
         $this->expectExceptionMessage('verified permissions');
-        (new PdfToHtml(authentication: $provider))->convert($this->encryptedFixture(), 'encrypted.pdf');
+        (new PdfToHtml(authentication: $provider))->convert($file, 'encrypted.pdf');
     }
 
     public function testUnauthenticatedPermissionsCannotBeConstructedNormally(): void
@@ -67,11 +72,14 @@ final class AuthenticationBoundaryTest extends TestCase
         $permissions = $reflection->newInstanceWithoutConstructor();
         $reflection->getProperty('mask')->setValue($permissions, -44);
         $reflection->getProperty('authenticated')->setValue($permissions, false);
+        $file = $this->encryptedFixture();
         $provider = $this->createMock(AuthenticationProvider::class);
-        $provider->expects(self::once())->method('authenticate')->willReturn(new TaggedDocument('encrypted.pdf', [], permissions: $permissions));
+        $provider->expects(self::once())->method('authenticate')->willReturn($this->authenticatedDocument($file));
+        $source = $this->createMock(TaggedPdfSource::class);
+        $source->expects(self::once())->method('read')->willReturn(new TaggedDocument('encrypted.pdf', [], permissions: $permissions));
         $this->expectException(DerivationException::class);
-        $this->expectExceptionMessage('verified permissions');
-        (new PdfToHtml(authentication: $provider))->convert($this->encryptedFixture(), 'encrypted.pdf');
+        $this->expectExceptionMessage('verified effective permissions');
+        (new PdfToHtml(source: $source, authentication: $provider))->convert($file, 'encrypted.pdf');
     }
 
     #[DataProvider('adapterErrors')]
@@ -167,19 +175,18 @@ final class AuthenticationBoundaryTest extends TestCase
         self::assertStringContainsString('Visible', $result->html);
     }
 
-    private function authenticatedDocument(): TaggedDocument
+    private function authenticatedDocument(FileBytes $source): ReadDocument
     {
-        return new TaggedDocument('encrypted.pdf', [new StructureElement('p', 'P', [new TextContent('Authenticated content')])], permissions: new AuthenticatedPermissions(-44, true));
+        return (new DocumentReader(authentication: new StandardPasswordAuthentication(new PreparedPassword('native-user'))))->read($source);
     }
 
     private function encryptedFixture(): FileBytes
     {
-        // Original pypdf 6.20.1 RC4-128 fixture, independently decrypted with password "boundary-user".
-        // The provider owns actual decryption; this fixture verifies that the reader encounters a real /Encrypt dictionary.
-        $bytes = base64_decode('JVBERi0xLjMKJeLjz9MKMSAwIG9iago8PAovUHJvZHVjZXIgPGJiMGY0NjY3ZGM+Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbIDQgMCBSIF0KPj4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9SZXNvdXJjZXMgPDwKPj4KL01lZGlhQm94IFsgMC4wIDAuMCAyMDAgMjAwIF0KL1BhcmVudCAyIDAgUgo+PgplbmRvYmoKNSAwIG9iago8PAovViAyCi9SIDMKL0xlbmd0aCAxMjgKL1AgNDI5NDk2NzI5MgovRmlsdGVyIC9TdGFuZGFyZAovTyA8OTA5NTBjMzgwZGRlMTFlYTMzZjkxY2E2NDc1Y2Y3NjEzNmNhZDIwOGYzN2NjOGU2MmE3M2I4NDcyOGQwYWQ5MD4KL1UgPDhkZjQxZDkwY2Q3YWNiMWM2YTcwMTkwNjFkNjI4Yjg4MjhiZjRlNWU0ZTc1OGE0MTY0MDA0ZTU2ZmZmYTAxMDg+Cj4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA1OSAwMDAwMCBuIAowMDAwMDAwMTE4IDAwMDAwIG4gCjAwMDAwMDAxNjcgMDAwMDAgbiAKMDAwMDAwMDI2MSAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9TaXplIDYKL1Jvb3QgMyAwIFIKL0luZm8gMSAwIFIKL0lEIFsgPDM1Mzk2MzMyMzA2MjYyNjE2NTYzMzgzMjY1MzE2MjM1NjMzNjMzNjM2MTYyNjU2NjM1NjE2NjYxNjU2NjMxMzE+IDwzNTM5NjMzMjMwNjI2MjYxNjU2MzM4MzI2NTMxNjIzNTYzMzYzMzYzNjE2MjY1NjYzNTYxNjY2MTY1NjYzMTMxPiBdCi9FbmNyeXB0IDUgMCBSCj4+CnN0YXJ0eHJlZgo0NzYKJSVFT0YK', true);
+        $bytes = file_get_contents(__DIR__ . '/Fixtures/tagged-aes256.pdf');
         if ($bytes === false) {
-            throw new \LogicException('The embedded independent PDF fixture must be valid base64.');
+            throw new \LogicException('The independently encrypted tagged fixture is missing.');
         }
         return new FileBytes($bytes);
     }
+
 }

@@ -8,18 +8,22 @@ use PDF\Html\Reading\ReadPdfSource;
 use PDF\Reading\DocumentReader;
 use PDF\Reading\FileBytes;
 use PDF\Reading\EncryptedPdfException;
+use PDF\Reading\Security\SourceIntegrityPolicy;
 
 /** Coordinates explicit parsing, source interpretation and semantic derivation. */
 final readonly class PdfToHtml
 {
     private TaggedPdfSource $source;
+    private DocumentReader $reader;
 
     public function __construct(
-        private DocumentReader $reader = new DocumentReader(),
+        ?DocumentReader $reader = null,
         ?TaggedPdfSource $source = null,
         private HtmlDeriver $deriver = new HtmlDeriver(),
         private ?AuthenticationProvider $authentication = null,
+        SourceIntegrityPolicy $sourceIntegrity = SourceIntegrityPolicy::AcceptUnprotected,
     ) {
+        $this->reader = ($reader ?? new DocumentReader())->requiringSourceIntegrity($sourceIntegrity);
         $this->source = $source ?? new ReadPdfSource(policy: $deriver->policy, derivationLimits: $deriver->limits);
         if ($this->source instanceof ReadPdfSource && ($this->source->policy != $deriver->policy || $this->source->derivationLimits != $deriver->limits)) {
             throw new \InvalidArgumentException('Native source interpretation and HTML derivation must share the same policy and derivation limits.');
@@ -35,11 +39,17 @@ final readonly class PdfToHtml
             if ($this->authentication === null) {
                 throw $error;
             }
-            $document = $this->authentication->authenticate($file, $filename);
-            if ($document->permissions === null || !$document->permissions->authenticated) {
+            $parsed = $this->authentication->authenticate($file, $filename, $this->reader->sourceIntegrityPolicy());
+            if ($parsed->permissions() === null) {
                 throw new DerivationException('Authentication must supply verified permissions for an encrypted source.');
             }
-            return $this->deriver->derive($document);
+            $origin = $parsed->sourceRevision()->source;
+            if ($origin !== $file && !hash_equals($file->bytes, $origin->bytes)) {
+                throw new DerivationException('Authentication must return the graph of the exact supplied source bytes.');
+            }
+        }
+        if ($this->reader->sourceIntegrityPolicy() === SourceIntegrityPolicy::RequirePdfMac && $parsed->mac() === null) {
+            throw new DerivationException('Source interpretation requires a verified PDF MAC under the selected integrity policy.');
         }
         $document = $this->source->read($parsed, $filename);
         $permissions = $parsed->permissions();

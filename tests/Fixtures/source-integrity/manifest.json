@@ -1,0 +1,28 @@
+{
+  "generator": "pyHanko 0.37.0 / cryptography 50.0.2; no PHP writer",
+  "plainSourceSha256": "53b69e6ab8bf438c5fd896990ce26e1fbd0eb8a8a475c4a1bbd9e8e90fab23c0",
+  "notice": "Public test passwords native-user/native-owner; ephemeral signing key discarded; no certificate trust.",
+  "fixtures": [
+    {
+      "file": "tagged-mac-r6-standalone.pdf",
+      "revision": 6,
+      "location": "Standalone",
+      "sha256": "b8ec13649570f244b62e9d8159d7b9cf4b81ce1cbcd7fc197e82765028f30c9f",
+      "permissions": -7488
+    },
+    {
+      "file": "tagged-mac-r6-attached.pdf",
+      "revision": 6,
+      "location": "AttachedToSig",
+      "sha256": "2d61e95cca4514bd7bc9b5488bee93412e55fa165af2d23c23e6d1252fd70f51",
+      "permissions": -7488
+    },
+    {
+      "file": "tagged-mac-r7-standalone.pdf",
+      "revision": 7,
+      "location": "Standalone",
+      "sha256": "9bcf18f8d8d13eb25948cc93211a30cbae99a814480f082345d187912c11cf5f",
+      "permissions": -7488
+    }
+  ]
+}

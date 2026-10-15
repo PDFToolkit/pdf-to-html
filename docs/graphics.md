@@ -109,3 +109,10 @@ PDF 1.7 preservation. [GraphicExporterContextTest](../tests/Rendering/GraphicExp
 adds cumulative instruction and indirect resource-depth rejection cases, plus
 direct/indirect null UserUnit exports matching its absence. These oracles prove
 their exercised cases, not fidelity for arbitrary PDF pages.
+
+Inline image aliases follow ISO 32000-2 EC3 issue3 (physical source page 283):
+when an abbreviated and full parameter name coexist, the abbreviated value wins
+regardless of order, including `L`/`Length`. Every source value still undergoes
+syntax, directness and budget checks; duplicate decoded names remain invalid.
+Only effective filter and colour-space values are interpreted. The codec/sample
+endpoint remains independently checked, and following content operators survive.

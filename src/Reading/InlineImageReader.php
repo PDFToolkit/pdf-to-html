@@ -34,25 +34,32 @@ final readonly class InlineImageReader
                 if (!$key instanceof NameType) {
                     throw new ReadingException('An inline image parameter requires a name key.');
                 }
-                $key = match ($key->value) {
-                    'W' => 'Width', 'H' => 'Height', 'BPC' => 'BitsPerComponent',
-                    'CS' => 'ColorSpace', 'D' => 'Decode', 'DP' => 'DecodeParms',
-                    'F' => 'Filter', 'IM' => 'ImageMask', 'I' => 'Interpolate',
-                    default => $key->value,
-                };
+                $key = $key->value;
                 if (isset($entries[$key])) {
-                    throw new ReadingException('An inline image has duplicate normalized parameter keys.');
+                    throw new ReadingException('An inline image has duplicate parameter keys.');
                 }
                 $value = $parser->read();
                 $this->direct($value, 1);
+                $entries[$key] = $value;
+            }
+            // EC3 issue3: abbreviations win independently of source order.
+            foreach (['W' => 'Width', 'H' => 'Height', 'BPC' => 'BitsPerComponent',
+                'CS' => 'ColorSpace', 'D' => 'Decode', 'DP' => 'DecodeParms',
+                'F' => 'Filter', 'IM' => 'ImageMask', 'I' => 'Interpolate', 'L' => 'Length'] as $short => $full) {
+                if (isset($entries[$short])) {
+                    $entries[$full] = $entries[$short];
+                    unset($entries[$short]);
+                }
+            }
+            $parameters = [];
+            foreach ($entries as $key => $value) {
                 if ($key === 'Filter') {
                     $value = $this->filter($value);
                 } elseif ($key === 'ColorSpace') {
-                    // Preserve named resources in the source program. Expanding an
-                    // ICCBased resource here would introduce forbidden BI references.
+                    // Preserve named resources without introducing BI references.
                     $value = $this->color($value, null);
                 }
-                $entries[$key] = new Entry(new NameType($key), $value);
+                $parameters[] = new Entry(new NameType($key), $value);
             }
             $parser->keyword('ID');
             $separator = $parser->cursor->read(1);
@@ -62,7 +69,7 @@ final readonly class InlineImageReader
             if ($separator === "\r" && $parser->cursor->peek() === "\n") {
                 $parser->cursor->read(1);
             }
-            $dictionary = new DictionaryType(...array_values($entries));
+            $dictionary = new DictionaryType(...$parameters);
             $width = $this->positive($dictionary, 'Width');
             $height = $this->positive($dictionary, 'Height');
             $mask = $dictionary->get('ImageMask');

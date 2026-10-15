@@ -11,6 +11,7 @@ use PDF\Html\Reading\ReadingException;
 use PDF\Html\Reading\ReadingLimits;
 use PDF\Reading\FileBytes;
 use PDF\Syntax\Object\NameType;
+use PDF\Syntax\Object\IntegerType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -81,7 +82,8 @@ final class InlineImageReadingTest extends TestCase
         yield 'LZW undefined first code' => ["BI /W 1 /H 1 /BPC 8 /CS /G /F /LZW ID \xff\xff EI"];
         yield 'invalid LZW early change' => ['BI /W 1 /H 1 /BPC 8 /CS /G /F /LZW /DP <</EarlyChange 2>> ID abc EI'];
         yield 'unsupported endpoint' => ['BI /W 1 /H 1 /BPC 1 /CS /G /F /CCF ID ambiguous EI bytes EI'];
-        yield 'duplicate abbreviated/full key' => ['BI /W 1 /Width 1 /H 1 /BPC 8 /CS /G ID a EI'];
+        yield 'duplicate decoded key' => ['BI /W 1 /#57 1 /H 1 /BPC 8 /CS /G ID a EI'];
+        yield 'overridden indirect parameter' => ['BI /W 1 /Width 3 0 R /H 1 /BPC 8 /CS /G ID a EI'];
         yield 'indirect parameter' => ['BI /W 1 0 R /H 1 /BPC 8 /CS /G ID a EI'];
         yield 'filter arrays must be flat' => ['BI /W 1 /H 1 /BPC 8 /CS /G /F [[/AHx]] ID 61> EI'];
         yield 'unknown raw colour-space width' => ['BI /W 1 /H 1 /BPC 8 /CS /Unknown ID abc EI'];
@@ -93,6 +95,31 @@ final class InlineImageReadingTest extends TestCase
     {
         $this->expectException(ReadingException::class);
         $this->instructions($bytes);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function competingParameters(): iterable
+    {
+        $short = '/W 1 /H 1 /BPC 8 /CS /G /F /AHx /L 3';
+        $full = '/Width 999 /Height 99 /BitsPerComponent 16 /ColorSpace /RGB /Filter 17 /Length 999';
+        yield 'short before full' => [$short . ' ' . $full];
+        yield 'short after full' => [$full . ' ' . $short];
+    }
+
+    #[DataProvider('competingParameters')]
+    public function testAbbreviationsTakePrecedenceWithoutMovingTheImageEndpoint(string $parameters): void
+    {
+        $instructions = $this->instructions('BI ' . $parameters . ' ID 61> EI q Q');
+        self::assertSame(['BI', 'q', 'Q'], array_column($instructions, 'operator'));
+        $image = $instructions[0]->inlineImage;
+        self::assertNotNull($image);
+        self::assertSame('61>', $image->bytes);
+        self::assertEquals(new IntegerType(1), $image->dictionary->get('Width'));
+        self::assertEquals(new IntegerType(1), $image->dictionary->get('Height'));
+        self::assertEquals(new IntegerType(8), $image->dictionary->get('BitsPerComponent'));
+        self::assertEquals(new IntegerType(3), $image->dictionary->get('Length'));
+        self::assertEquals(new NameType('DeviceGray'), $image->dictionary->get('ColorSpace'));
+        self::assertEquals(new NameType('ASCIIHexDecode'), $image->dictionary->get('Filter'));
     }
 
     public function testBoundaryInflationUsesTheCumulativeContentBudget(): void

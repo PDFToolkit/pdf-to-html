@@ -117,3 +117,11 @@ ajoute les refus d'instructions cumulatives et de profondeur de ressources
 indirectes. Ces tests vérifient aussi qu'un UserUnit null direct/indirect produit
 le même export que son absence. Ces oracles prouvent les cas exercés, sans promettre la fidélité
 de pages PDF arbitraires.
+
+Les alias des images inline suivent ISO 32000-2 EC3 issue3 (page physique 283) :
+si un nom abrégé et son nom complet coexistent, la valeur abrégée prévaut quel que
+soit l'ordre, y compris `L`/`Length`. Chaque valeur source reste soumise aux contrôles
+de syntaxe, de référence directe et de budget ; les noms décodés dupliqués restent
+invalides. Seuls les paramètres effectifs de filtre et d'espace colorimétrique sont
+interprétés. La fin des données reste vérifiée par le codec ou les dimensions des
+échantillons, et les opérateurs de contenu suivants sont conservés.

@@ -100,7 +100,10 @@ assets and role-map chains. Each conversion owns fresh budgets and caches.
 with `StandardPasswordAuthentication` authenticates and decrypts supported input
 before adaptation; `ReadPdfSource` carries its verified effective permissions
 into the immutable source model. An optional `AuthenticationProvider` remains a
-separate application capability. Merely retaining an `/Encrypt` dictionary or
+separate trusted application capability returning `ReadDocument` for the exact
+supplied bytes. Both paths enforce the strongest reader/converter source-integrity
+policy before adaptation and preserve effective authenticated permissions.
+Merely retaining an `/Encrypt` dictionary or
 constructing a permission object does not implement decryption. See
 [native authentication](authentication.md) for credentials and explicit limits.
 

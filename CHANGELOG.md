@@ -4,6 +4,17 @@
 
 ## Unreleased
 
+- Add explicit source-integrity policy to `PdfToHtml`; immutable reader
+  composition preserves the strongest requirement before source adaptation.
+- Change `AuthenticationProvider::authenticate()` to receive that effective
+  policy and return `ReadDocument` for the exact supplied bytes. Both paths
+  reject missing required MAC status and removed/elevated effective permissions.
+  This is a public port migration; see the bilingual authentication guide.
+- Integrate reader 0.4/core 0.9 native PDF MAC authentication, with three original
+  independent tagged fixtures, pyHanko/HTML5 adversarial checks and an explicit
+  credential example. Source MAC verification implies neither CMS-signature
+  trust nor authentication of the derived HTML.
+
 ## 0.3.2 — 2026-10-15
 
 - Update the stable dependency lock to core 0.8.1, which adds conservative

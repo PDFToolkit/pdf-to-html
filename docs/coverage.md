@@ -2,7 +2,7 @@
 
 [English](coverage.md) · [Français](fr/coverage.md)
 
-Version **0.3.2** implements the derivation mechanisms of the retained reference
+Version **0.4.0** implements the derivation mechanisms of the retained reference
 through native source interpretation, explicit policies and application ports.
 The [clause ledger](requirements.md) records every numbered rule, its decision
 and concrete evidence. Coverage is not universal PDF acceptance, browser layout
@@ -35,7 +35,13 @@ OCR, inferred tagging or reconstruction of arbitrary page layouts.
 3. **Application integration**: rendering engines, authentication, hosting assets,
    browser policies, submissions and permission enforcement remain explicit capabilities.
 
-## Mechanisms verified in 0.3.2
+## Mechanisms verified in 0.4.0
+
+Source authentication additionally uses reader 0.4's native PDF MAC verification.
+`SourceIntegrityTest` and `tools/validate_source_integrity.py` cover tagged R6
+standalone/attached and R7 standalone files, both authentication paths, exact
+source identity, required-policy preservation and effective user/owner rights.
+This extends the Annex C boundary; it does not authenticate generated HTML.
 
 | Reference and physical pages | Behavior | Concrete evidence |
 | --- | --- | --- |

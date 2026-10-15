@@ -7,8 +7,8 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.3.2 implements the reference's derivation mechanisms with explicit
-security profiles, native password authentication and application-supplied rendering.
+Version 0.4.0 implements the reference's derivation mechanisms with explicit
+security profiles, native password/MAC authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
 
@@ -19,22 +19,16 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 ## Install
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.3.2"
+composer require "pdftoolkit/pdf-to-html:^0.4"
 ```
 
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.3.2 requires pdf-reader 0.3.1 or later within 0.3.x and accepts core
-0.7.1 or 0.8. The reader correction distinguishes document-level metadata from
-encrypted page or object metadata and resolves embedded-file stream types.
-
-The released dependency lock selects core 0.8.1. Applications also using the
-core's incremental signed-document writing should select core 0.8.1 or later
-within 0.8.x for its conservative historical-permission checks, then update
-their Composer lock. The converter's compatible core requirement remains
-`^0.7.1 || ^0.8`.
+Version 0.4 requires reader `^0.4` and core `^0.9`. The reader verifies indicated
+ISO/TS 32004 source MACs before content interpretation. Explicit
+`SourceIntegrityPolicy::RequirePdfMac` rejects unprotected input as well.
 
 ## Read, derive, then write
 
@@ -71,7 +65,12 @@ For encrypted tagged files, inject a `DocumentReader` configured with
 user/owner effective permissions to `data-pdf-perms`; a wrong password fails
 before derivation. The existing authentication port remains available. Read the
 [authentication guide](docs/authentication.md) for credential encodings and
-explicit security-handler, PDF MAC and viewer-enforcement boundaries.
+explicit security-handler, PDF MAC and viewer-enforcement boundaries. Version
+0.4's authentication port returns `ReadDocument` for the exact supplied bytes,
+with effective permissions and the requested integrity policy preserved before
+source adaptation. The guide documents the port migration and
+[example 04](examples/04-authenticate-source-mac.php). Source authentication
+does not authenticate the resulting HTML or establish certificate trust.
 
 The default source adapter inherits the deriver's policy and limits. Associated
 Alternative/Supplement content is selected before decoding the PDF content it

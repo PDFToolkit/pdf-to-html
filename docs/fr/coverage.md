@@ -2,7 +2,7 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
-La version **0.3.2** implémente les mécanismes de dérivation de la référence
+La version **0.4.0** implémente les mécanismes de dérivation de la référence
 conservée par une interprétation source native, des politiques explicites et des
 ports propres à l'application. Le [registre des clauses](requirements.md) associe
 chaque règle numérotée à sa décision et à des preuves concrètes. La couverture
@@ -38,7 +38,14 @@ ni OCR, ni balisage inféré, ni reconstruction de mises en page arbitraires.
    hébergement des ressources, politiques navigateur, soumissions et application
    des permissions restent des capacités explicites.
 
-## Mécanismes vérifiés dans la version 0.3.2
+## Mécanismes vérifiés dans la version 0.4.0
+
+L’authentification source utilise aussi la vérification MAC native du lecteur
+0.4. `SourceIntegrityTest` et `tools/validate_source_integrity.py` couvrent les
+sources balisées R6 autonome/attachée et R7 autonome, les deux voies
+d’authentification, l’identité exacte de la source, la conservation de la
+politique exigée et des droits effectifs utilisateur/propriétaire. Cette
+extension de l’annexe C n’authentifie pas le HTML produit.
 
 | Référence et pages physiques | Comportement | Preuves concrètes |
 | --- | --- | --- |

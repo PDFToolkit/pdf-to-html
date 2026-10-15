@@ -56,9 +56,11 @@ tentative par un autre port. Voir l’[authentification](authentication.md).
 `PdfToHtml` ne déclenche le port d’authentification distinct que lorsque le lecteur produit
 l'`EncryptedPdfException` typée pour `/Encrypt` vérifié. Les erreurs
 d'interprétation suivantes et noms de filtres non acceptés ne sélectionnent
-jamais l'authentification par texte. Le `AuthenticationProvider` fourni renvoie
-un modèle authentifié et des permissions vérifiées ; le viewer destinataire
-doit appliquer ces permissions.
+jamais l'authentification par texte. Le `AuthenticationProvider` reçoit la
+politique d’intégrité effective et renvoie un `ReadDocument` authentifié pour
+les octets fournis exacts, avec permissions vérifiées. Le convertisseur contrôle
+le MAC exigé avant adaptation et refuse toute suppression/élévation des droits ;
+le viewer destinataire applique ces permissions.
 Les entrées `Encrypt` absentes ou nulles, directes/indirectes, ne demandent pas
 d'authentification. [AuthenticationBoundaryTest](../../tests/AuthenticationBoundaryTest.php)
 contrôle le déclenchement, les erreurs d'adaptateur/fournisseur, les entrées nulles

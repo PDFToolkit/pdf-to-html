@@ -36,9 +36,14 @@ politiques source/sortie doivent aussi correspondre lors d'un assemblage sépar�
 Un lecteur configuré explicitement peut effectuer l’authentification Standard
 native et fournir les permissions utilisateur/propriétaire effectives. Un
 identifiant incorrect échoue avant adaptation. Les gestionnaires non acceptés
-et exigences de PDF MAC source restent des erreurs du lecteur ; ce module ne
-vérifie ni signatures CMS, ni confiance, ni PDF MAC. Voir
-l’[authentification](authentication.md).
+et mécanismes MAC non acceptés restent des erreurs du lecteur. Le lecteur 0.4
+vérifie le MAC source avant l’interprétation du contenu ; `RequirePdfMac` refuse
+une entrée non protégée sur les voies native et fournisseur. Ce fournisseur est
+une capacité applicative de confiance : son `ReadDocument` authentifié doit
+correspondre aux octets exacts et l’adaptateur ne peut ni retirer ni élever ses
+permissions effectives. Aucune vérification mathématique de signature CMS,
+confiance PKI ou authentification du HTML produit n’est impliquée. Voir
+l’[authentification](authentication.md) et [SourceIntegrityTest](../../tests/SourceIntegrityTest.php).
 
 Seule l’`EncryptedPdfException` typée du lecteur pour `/Encrypt` vérifié déclenche
 le port d’authentification distinct. Filtres non acceptés et erreurs d’adaptation ne le déclenchent

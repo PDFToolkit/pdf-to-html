@@ -34,8 +34,13 @@ must also match when an application wires its own stages.
 An explicitly configured reader can perform native Standard password
 authentication and provide actual effective user/owner permissions. Wrong
 credentials fail before adaptation. Unsupported security handlers and source
-PDF MAC requirements remain reader errors; this module does not verify CMS
-signatures, trust or PDF MAC. See [authentication](authentication.md).
+MAC mechanisms remain reader errors. Reader 0.4 verifies source PDF
+MACs before content interpretation, and `RequirePdfMac` rejects unprotected input
+on both native and provider paths. The provider is a trusted application
+capability returning an authenticated `ReadDocument` for identical source bytes;
+the adapter cannot drop or elevate its effective permissions. No CMS signature
+mathematics, PKI trust or authentication of generated HTML is implied. See
+[authentication](authentication.md) and [SourceIntegrityTest](../tests/SourceIntegrityTest.php).
 
 Only the reader's typed `EncryptedPdfException` for verified `/Encrypt` triggers
 the separate authentication port. Unsupported filters or adaptation errors do not trigger it by

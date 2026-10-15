@@ -105,7 +105,10 @@ propres budgets et caches.
 `StandardPasswordAuthentication` authentifie et déchiffre les entrées acceptées
 avant adaptation ; `ReadPdfSource` transmet ses permissions effectives vérifiées
 au modèle source immuable. Un `AuthenticationProvider` optionnel reste une
-capacité distincte de l’application. Conserver un dictionnaire `/Encrypt` ou
+capacité explicite de confiance renvoyant `ReadDocument` pour les octets fournis
+exacts. Les deux voies imposent la politique d’intégrité la plus forte du lecteur
+et du convertisseur avant adaptation, et conservent les permissions effectives
+authentifiées. Conserver un dictionnaire `/Encrypt` ou
 construire un objet de permissions n’implémente pas le déchiffrement. Voir
 l’[authentification native](authentication.md) pour les identifiants et limites.
 

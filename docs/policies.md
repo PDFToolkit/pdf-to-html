@@ -54,8 +54,10 @@ wrong passwords are errors, never a retry through another port. See
 `PdfToHtml` dispatches the separate authentication port only when the reader raises the typed
 `EncryptedPdfException` for verified `/Encrypt`. Errors in later interpretation
 and unsupported filter names never select authentication by message text. The
-supplied `AuthenticationProvider` must return an authenticated source model and
-verified permissions; the receiving viewer must enforce those permissions.
+supplied `AuthenticationProvider` receives the effective source-integrity policy
+and returns an authenticated `ReadDocument` for the exact supplied bytes, with
+verified permissions. The converter checks required MAC status before adaptation
+and rejects any permission removal/elevation; the receiving viewer enforces those permissions.
 Absent or direct/indirect null `Encrypt` entries do not request authentication.
 [AuthenticationBoundaryTest](../tests/AuthenticationBoundaryTest.php) checks
 dispatch, adapter/provider failures, null entries and unverified permission rejection.

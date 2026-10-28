@@ -36,7 +36,11 @@ final readonly class WidgetDeriver
             $field->tag = 'button';
             $field->attributes['type'] = 'button';
             if ($source->type === FieldType::Signature) {
-                $field->attributes['data-pdf-signature-status'] = $widget->signatureStatus ?? 'not-validated';
+                $field->attributes['data-pdf-signature-status'] = $widget->signatureValidation?->status->value ?? $widget->signatureStatus ?? 'not-validated';
+                $messageId = 'pdf-signature-status-' . hash('sha256', $id);
+                $field->attributes['popovertarget'] = $messageId;
+                $field->attributes['aria-describedby'] = $messageId;
+                $siblings[] = new Element('span', ['id' => $messageId, 'popover' => 'auto'], [new Text($widget->signatureValidation->message ?? 'PDF signature: ' . ($widget->signatureStatus ?? 'not validated') . '. The derived HTML is not signed.')]);
                 $diagnostics[] = 'A signature button reports PDF validation status only; the derived HTML is not signed.';
             } elseif ($submit !== null) {
                 $field->attributes['data-pdf-form-action'] = 'SubmitForm';
@@ -57,7 +61,7 @@ final readonly class WidgetDeriver
                 } else {
                     $diagnostics[] = 'PDF ResetForm uses /DV and a /Fields selection, which native HTML reset cannot preserve; enable the library form-action runtime. This button is inert.';
                 }
-            } elseif ($source->actionType !== null) {
+            } elseif ($source->actionType !== null && !($source->actionType === 'JavaScript' && isset($widget->actions['A']))) {
                 $diagnostics[] = 'Button action '.$source->actionType.' needs an application action handler.';
             }
             if ($widget->appearance !== []) {
@@ -71,7 +75,7 @@ final readonly class WidgetDeriver
                 $field->children[] = new Text($widget->caption);
             }
             if ($source->type === FieldType::Signature && $field->children === []) {
-                $field->children[] = new Text('PDF signature: '.($widget->signatureStatus ?? 'not validated'));
+                $field->children[] = new Text('PDF signature: '.($widget->signatureValidation?->status->value ?? $widget->signatureStatus ?? 'not validated'));
             }
             if ($widget->rolloverAppearance !== [] || $highlighting->usesDownAppearance() && $widget->downAppearance !== []) {
                 if ($this->appearanceRenderer === null) {

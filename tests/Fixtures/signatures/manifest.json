@@ -1,0 +1,132 @@
+{
+  "generator": "Independent raw PDF syntax; OpenSSL CMS detached RSA-2048/SHA-256 without signed attributes; no PDFToolkit writer.",
+  "warning": "Public test key and expired self-signed certificates. Never use for real signing. Integrity is distinct from certificate trust and later-revision validity.",
+  "cases": [
+    {
+      "name": "padded",
+      "file": "signed-padded.pdf",
+      "certificate": "signer",
+      "status": "integrity-verified",
+      "cmsValid": true,
+      "exactGap": true,
+      "zeroPadding": true,
+      "physicalContentsToken": true,
+      "completeRevision": true
+    },
+    {
+      "name": "unpadded",
+      "file": "signed-unpadded.pdf",
+      "certificate": "signer",
+      "status": "integrity-verified",
+      "cmsValid": true,
+      "exactGap": true,
+      "zeroPadding": true,
+      "physicalContentsToken": true,
+      "completeRevision": true
+    },
+    {
+      "name": "tampered",
+      "file": "signed-tampered.pdf",
+      "certificate": "signer",
+      "status": "invalid",
+      "cmsValid": false,
+      "exactGap": true,
+      "zeroPadding": true,
+      "physicalContentsToken": true,
+      "completeRevision": true
+    },
+    {
+      "name": "wrong-certificate",
+      "file": "signed-padded.pdf",
+      "certificate": "wrong",
+      "status": "invalid",
+      "cmsValid": false,
+      "exactGap": true,
+      "zeroPadding": true,
+      "physicalContentsToken": true,
+      "completeRevision": true
+    },
+    {
+      "name": "wide-gap",
+      "file": "signed-wide-gap.pdf",
+      "certificate": "signer",
+      "status": "invalid",
+      "cmsValid": true,
+      "exactGap": false,
+      "zeroPadding": true,
+      "physicalContentsToken": false,
+      "completeRevision": true
+    },
+    {
+      "name": "nonzero-padding",
+      "file": "signed-nonzero-padding.pdf",
+      "certificate": "signer",
+      "status": "invalid",
+      "cmsValid": true,
+      "exactGap": true,
+      "zeroPadding": false,
+      "physicalContentsToken": true,
+      "completeRevision": true
+    },
+    {
+      "name": "unsupported",
+      "file": "signed-unsupported.pdf",
+      "certificate": "signer",
+      "status": "indeterminate",
+      "cmsValid": true,
+      "exactGap": true,
+      "zeroPadding": true,
+      "physicalContentsToken": true,
+      "completeRevision": true
+    },
+    {
+      "name": "later-revision",
+      "file": "signed-later-revision.pdf",
+      "certificate": "signer",
+      "status": "integrity-verified",
+      "cmsValid": true,
+      "exactGap": true,
+      "zeroPadding": true,
+      "physicalContentsToken": true,
+      "completeRevision": true
+    },
+    {
+      "name": "prefix-only",
+      "file": "signed-prefix-only.pdf",
+      "certificate": "signer",
+      "status": "invalid",
+      "cmsValid": true,
+      "exactGap": true,
+      "zeroPadding": true,
+      "physicalContentsToken": true,
+      "completeRevision": false
+    },
+    {
+      "name": "contents-alias",
+      "file": "signed-contents-alias.pdf",
+      "certificate": "signer",
+      "status": "invalid",
+      "cmsValid": true,
+      "exactGap": true,
+      "zeroPadding": true,
+      "physicalContentsToken": false,
+      "completeRevision": true
+    }
+  ],
+  "sha256": {
+    "PUBLIC-TEST-ONLY-private-key.pem": "42dcc9b58f3c9148311e68067b70e9e1259e33740b7840bc1feada3813f2dffa",
+    "signed-contents-alias.pdf": "10ccdb4d4eab2d7f820dcdd6e497283fa848666a53b1ae795e62dcfa68034b1c",
+    "signed-later-revision.pdf": "70096cd8e06b8517edc3d56b16a139b3b50c9ded8d915487d3607ca5fc7d2fde",
+    "signed-nonzero-padding.pdf": "260a7e1fbe2f5322556fc14ac2446c54290021d428f194cf3a691f66bbd1b0ad",
+    "signed-padded.pdf": "8b55dfe5e157d024d88703c4cd761f0bb77dfd94178536d5f6f06ea09f1bd10e",
+    "signed-prefix-only.pdf": "4a8fbf1b6ac2e652bb027e6ae6acf41a1d8b0c1c46fab508348d1f58d4119e96",
+    "signed-tampered.pdf": "204e620626dc4db496cacb55d2b7e57aafb625a9b3cbc9a7a5d7b858051e1d52",
+    "signed-unpadded.pdf": "291aca4f453274413f98e8a839e0b988626f2be8474918aed2efdf5879efefe1",
+    "signed-unsupported.pdf": "ffabd9daeb5e625038c3d85350d1880d45f39f4a2f51af0f08d7401a4ffdc668",
+    "signed-wide-gap.pdf": "0dfbbc63962f0d87255d8432fbdb9c90f402a6278411c5a5c7b29bce1bcb1ac6",
+    "signer.der": "61ecaec8b4fc69746718148aedaec21ee853c583a8e5e05967dd494dc54ed1d6",
+    "signer.pem": "74a0c1222e935a381e3d047ada5f3f5bd5cb09956c0c42ae030ab0ca1d486695",
+    "wrong.der": "eabdeb64a8f11aa7a2094b7ff9d62159388f913075cdc71b628fe537922f329a",
+    "wrong.pem": "2214861e0e70911472f61c35acb47908f51bf7a1b8a9680536164d87592cf834"
+  }
+}

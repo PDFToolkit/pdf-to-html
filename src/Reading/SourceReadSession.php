@@ -63,7 +63,9 @@ final class SourceReadSession
     private array $annotationPages = [];
     /** @var array<int, list<AssociatedFile>> */
     private array $associated = [];
-    public function __construct(private readonly SourceValues $values, private readonly AssociatedFileSelection $selection = new AssociatedFileSelection(), StructureValidationMode $structureValidation = StructureValidationMode::Permissive, ?InlineImageBoundaryProvider $inlineImages = null)
+    /** @var array<string, \PDF\Html\Signatures\SignatureValidationResult> */
+    private array $signatureResults = [];
+    public function __construct(private readonly SourceValues $values, private readonly AssociatedFileSelection $selection = new AssociatedFileSelection(), StructureValidationMode $structureValidation = StructureValidationMode::Permissive, ?InlineImageBoundaryProvider $inlineImages = null, private readonly ?\PDF\Html\Signatures\SignatureValidationProvider $signatureValidation = null)
     {
         $this->content = new ContentReader($values, $inlineImages);
         $this->metadata = new DocumentMetadataReader($values);
@@ -714,7 +716,29 @@ final class SourceReadSession
         $appearanceNodes = $this->appearanceNodes($page, $normal, $appearanceState, $rect, 'normal:' . spl_object_id($annotation));
         $down = $appearance === null ? null : $this->values->value($appearance, 'D');
         $rollover = $appearance === null ? null : $this->values->value($appearance, 'R');
-        return new Widget($field, $page === null ? null : $this->number($page), $this->values->integer($annotation->get('F')), $rect, $pageBox, $appearanceState ?? 'Off', $states, $caption === null ? null : $this->values->text($caption->get('CA')), $appearanceNodes, $this->values->name($annotation->get('H')), $border === null ? null : $this->values->name($border->get('S')), $border === null ? null : $this->values->number($border->get('W'), 1), $caption === null ? null : $this->numericArray($caption->get('BC')), $caption === null ? null : $this->numericArray($caption->get('BG')), $inherit('Q') === null ? null : $this->values->integer($inherit('Q')), $optionIndex, $type === FieldType::Signature ? 'Signature validation is not performed by HTML derivation.' : null, actions: $widgetActions, downAppearance: $this->appearanceNodes($page, $down, $appearanceState, $rect, 'down:' . spl_object_id($annotation)), rolloverAppearance: $this->appearanceNodes($page, $rollover, $appearanceState, $rect, 'rollover:' . spl_object_id($annotation)));
+        $signatureValue = $type === FieldType::Signature ? $inherit('V') : null;
+        if ($signatureValue !== null && !$signatureValue instanceof NullType && !$signatureValue instanceof DictionaryType) {
+            throw new ReadingException('A signature field value must resolve to a signature dictionary.');
+        }
+        $signatureResult = $signatureValue instanceof DictionaryType ? $this->signatureResult($name, $signatureValue) : null;
+        $signatureStatus = $type !== FieldType::Signature ? null : ($signatureValue instanceof DictionaryType ? ($signatureResult?->status->value ?? 'not-validated') : 'unsigned');
+        return new Widget($field, $page === null ? null : $this->number($page), $this->values->integer($annotation->get('F')), $rect, $pageBox, $appearanceState ?? 'Off', $states, $caption === null ? null : $this->values->text($caption->get('CA')), $appearanceNodes, $this->values->name($annotation->get('H')), $border === null ? null : $this->values->name($border->get('S')), $border === null ? null : $this->values->number($border->get('W'), 1), $caption === null ? null : $this->numericArray($caption->get('BC')), $caption === null ? null : $this->numericArray($caption->get('BG')), $inherit('Q') === null ? null : $this->values->integer($inherit('Q')), $optionIndex, $signatureStatus, actions: $widgetActions, downAppearance: $this->appearanceNodes($page, $down, $appearanceState, $rect, 'down:' . spl_object_id($annotation)), rolloverAppearance: $this->appearanceNodes($page, $rollover, $appearanceState, $rect, 'rollover:' . spl_object_id($annotation)), signatureValidation: $signatureResult);
+    }
+
+    private function signatureResult(string $name, DictionaryType $signature): ?\PDF\Html\Signatures\SignatureValidationResult
+    {
+        if ($this->signatureValidation === null) {
+            return null;
+        }
+        $key = bin2hex($name) . ':' . spl_object_id($signature);
+        if (!isset($this->signatureResults[$key])) {
+            $request = new \PDF\Html\Signatures\SignatureValidationRequest($this->values->document, $signature, $name);
+            $result = $this->signatureValidation->validate($request);
+            $result->assertFor($request);
+            $this->values->budget->consume('text', strlen($result->message));
+            $this->signatureResults[$key] = $result;
+        }
+        return $this->signatureResults[$key];
     }
 
     /**

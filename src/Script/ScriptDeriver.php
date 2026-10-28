@@ -53,7 +53,7 @@ final class ScriptDeriver
                     $functions[$key] = $source;
                     $actions[$event] = $key;
                 }
-                $fields[$field->name] = ['value' => $field->value, 'defaultValue' => $field->defaultValue, 'mappingName' => $field->mappingName, 'actions' => $actions, 'readonly' => ($field->flags & 1) !== 0, 'noExport' => ($field->flags & 4) !== 0, 'canHaveValue' => !($field->type === FieldType::Button && ($field->flags & 65536) !== 0)];
+                $fields[$field->name] = ['value' => $field->value, 'defaultValue' => $field->defaultValue, 'mappingName' => $field->mappingName, 'actions' => $actions, 'readonly' => ($field->flags & 1) !== 0, 'noExport' => ($field->flags & 4) !== 0, 'signature' => $field->type === FieldType::Signature, 'canHaveValue' => !($field->type === FieldType::Button && ($field->flags & 65536) !== 0)];
             }
             $actions = [];
             // Older source models mixed field and widget actions in FormField.
@@ -150,6 +150,7 @@ class Field {
  constructor(name, definition) {
   this.name = name; this.defaultValue = copyValue(definition.defaultValue); this._value = copyValue(definition.value);
   this.readonly = definition.readonly; this.actions = definition.actions;
+  this.signature = definition.signature;
   this.noExport = definition.noExport; this.canHaveValue = definition.canHaveValue;
   this.mappingName = definition.mappingName;
  }
@@ -298,7 +299,7 @@ function install() {
    }
   });
   el.addEventListener("click", native => {
-   if (field.readonly) { native.preventDefault(); field.sync(); return; }
+   if (field.readonly) { if (!field.signature) native.preventDefault(); field.sync(); return; }
    invoke(actions.A, eventFor(field, "MouseUp", field.value));
    if (operation?.kind === "reset") { native.preventDefault(); resetFields(operation.fields, operation.exclude); }
    else if (operation?.kind === "submit") {

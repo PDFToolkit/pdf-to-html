@@ -486,7 +486,7 @@ final class SafetyFilter
         }
         if (str_starts_with($name, 'data-') && strlen($name) > 5 && (new AttributeName())->valid($name)
             || preg_match('/\Aaria-[a-z0-9_.:-]+\z/D', $name) === 1
-            || in_array($name, ['id', 'class', 'lang', 'title', 'style', 'role', 'dir', 'hidden', 'tabindex', 'translate'], true)) {
+            || in_array($name, ['id', 'class', 'lang', 'title', 'style', 'role', 'dir', 'hidden', 'tabindex', 'translate', 'popover'], true)) {
             return true;
         }
         if ($namespace === self::MATHML) {
@@ -503,7 +503,7 @@ final class SafetyFilter
             'textarea' => ['name', 'disabled', 'readonly', 'required', 'maxlength', 'minlength', 'spellcheck', 'form', 'rows', 'cols', 'placeholder', 'wrap'],
             'select' => ['name', 'disabled', 'required', 'form', 'multiple', 'size', 'autocomplete'],
             'option' => ['value', 'selected', 'disabled', 'label'], 'optgroup' => ['label', 'disabled'],
-            'button' => ['type', 'name', 'value', 'form', 'disabled', 'formaction', 'formmethod'],
+            'button' => ['type', 'name', 'value', 'form', 'disabled', 'formaction', 'formmethod', 'popovertarget', 'popovertargetaction'],
             'td' => ['colspan', 'rowspan', 'headers'], 'th' => ['colspan', 'rowspan', 'headers', 'scope', 'abbr'],
             'col' => ['span'], 'colgroup' => ['span'], 'time' => ['datetime'], 'data' => ['value'],
             'meta' => ['name','content','charset'], 'title' => [],

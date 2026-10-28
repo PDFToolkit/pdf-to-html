@@ -212,6 +212,7 @@ final class DerivationSession
             $this->widgets[] = $node;
             $this->measure($node->field);
             $this->measure($node->actions);
+            $this->measure([$node->signatureStatus, $node->signatureValidation?->message]);
         } elseif ($node instanceof TextContent) {
             $this->measure($node->text);
         } elseif ($node instanceof ImageContent) {

@@ -298,4 +298,4 @@ Références MathML : [modules RelaxNG officiels](https://www.w3.org/Math/RelaxN
 [MathML Core](https://www.w3.org/TR/mathml-core/).
 Lire la [sécurité](security.md) avant d'autoriser le contenu actif.
 
-Les entrées inline prises en charge exigent actuellement un blanc PDF après `ID`, y compris pour les cas ASCIIHex/ASCII85 où EC3 issue20 permet une exception. Un séparateur absent provoque une erreur explicite ; le lecteur ne recherche pas de frontière ambiguë dans les données binaires.
+Les images inline appliquent l’exception EC3 issue 20 (ISO 32000-2, page physique 283) : si le dernier ou seul filtre est ASCIIHexDecode ou ASCII85Decode, les données peuvent suivre immédiatement `ID`. Les autres chaînes conservent le séparateur blanc obligatoire. La liste de filtres normalisée détermine cette exception ; un signe pourcentage dans des données ASCII85 n’est jamais interprété comme un commentaire PDF. Le cadrage du codec détermine toujours la fin des données.

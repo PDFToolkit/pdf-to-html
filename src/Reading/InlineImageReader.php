@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PDF\Html\Reading;
 
 use PDF\Reading\ObjectReference;
+use PDF\Reading\ByteCursor;
 use PDF\Reading\ParseException;
 use PDF\Reading\ReadDocument;
 use PDF\Reading\SyntaxParser;
@@ -28,7 +29,7 @@ final readonly class InlineImageReader
     {
         try {
             $entries = [];
-            while (!$parser->atKeyword('ID')) {
+            while (!$this->atData($parser->cursor)) {
                 $this->budget->consume('instructions', 2);
                 $key = $parser->read();
                 if (!$key instanceof NameType) {
@@ -61,15 +62,8 @@ final readonly class InlineImageReader
                 }
                 $parameters[] = new Entry(new NameType($key), $value);
             }
-            $parser->keyword('ID');
-            $separator = $parser->cursor->read(1);
-            if (!str_contains("\0\t\n\f\r ", $separator)) {
-                throw new ReadingException('An inline image ID requires one whitespace separator.');
-            }
-            if ($separator === "\r" && $parser->cursor->peek() === "\n") {
-                $parser->cursor->read(1);
-            }
             $dictionary = new DictionaryType(...$parameters);
+            $this->beginData($parser->cursor, $dictionary);
             $width = $this->positive($dictionary, 'Width');
             $height = $this->positive($dictionary, 'Height');
             $mask = $dictionary->get('ImageMask');
@@ -109,6 +103,36 @@ final readonly class InlineImageReader
             return new InlineImageData($dictionary, $data);
         } catch (ParseException $exception) {
             throw new ReadingException('An inline image is truncated or has invalid syntax: ' . $exception->getMessage(), 0, $exception);
+        }
+    }
+
+    private function atData(ByteCursor $cursor): bool
+    {
+        $cursor->skipWhitespaceAndComments();
+        // Between parameter pairs only a name or ID is legal. ASCII image data
+        // is allowed to follow ID without the usual PDF keyword delimiter.
+        return $cursor->peek(2) === 'ID';
+    }
+
+    private function beginData(ByteCursor $cursor, DictionaryType $dictionary): void
+    {
+        $cursor->read(2);
+        $separator = $cursor->peek();
+        if ($separator === '') {
+            throw new ReadingException('An inline image has no data after ID.');
+        }
+        if (str_contains("\0\t\n\f\r ", $separator)) {
+            $cursor->read(1);
+            if ($separator === "\r" && $cursor->peek() === "\n") {
+                $cursor->read(1);
+            }
+            return;
+        }
+        $filter = $dictionary->get('Filter');
+        $last = $filter instanceof ArrayType ? ($filter->items[array_key_last($filter->items)] ?? null) : $filter;
+        // ISO 32000-2 8.9.7, physical p. 283, EC3 issue 20: final or only filter.
+        if (!$last instanceof NameType || !in_array($last->value, ['ASCIIHexDecode', 'ASCII85Decode'], true)) {
+            throw new ReadingException('An inline image ID requires whitespace unless its final or only filter is ASCIIHexDecode or ASCII85Decode.');
         }
     }
 

@@ -281,4 +281,4 @@ MathML authorities: [official RelaxNG modules](https://www.w3.org/Math/RelaxNG/m
 [MathML Core](https://www.w3.org/TR/mathml-core/).
 See [security](security.md) before enabling an active-content policy.
 
-Supported inline inputs currently require PDF whitespace after `ID`, including ASCIIHex/ASCII85 cases where EC3 issue20 permits an exception. The reader fails explicitly on a missing separator; it does not scan ambiguous binary boundaries.
+Inline images follow the EC3 issue 20 exception (ISO 32000-2, physical page 283): when the final or only filter is ASCIIHexDecode or ASCII85Decode, image data may follow `ID` immediately. Other filter chains retain the required whitespace separator. The normalized filter list controls the exception; a percent sign in ASCII85 data is never interpreted as a PDF comment. Codec framing still establishes the endpoint.

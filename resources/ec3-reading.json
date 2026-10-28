@@ -149,6 +149,26 @@
         "tests/GraphicProgramReadingTest.php",
         "tools/validate_graphics_context.py"
       ]
+    },
+    {
+      "issue": 20,
+      "anchors": [
+        {
+          "physicalPdfPage": 283,
+          "objectIdentifier": [
+            11679,
+            0
+          ]
+        }
+      ],
+      "implementation": [
+        "src/Reading/InlineImageReader.php"
+      ],
+      "tests": [
+        "tests/InlineImageReadingTest.php",
+        "tools/validate_inline_separators.py"
+      ],
+      "decision": "The normalized final or only ASCIIHexDecode/ASCII85Decode filter permits data immediately after ID; other filter chains still require one PDF whitespace separator. Codec framing continues to determine the data endpoint."
     }
   ]
 }

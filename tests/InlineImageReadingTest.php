@@ -39,6 +39,33 @@ final class InlineImageReadingTest extends TestCase
     }
 
     /** @return iterable<string, array{string, string}> */
+    public static function asciiDataWithoutSeparator(): iterable
+    {
+        yield 'abbreviated hexadecimal filter' => ['/AHx', '20454920>'];
+        yield 'full hexadecimal filter' => ['/ASCIIHexDecode', '20454920>'];
+        yield 'one-element filter array' => ['[/AHx]', '20454920>'];
+        yield 'abbreviated base85 filter' => ['/A85', '+?p3j~>'];
+        yield 'full base85 filter' => ['/ASCII85Decode', '+?p3j~>'];
+        yield 'base85 percent is data, not a comment' => ['/A85', '%!!!!~>'];
+        yield 'final ASCII filter in a chain' => ['[/AHx /A85]', '7a7e3e>'];
+    }
+
+    #[DataProvider('asciiDataWithoutSeparator')]
+    public function testFinalAsciiFilterAllowsDataImmediatelyAfterId(string $filter, string $encoded): void
+    {
+        $instructions = $this->instructions('BI /W 4 /H 1 /BPC 8 /CS /G /F ' . $filter . ' ID' . $encoded . ' EI q Q');
+        self::assertSame($encoded, $instructions[0]->inlineImage?->bytes);
+        self::assertSame(['BI', 'q', 'Q'], array_column($instructions, 'operator'));
+    }
+
+    public function testIdPrefixInParameterNameIsNotTheDataOperator(): void
+    {
+        $instructions = $this->instructions('BI /IDname (value) /W 1 /H 1 /BPC 8 /CS /G /F /AHx ID61> EI q Q');
+        self::assertSame('61>', $instructions[0]->inlineImage?->bytes);
+        self::assertSame('value', $instructions[0]->inlineImage?->dictionary->get('IDname')?->value);
+    }
+
+    /** @return iterable<string, array{string, string}> */
     public static function encodedSamples(): iterable
     {
         yield 'ASCIIHex with explicit end' => ['/AHx', '20454920>'];
@@ -94,6 +121,11 @@ final class InlineImageReadingTest extends TestCase
         yield 'filter arrays must be flat' => ['BI /W 1 /H 1 /BPC 8 /CS /G /F [[/AHx]] ID 61> EI'];
         yield 'unknown raw colour-space width' => ['BI /W 1 /H 1 /BPC 8 /CS /Unknown ID abc EI'];
         yield 'oversized samples' => ['BI /W 9223372036854775807 /H 1 /BPC 16 /CS /RGB ID a EI'];
+        yield 'unfiltered data still requires a separator' => ['BI /W 1 /H 1 /BPC 8 /CS /G IDa EI'];
+        yield 'ASCII is not the final filter' => ['BI /W 1 /H 1 /BPC 8 /CS /G /F [/AHx /Fl] ID61> EI'];
+        yield 'empty filters still require a separator' => ['BI /W 1 /H 1 /BPC 8 /CS /G /F [] IDa EI'];
+        yield 'null filter still requires a separator' => ['BI /W 1 /H 1 /BPC 8 /CS /G /F null IDa EI'];
+        yield 'missing data after ID' => ['BI /W 1 /H 1 /BPC 8 /CS /G /F /AHx ID'];
     }
 
     #[DataProvider('malformedImages')]

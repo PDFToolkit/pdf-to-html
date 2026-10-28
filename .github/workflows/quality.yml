@@ -99,6 +99,8 @@ jobs:
       - run: python tools/build_inline_fax_fixture.py --check
       - name: Validate inline images with independent PDF, HTML5 and pixel parsers
         run: python tools/validate_inline_derivation.py --php php
+      - name: Validate EC3 ASCII inline-image separator exceptions independently
+        run: python tools/validate_inline_separators.py --php php
       - name: Install the independent graphics rendering oracle
         run: sudo apt-get update && sudo apt-get install --yes poppler-utils
       - uses: ./.github/actions/setup-qpdf

@@ -370,20 +370,26 @@ final class ContentReader
                 $shown = $operands[array_key_last($operands)] ?? null;
                 $parts = $operator === 'TJ' && $shown instanceof ArrayType ? $shown->items : [$shown];
                 $text = '';
+                $unsupported = null;
                 foreach ($parts as $part) {
                     if ($part instanceof StringType) {
-                        try {
-                            $text .= $this->fonts->decode($font, $part->value);
-                        } catch (UnsupportedTextException $exception) {
-                            $this->values->budget->consume('nodes');
-                            $frame->children[] = new GraphicContent('unmapped-text', $exception->getMessage(), page: $number, source: $program($index, $index));
+                        if ($unsupported === null) {
+                            try {
+                                $text .= $this->fonts->decode($font, $part->value);
+                            } catch (UnsupportedTextException $exception) {
+                                $unsupported = $exception;
+                            }
                         }
                     } elseif (!$part instanceof NumericType || $operator !== 'TJ') {
                         throw new ReadingException('A text-showing operand has an invalid type.');
                     }
                 }
                 $this->values->budget->consume('nodes');
-                if ($text !== '') {
+                if ($unsupported !== null) {
+                    // The retained program selects one complete instruction. Partial text beside
+                    // that rendering would duplicate decoded glyphs and change their reading order.
+                    $frame->children[] = new GraphicContent('unmapped-text', $unsupported->getMessage(), page: $number, source: $program($index, $index));
+                } elseif ($text !== '') {
                     $frame->children[] = new TextContent($text, $number, $program($index, $index));
                 }
             } elseif ($operator === 'Do') {

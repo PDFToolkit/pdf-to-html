@@ -633,11 +633,11 @@ final class DerivationSession
                 array_push($children, ...$this->content($child, $ancestors, $listKind, $formLabelTarget));
             }
         }
-        if ($p->expansion !== null && $p->expansion !== '') {
+        if ($p->expansion !== null) {
             $children = [new Element('abbr', ['title' => $p->expansion], $children)];
         }
         $attrs = [];
-        if ($p->language !== null && $p->language !== '') {
+        if ($p->language !== null) {
             $attrs['lang'] = $p->language;
         }
         if ($p->alternateDescription !== null) {
@@ -645,7 +645,9 @@ final class DerivationSession
             $attrs['aria-label'] = $p->alternateDescription;
             $this->diagnostics[] = new Diagnostic('marked-alt-adaptation', 'Marked-content Alt is represented as an atomic named group with role=img and aria-label instead of invalid span[alt].');
         }
-        return $attrs === [] ? $children : [new Element('span', $attrs, $children)];
+        // 4.4.7.5 requires one span for combined properties, including ActualText + E.
+        $combined = $p->actualText !== null && $p->expansion !== null;
+        return $attrs === [] && !$combined ? $children : [new Element('span', $attrs, $children)];
     }
 
     private function image(ImageContent $source): Element

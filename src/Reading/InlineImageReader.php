@@ -129,7 +129,7 @@ final readonly class InlineImageReader
             return;
         }
         $filter = $dictionary->get('Filter');
-        $last = $filter instanceof ArrayType ? ($filter->items[array_key_last($filter->items)] ?? null) : $filter;
+        $last = $filter instanceof ArrayType ? ($filter->items === [] ? null : $filter->items[array_key_last($filter->items)]) : $filter;
         // ISO 32000-2 8.9.7, physical p. 283, EC3 issue 20: final or only filter.
         if (!$last instanceof NameType || !in_array($last->value, ['ASCIIHexDecode', 'ASCII85Decode'], true)) {
             throw new ReadingException('An inline image ID requires whitespace unless its final or only filter is ASCIIHexDecode or ASCII85Decode.');

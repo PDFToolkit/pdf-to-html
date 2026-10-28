@@ -94,7 +94,7 @@ final class InlineImageReadingTest extends TestCase
         self::assertIsString($original);
         $payload = " EI \xff\xd9";
         $jpeg = substr($original, 0, 2) . "\xff\xef" . pack('n', strlen($payload) + 2) . $payload . substr($original, 2);
-        $instructions = $this->instructions('BI /W 80 /H 40 /BPC 8 /CS /G /F /DCT ID ' . $jpeg . ' EI q Q');
+        $instructions = $this->instructions('BI /W 48 /H 36 /BPC 8 /CS /G /F /DCT ID ' . $jpeg . ' EI q Q');
         self::assertSame($jpeg, $instructions[0]->inlineImage?->bytes);
         self::assertSame('q', $instructions[1]->operator);
     }
@@ -178,8 +178,8 @@ final class InlineImageReadingTest extends TestCase
         self::assertStringContainsString('Text after all inline images', $result->html);
         self::assertSame(12, substr_count($result->html, '<img '));
         self::assertSame(12, substr_count($result->html, 'width="27" height="13"'));
-        self::assertCount(4, $result->assets);
-        self::assertCount(4, array_filter($result->diagnostics, static fn ($item): bool => $item->code === 'source-interpretation' && str_contains($item->message, 'placeholder')));
+        self::assertCount(5, $result->assets);
+        self::assertCount(3, array_filter($result->diagnostics, static fn ($item): bool => $item->code === 'source-interpretation' && str_contains($item->message, 'placeholder')));
     }
 
     /** @return list<\PDF\Html\Reading\ContentInstruction> */

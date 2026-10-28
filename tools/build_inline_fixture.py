@@ -33,7 +33,7 @@ def fixture():
         ('rgb-asciihex', b'/W 1 /H 1 /BPC 8 /CS /RGB /F /AHx', rgb.hex().encode() + b'>'),
         ('rgb-ascii85', b'/W 1 /H 1 /BPC 8 /CS /RGB /F /A85', base64.a85encode(rgb) + b'~>'),
         ('gray-runlength', b'/W 4 /H 1 /BPC 8 /CS /G /F /RL', b'\x03' + gray + b'\x80'),
-        ('gray-jpeg', b'/W 80 /H 40 /BPC 8 /CS /G /F [/DCT]', jpeg),
+        ('gray-jpeg', b'/W 48 /H 36 /BPC 8 /CS /G /F [/DCT]', jpeg),
         ('cmyk-placeholder', b'/W 1 /H 1 /BPC 8 /CS /CMYK', b'\x00\x00\x00\xff'),
         ('mask-placeholder', b'/W 1 /H 1 /IM true', b'\x80'),
         ('lzw-placeholder', b'/W 4 /H 1 /BPC 8 /CS /G /F /LZW', lzw_literals(gray)),

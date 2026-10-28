@@ -30,11 +30,11 @@ def png_samples(data):
         if kind == b'IDAT':
             compressed.extend(payload)
         offset += size + 12
-    assert header is not None and header[2] == 8 and header[3] in (0, 2)
+    assert header is not None and header[2] in (1, 2, 4, 8, 16) and header[3] in (0, 2)
     width, height = header[:2]
     components = 1 if header[3] == 0 else 3
     decoded = zlib.decompress(compressed)
-    stride = width * components
+    stride = (width * components * header[2] + 7) // 8
     assert len(decoded) == height * (stride + 1)
     samples = bytearray()
     for row in range(height):
@@ -80,7 +80,7 @@ def main():
                 samples.add(png_samples(data).hex())
             elif asset['mediaType'] == 'image/jpeg':
                 jpeg_hash = asset['sha256']
-        assert samples == {manifest['graySamplesHex'], manifest['rgbSamplesHex']}
+        assert samples == {manifest['graySamplesHex'], manifest['rgbSamplesHex'], '1b'}
         assert jpeg_hash == manifest['jpegSha256']
         # Keep the original fixture's label unchanged: reader 0.3 now actually
         # decodes this formerly unavailable LZW image to the original gray rows.
@@ -88,8 +88,8 @@ def main():
         location = lzw.attrib['src']
         data = base64.b64decode(location.removeprefix('data:image/png;base64,'), validate=True) if location.startswith('data:image/png;base64,') else (Path(directory) / location).read_bytes()
         assert png_samples(data).hex() == manifest['graySamplesHex']
-        assert sum(item['code'] == 'image-placeholder' for item in report['diagnostics']) == 4
-    print('Verified 12 inline images including native LZW gray samples using pypdf, HTML5, PNG CRC/sample decoding and JPEG bytes; four dimensioned placeholders')
+        assert sum(item['code'] == 'image-placeholder' for item in report['diagnostics']) == 3
+    print('Verified 12 inline images including native LZW and packed gray samples using pypdf, HTML5, PNG CRC/sample decoding and JPEG bytes; three dimensioned placeholders')
 
 
 if __name__ == '__main__':

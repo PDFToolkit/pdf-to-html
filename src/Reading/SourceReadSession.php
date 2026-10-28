@@ -669,6 +669,10 @@ final class SourceReadSession
         }
         $caption = $this->values->dictionary($annotation->get('MK'));
         $border = $this->values->dictionary($annotation->get('BS'));
+        $highlighting = $this->values->value($annotation, 'H');
+        if ($highlighting !== null && !$highlighting instanceof NullType && !$highlighting instanceof NameType) {
+            throw new ReadingException('A widget highlighting mode must be a PDF name.');
+        }
         $rect = $this->rectangle($annotation->get('Rect'));
         $pageBox = $page === null ? null : $this->rectangle($page->attributes->cropBox);
         $optionIndex = null;

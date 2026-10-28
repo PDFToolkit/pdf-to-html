@@ -13,6 +13,13 @@ use PHPUnit\Framework\TestCase;
 
 final class FormActionsReadingTest extends TestCase
 {
+    public function testMalformedHighlightingDoesNotSilentlySelectTheDefault(): void
+    {
+        $this->expectException(ReadingException::class);
+        $this->expectExceptionMessage('highlighting mode must be a PDF name');
+        $this->widgets([9 => '<< /Type /Annot /Subtype /Widget /StructParent 2 /P 3 0 R /Rect [0 30 80 50] /FT /Btn /Ff 65536 /T (Action) /H (I) >>']);
+    }
+
     public function testPrimaryJavaScriptActionAndItsChainBelongToTheClickedWidget(): void
     {
         [, $button] = $this->widgets([

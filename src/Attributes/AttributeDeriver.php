@@ -108,7 +108,7 @@ final class AttributeDeriver
             } elseif (str_starts_with($owner, 'CSS-')) {
                 foreach ($values as $key => $value) {
                     if (!in_array($key, ['O','NS'], true)) {
-                        $css[strtolower($key)] = $this->string($value);
+                        $css[$this->cssPropertyName($key)] = $this->string($value);
                         if (strtolower($key) === 'display') {
                             $layoutDisplay = false;
                         }
@@ -135,7 +135,7 @@ final class AttributeDeriver
                             foreach (explode(';', $html[$name]) as $declaration) {
                                 $parts = explode(':', $declaration, 2);
                                 if (count($parts) === 2) {
-                                    $css[strtolower(trim($parts[0]))] = trim($parts[1]);
+                                    $css[$this->cssPropertyName(trim($parts[0]))] = trim($parts[1]);
                                     if (strtolower(trim($parts[0])) === 'display') {
                                         $layoutDisplay = false;
                                     }
@@ -152,6 +152,12 @@ final class AttributeDeriver
         }
         return new DerivedAttributes($html, $css, $position, $numbering, $printField, $noteType, array_values(array_unique($diagnostics)), $tableHeaders, $layoutDisplay, $placement);
     }
+    /** CSS custom properties are case-sensitive; ordinary CSS property names are not. */
+    private function cssPropertyName(string $name): string
+    {
+        return str_starts_with($name, '--') ? $name : strtolower($name);
+    }
+
     private function priority(AttributeObject $attribute): int
     {
         return match (true) {

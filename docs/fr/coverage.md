@@ -2,7 +2,7 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
-La version **0.6.0** implémente les mécanismes de dérivation de la référence
+La version **0.7.0** implémente les mécanismes de dérivation de la référence
 conservée par une interprétation source native, des politiques explicites et des
 ports propres à l'application. Le [registre des clauses](requirements.md) associe
 chaque règle numérotée à sa décision et à des preuves concrètes. La couverture

@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+## 0.7.0 - 2026-10-28
+
+- Use Reader 0.7 image planes for optional JPEG, JPEG 2000 and JBIG2 decoding. Interpret PDF colour-space precedence, Decode and SMaskInData explicitly; preserve exact legal PNG sample depths, Gray/RGB ICC profiles and representable alpha. Keep unsupported colour/grid/precision representations in the explicit graphics-rendering path.
+- Reuse JPEG bytes only when browser and PDF colour interpretation agree. Cover APP14/JFIF conflicts, ColorTransform, EXIF/ICC metadata and intrinsic dimension checks; correct the retained inline JPEG fixture’s dictionary dimensions.
+- Preserve packed Gray and 16-bit Gray/RGB raw samples. Share Reader’s bounded CCITT framing implementation, cover uncompressed fax and EC3 ASCII inline separators, and guard an empty filter array on PHP 8.5.
+- Add independently generated PDF/sample fixtures, exact file-sample and ICC checks, and Chromium/Firefox comparisons with independent colour-profile witnesses. Maintain complete English/French guides and stable optional codec development dependencies.
+
 ## 0.6.0 - 2026-10-28
 
 - Add explicit source-bound signature validation objects and a pinned-certificate adapter to the core verifier. Require the exact physical Contents token and a complete signed revision; report `integrity-verified` separately from certificate trust, revocation and later-change permissions. Show explanations in native HTML popovers without enabling PDF scripts.

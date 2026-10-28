@@ -2,7 +2,7 @@
 
 [English](authentication.md) · [Français](fr/authentication.md)
 
-Version 0.5.0 requires pdf-reader `^0.6` and accepts its explicitly configured
+Version 0.7.0 requires pdf-reader `^0.7` and accepts its explicitly configured
 Standard password or public-key authentication.
 The default converter opens no encrypted file without a selected authentication operation. The application supplies the
 bytes and its credential; neither library discovers passwords or opens a

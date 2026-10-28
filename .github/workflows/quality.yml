@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
       - run: composer install --no-interaction --prefer-dist
       - run: npm ci --prefix tools --ignore-scripts
       - run: npm audit --prefix tools
@@ -48,6 +51,16 @@ jobs:
           mkdir -p _build/signature-popovers
           php tests/export-signature-cases.php > _build/signature-popovers/cases.json
           node tools/validate_signature_popovers.cjs _build/signature-popovers/cases.json _build/signature-popovers/browsers
+      - name: Check packed and 16-bit PNG samples in both engines
+        run: |
+          php tools/export-sample-images.php _build/sample-images
+          node tools/validate_sample_images.cjs _build/sample-images _build/sample-images/browsers
+      - run: python -m pip install --require-hashes -r tools/validation-requirements.txt
+      - uses: ./.github/actions/setup-qpdf
+      - name: Compare JPEG and JPX colour, alpha and ICC witnesses in both engines
+        run: |
+          python tools/validate_codec_images.py --php php --export _build/codec-images --report _build/codec-images-validation.json
+          node tools/validate_codec_images.cjs _build/codec-images _build/codec-images-browser
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -62,6 +75,10 @@ jobs:
             _build/widgets
             _build/attributes
             _build/signature-popovers
+            _build/sample-images
+            _build/codec-images
+            _build/codec-images-browser
+            _build/codec-images-validation.json
           if-no-files-found: error
 
   php:
@@ -120,6 +137,15 @@ jobs:
         run: python tools/validate_signatures.py --php php --report _build/signatures/report.json
       - name: Validate CCITT inline boundaries with independent libtiff payloads and Poppler
         run: python tools/validate_inline_fax.py --php php
+      - name: Rebuild and validate packed and 16-bit sample images independently
+        run: |
+          python tools/build_sample_images_fixture.py --check
+          python tools/validate_sample_images.py --php php --qpdf qpdf --report _build/sample-images/oracle.json
+      - name: Rebuild and validate codec colour and alpha interpretation independently
+        run: |
+          python tools/build_codec_image_sources.py --check
+          python tools/build_codec_images_fixture.py --check
+          python tools/validate_codec_images.py --php php --export _build/codec-images --report _build/codec-images-validation.json
       - name: Validate actual derivation with independent PDF and HTML5 parsers
         run: python tools/validate_derivation.py --php php
       - name: Validate the opt-in field runtime with Node
@@ -155,4 +181,7 @@ jobs:
           path: |
             _build/appearances
             _build/signatures
+            _build/sample-images
+            _build/codec-images
+            _build/codec-images-validation.json
           if-no-files-found: error

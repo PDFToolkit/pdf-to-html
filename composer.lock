@@ -4,40 +4,42 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "239842900df893182a962a907cd49e27",
+    "content-hash": "a115a67c8c857c7d74846d547e6613c9",
     "packages": [
         {
             "name": "pdftoolkit/pdf-reader",
-            "version": "v0.6.0",
+            "version": "v0.7.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf-reader.git",
-                "reference": "c623665d2a54013fe937d10203322c27a8096094"
+                "reference": "8f0a1a447da7812f515ac9c307f8431531d29655"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/c623665d2a54013fe937d10203322c27a8096094",
-                "reference": "c623665d2a54013fe937d10203322c27a8096094",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/8f0a1a447da7812f515ac9c307f8431531d29655",
+                "reference": "8f0a1a447da7812f515ac9c307f8431531d29655",
                 "shasum": ""
             },
             "require": {
                 "ext-ctype": "*",
                 "ext-zlib": "*",
                 "php": "^8.3",
-                "roukmoute/pdf": "^0.9 || ^0.10 || ^0.11"
+                "roukmoute/pdf": "^0.11 || ^0.12"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
+                "pdftoolkit/pdf-codecs": "^0.1",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^12.0"
             },
             "suggest": {
-                "ext-openssl": "Required when explicitly selecting native AES or OpenSSL certificate authentication."
+                "ext-openssl": "Required when explicitly selecting native AES or OpenSSL certificate authentication.",
+                "pdftoolkit/pdf-codecs": "Optional pure PHP image decoder when no compatible native engine is available: composer require pdftoolkit/pdf-codecs:^0.1"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.6.x-dev"
+                    "dev-master": "0.7.x-dev"
                 }
             },
             "autoload": {
@@ -71,20 +73,20 @@
                 "issues": "https://github.com/PDFToolkit/pdf-reader/issues",
                 "source": "https://github.com/PDFToolkit/pdf-reader"
             },
-            "time": "2026-10-15T18:44:59+00:00"
+            "time": "2026-10-28T20:37:33+00:00"
         },
         {
             "name": "roukmoute/pdf",
-            "version": "v0.11.0",
+            "version": "v0.12.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf.git",
-                "reference": "25b426190b1c2b8d9d26a3fbf94f71c8014725b3"
+                "reference": "44fd56797614775f21ec9df996a85eaf54f68a04"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/25b426190b1c2b8d9d26a3fbf94f71c8014725b3",
-                "reference": "25b426190b1c2b8d9d26a3fbf94f71c8014725b3",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/44fd56797614775f21ec9df996a85eaf54f68a04",
+                "reference": "44fd56797614775f21ec9df996a85eaf54f68a04",
                 "shasum": ""
             },
             "require": {
@@ -96,9 +98,9 @@
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
-                "pdftoolkit/pdf-fonts": "^0.1.12",
-                "pdftoolkit/pdf-images": "^0.1.12",
-                "pdftoolkit/pdf-reader": "^0.6",
+                "pdftoolkit/pdf-fonts": "^0.2",
+                "pdftoolkit/pdf-images": "^0.1.13",
+                "pdftoolkit/pdf-reader": "^0.6.1",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^12.0"
             },
@@ -109,7 +111,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.11.x-dev"
+                    "dev-master": "0.12.x-dev"
                 }
             },
             "autoload": {
@@ -147,7 +149,7 @@
                 "issues": "https://github.com/PDFToolkit/pdf/issues",
                 "source": "https://github.com/PDFToolkit/pdf"
             },
-            "time": "2026-10-15T21:35:13+00:00"
+            "time": "2026-10-28T19:06:49+00:00"
         }
     ],
     "packages-dev": [
@@ -832,6 +834,59 @@
                 "source": "https://github.com/nikic/PHP-Parser/tree/v5.9.0"
             },
             "time": "2026-09-13T18:51:52+00:00"
+        },
+        {
+            "name": "pdftoolkit/pdf-codecs",
+            "version": "v0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/PDFToolkit/pdf-codecs.git",
+                "reference": "1f82ae19d6dd874c574a5601d37f3ac63e0d4170"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf-codecs/zipball/1f82ae19d6dd874c574a5601d37f3ac63e0d4170",
+                "reference": "1f82ae19d6dd874c574a5601d37f3ac63e0d4170",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.3",
+                "php-64bit": "*"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "phpstan/phpstan": "^2.1",
+                "phpunit/phpunit": "^12.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "0.1.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PDFToolkit\\Codecs\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Mathias STRASSER",
+                    "email": "contact@roukmoute.fr"
+                }
+            ],
+            "description": "Explicit bounded JPEG, JPEG 2000 and JBIG2 image decoding in PHP",
+            "homepage": "https://pdftoolkit.github.io/modules/codecs/",
+            "support": {
+                "docs": "https://pdftoolkit.github.io/modules/codecs/",
+                "issues": "https://github.com/PDFToolkit/pdf-codecs/issues",
+                "source": "https://github.com/PDFToolkit/pdf-codecs"
+            },
+            "time": "2026-10-28T20:15:16+00:00"
         },
         {
             "name": "phar-io/manifest",

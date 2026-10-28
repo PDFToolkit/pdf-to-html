@@ -7,7 +7,7 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.6.0 implements the reference's derivation mechanisms with explicit
+Version 0.7.0 implements the reference's derivation mechanisms with explicit
 security profiles, native password/public-key/MAC authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
@@ -19,18 +19,24 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 ## Install
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.6"
+composer require "pdftoolkit/pdf-to-html:^0.7"
 ```
 
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.6.0 accepts reader `^0.6` and core `^0.9 || ^0.10 || ^0.11`.
-Reader 0.6 additionally supports explicitly selected public-key authentication with normalized historical s3 permissions.
+Version 0.7.0 requires Reader `^0.7` and stable core `^0.11 || ^0.12`.
+Since version 0.6, Reader supports explicitly selected public-key authentication with normalized historical s3 permissions.
 The reader verifies indicated
 ISO/TS 32004 source MACs before content interpretation. Explicit
 `SourceIntegrityPolicy::RequirePdfMac` rejects unprotected input as well.
+
+Image decoding uses Reader’s compatible native engine first, then the optional
+PHP library when installed: `composer require pdftoolkit/pdf-codecs:^0.1`.
+No package is installed automatically. [Decoded images](docs/image-codecs.md)
+retain sample precision, colour profiles and supported opacity in PNG; other
+representations keep an explicit rendering diagnostic and the original source.
 
 ## Read, derive, then write
 
@@ -63,7 +69,7 @@ authentication provider as explicit objects. Conversion still receives bytes;
 the source filename is descriptive and is not opened implicitly.
 
 For encrypted tagged files, inject a `DocumentReader` configured with
-`StandardPasswordAuthentication`, or `PublicKeyAuthentication` with reader 0.6.
+`StandardPasswordAuthentication`, or `PublicKeyAuthentication`.
 The native adapter exports the authenticated effective permissions to `data-pdf-perms`; a wrong password fails
 before derivation. The existing authentication port remains available. Read the
 [authentication guide](docs/authentication.md) for credential encodings and

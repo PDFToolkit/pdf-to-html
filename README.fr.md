@@ -7,7 +7,7 @@ selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
 Ce dépôt a été créé spécialement pour implémenter les règles de
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-La version 0.6.0 implémente les mécanismes de dérivation de la référence avec des
+La version 0.7.0 implémente les mécanismes de dérivation de la référence avec des
 profils de sécurité explicites, l’authentification native par mot de passe/clé publique/MAC et un
 rendu fourni par l’application. Le [guide de couverture](docs/fr/coverage.md) et le
 [registre des clauses](docs/fr/requirements.md) décrivent les comportements
@@ -21,19 +21,26 @@ de convertir tout PDF.
 ## Installer
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.6"
+composer require "pdftoolkit/pdf-to-html:^0.7"
 ```
 
 PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3,
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
 
-La version 0.6.0 accepte le lecteur `^0.6` et le core `^0.9 || ^0.10 || ^0.11`.
-Le lecteur 0.6 prend en charge l’authentification par clé publique sur sélection explicite et normalise les permissions historiques s3.
+La version 0.7.0 exige le Reader `^0.7` et le core stable `^0.11 || ^0.12`.
+Depuis sa version 0.6, le Reader prend en charge l’authentification par clé publique sur sélection explicite et normalise les permissions historiques s3.
 Le lecteur vérifie
 les MAC sources ISO/TS 32004 signalés avant l’interprétation du contenu.
 La politique explicite `SourceIntegrityPolicy::RequirePdfMac` refuse aussi
 les entrées non protégées.
+
+Le décodage des images utilise d’abord le moteur natif compatible du Reader,
+puis la bibliothèque PHP optionnelle si elle est installée :
+`composer require pdftoolkit/pdf-codecs:^0.1`. Aucun package n’est installé
+automatiquement. Les [images décodées](docs/fr/image-codecs.md) conservent la
+précision, les profils couleur et l’opacité prise en charge dans le PNG ; les
+autres représentations gardent un diagnostic explicite et leur source originale.
 
 ## Lire, dériver, puis écrire
 
@@ -66,8 +73,7 @@ d'authentification comme objets explicites. La conversion reçoit toujours des
 octets ; le nom source est descriptif et n'est pas ouvert implicitement.
 
 Pour un fichier balisé chiffré, injecter un `DocumentReader` configuré avec
-`StandardPasswordAuthentication`, ou `PublicKeyAuthentication` avec le lecteur
-0.6. L’adaptateur natif exporte les permissions effectives authentifiées dans `data-pdf-perms` ; un mot de passe
+`StandardPasswordAuthentication`, ou `PublicKeyAuthentication`. L’adaptateur natif exporte les permissions effectives authentifiées dans `data-pdf-perms` ; un mot de passe
 incorrect échoue avant la dérivation. Le port d’authentification existant reste
 disponible. Le [guide d’authentification](docs/fr/authentication.md) précise les
 encodages et frontières des gestionnaires de sécurité, PDF MAC et permissions

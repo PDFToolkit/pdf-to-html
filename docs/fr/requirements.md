@@ -14,7 +14,7 @@ package prépare les données et appelle une capacité propre à l'application.
 HTML/navigateur actuel et que la décision est accompagnée de diagnostics. Les
 tests exercent des cas concrets ; une ligne ne prouve pas une conformité universelle.
 
-Cette matrice de décisions 0.6.0 couvre toutes les clauses numérotées et annexes
+Cette matrice de décisions 0.7.0 couvre toutes les clauses numérotées et annexes
 de la référence conservée de 74 pages. Les lignes groupées couvrent l’intégralité
 de la plage indiquée ; les tables sont détaillées lorsque leurs choix individuels
 comptent. Les clauses 2–3 définissent termes et notation ; les annexes A–D donnent

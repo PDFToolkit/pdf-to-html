@@ -4,6 +4,13 @@
 
 ## Non publié
 
+## 0.7.0 - 2026-10-28
+
+- Utiliser les plans image du Reader 0.7 pour le décodage optionnel JPEG, JPEG 2000 et JBIG2. Appliquer explicitement les priorités couleur PDF, Decode et SMaskInData ; conserver les profondeurs PNG exactes, les profils ICC Gray/RGB et l’alpha représentable. Confier les couleurs, grilles ou précisions non représentables au rendu graphique explicite.
+- Conserver les octets JPEG seulement si les interprétations couleur du navigateur et du PDF concordent. Couvrir les conflits APP14/JFIF, ColorTransform, EXIF/ICC et les dimensions intrinsèques ; corriger les dimensions du dictionnaire de la fixture JPEG inline conservée.
+- Préserver les échantillons Gray compactés et Gray/RGB 16 bits. Partager le délimiteur CCITT borné du Reader, couvrir le fax non compressé et les séparateurs ASCII inline EC3, puis protéger le tableau vide de filtres sous PHP 8.5.
+- Ajouter des fixtures PDF/échantillons indépendantes, des contrôles exacts des échantillons et profils ICC, et des comparaisons Chromium/Firefox avec témoins couleur indépendants. Maintenir les guides FR/EN complets et les dépendances de développement stables des codecs optionnels.
+
 ## 0.6.0 - 2026-10-28
 
 - Ajouter les objets explicites de validation liés à la source et un adaptateur à certificat épinglé vers le vérificateur du core. Exiger le jeton Contents physique exact et une révision signée complète ; distinguer `integrity-verified` de la confiance du certificat, de sa révocation et des permissions sur les changements ultérieurs. Présenter les explications dans des popovers HTML natifs sans activer les scripts PDF.

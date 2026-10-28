@@ -2,7 +2,7 @@
 
 [English](coverage.md) · [Français](fr/coverage.md)
 
-Version **0.6.0** implements the derivation mechanisms of the retained reference
+Version **0.7.0** implements the derivation mechanisms of the retained reference
 through native source interpretation, explicit policies and application ports.
 The [clause ledger](requirements.md) records every numbered rule, its decision
 and concrete evidence. Coverage is not universal PDF acceptance, browser layout

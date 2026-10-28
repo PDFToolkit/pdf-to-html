@@ -14,7 +14,7 @@ means the literal PDF rule conflicts with current HTML/browser behavior and the
 decision is recorded with diagnostics. Tests exercise concrete cases; a table
 entry alone does not prove universal conformance.
 
-This is the 0.6.0 decision matrix for all numbered clauses and annexes of the
+This is the 0.7.0 decision matrix for all numbered clauses and annexes of the
 retained 74-page reference. Grouped rows cover the complete stated range; tables
 are expanded where their individual choices matter. Clauses 2–3 define terms and
 notation, and annexes A–D provide implementation guidance; they are not separate

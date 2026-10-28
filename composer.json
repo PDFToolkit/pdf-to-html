@@ -22,14 +22,15 @@
         "php": "^8.3",
         "ext-dom": "*",
         "ext-mbstring": "*",
-        "pdftoolkit/pdf-reader": "^0.6",
-        "roukmoute/pdf": "^0.9 || ^0.10 || ^0.11",
+        "pdftoolkit/pdf-reader": "^0.7",
+        "roukmoute/pdf": "^0.11 || ^0.12",
         "php-64bit": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "^12.0",
         "phpstan/phpstan": "^2.1",
-        "friendsofphp/php-cs-fixer": "^3.0"
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "pdftoolkit/pdf-codecs": "^0.1"
     },
     "autoload": {
         "psr-4": {
@@ -66,7 +67,10 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "0.6.x-dev"
+            "dev-main": "0.7.x-dev"
         }
+    },
+    "suggest": {
+        "pdftoolkit/pdf-codecs": "Optional pure PHP decoding for JPEG, JPEG 2000 and JBIG2 images when no compatible native Reader engine is available."
     }
 }

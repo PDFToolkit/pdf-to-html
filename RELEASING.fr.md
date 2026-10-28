@@ -20,6 +20,13 @@ compatible ou une mise à jour documentaire la version corrective.
    `validate_signatures.py`, ainsi que l’exemple 05 avec le certificat de test
    conservé en DER et PEM. Garder rapports/captures et versions source/outils
    exactes ; ne pas présenter l’intégrité mathématique comme une confiance PKI complète.
+   Reconstruire les fixtures échantillons/codecs avec leurs outils `--check`, puis
+   exécuter `validate_inline_fax.py`, `validate_sample_images.py` et
+   `validate_codec_images.py` sur les trois versions PHP. Exécuter
+   `validate_sample_images.cjs` et `validate_codec_images.cjs` dans Chromium et
+   Firefox sur ces exports exacts. Distinguer échantillons/profils ICC exacts,
+   replis explicites et témoins couleur indépendants des différences entre
+   moteurs de gestion des couleurs des navigateurs.
    Exiger une CI PHP 8.3, 8.4 et 8.5 réussie pour le SHA candidat exact.
 4. Vérifier que `vX.Y.Z` n'existe ni localement ni à distance. Créer un tag annoté
    sur ce SHA validé, le pousser et publier la release GitHub avec les notes

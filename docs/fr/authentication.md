@@ -2,7 +2,7 @@
 
 [English](../authentication.md) · [Français](authentication.md)
 
-La version 0.5.0 exige pdf-reader `^0.6` et accepte son authentification
+La version 0.7.0 exige pdf-reader `^0.7` et accepte son authentification
 Standard ou par clé publique configurée explicitement.
 Le convertisseur par défaut n’ouvre aucun fichier chiffré sans opération
 d’authentification sélectionnée. L’application fournit les octets et son identifiant ; aucune bibliothèque ne recherche de mot

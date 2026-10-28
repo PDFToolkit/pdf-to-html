@@ -20,6 +20,12 @@ increment the patch version.
    oracles, plus example 05 with the committed test signer in DER and PEM form.
    Preserve reports/screenshots and exact source/tool versions; mathematical
    signature integrity must not be reported as full PKI trust.
+   Rebuild the sample/codec fixtures with their `--check` builders and run
+   `validate_inline_fax.py`, `validate_sample_images.py` and `validate_codec_images.py`
+   on all three PHP versions. Run `validate_sample_images.cjs` and
+   `validate_codec_images.cjs` in Chromium and Firefox on those exact exports.
+   Keep exact samples/ICC transport, explicit fallbacks and independent colour
+   witnesses distinct from differences between browser colour engines.
    Require PHP 8.3, 8.4 and 8.5 CI success for the exact candidate SHA.
 4. Verify the new `vX.Y.Z` tag is absent locally and remotely. Create an annotated
    tag at that validated SHA, push it and publish a GitHub release with the

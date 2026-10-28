@@ -93,7 +93,7 @@ final class DerivationSession
         foreach ($this->document->sourceDiagnostics as $message) {
             $this->diagnostics[] = new Diagnostic('source-interpretation', $message);
         }
-        $this->measure([$this->document->filename, $this->document->title, $this->document->language, $this->document->classMap, $this->document->roleMappings, $this->document->documentScripts, $this->document->pageScripts, $this->document->associatedFiles]);
+        $this->measure([$this->document->filename, $this->document->title, $this->document->language, $this->document->classMap, $this->document->roleMappings, $this->document->documentScripts, $this->document->calculationOrder, $this->document->pageScripts, $this->document->associatedFiles]);
         foreach ($this->document->structure as $element) {
             $this->index($element, 0);
         }

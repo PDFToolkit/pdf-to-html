@@ -163,8 +163,27 @@ final class SourceReadSession
         foreach ($tree as $index => $page) {
             $pageScripts[$index + 1] = $this->metadata->additionalScripts($page->dictionary);
         }
+        $calculationOrder = $calculationNames = [];
+        $form = $this->values->dictionary($catalog->get('AcroForm'));
+        $order = $form === null ? null : $this->values->value($form, 'CO');
+        if ($order !== null && !$order instanceof NullType && !$order instanceof ArrayType) {
+            throw new ReadingException('AcroForm calculation order must be an array of field dictionaries.');
+        }
+        foreach ($order instanceof ArrayType ? $order->items : [] as $entry) {
+            $this->values->budget->consume('nodes');
+            $field = $this->values->dictionary($entry);
+            if ($field === null) {
+                throw new ReadingException('Each calculation-order entry must resolve to a field dictionary.');
+            }
+            $name = $this->fieldName($field);
+            if ($name === '' || isset($calculationNames[bin2hex($name)])) {
+                throw new ReadingException('Calculation-order fields require unique fully qualified names.');
+            }
+            $calculationNames[bin2hex($name)] = true;
+            $calculationOrder[] = $name;
+        }
         $permissions = $this->values->document->permissions();
-        return new TaggedDocument($filename, $structure, $this->values->text($catalog->get('Lang')), $this->metadata->title($catalog), $classes, $this->roles, $this->metadata->associatedFiles($catalog, $this->selection, catalog: true), $catalog->get('AcroForm') !== null, $permissions === null ? null : new AuthenticatedPermissions($permissions->effectiveMask(), true), $this->metadata->pageLabels($catalog, count($tree)), $scripts, $pageScripts, $this->values->budget->diagnostics);
+        return new TaggedDocument($filename, $structure, $this->values->text($catalog->get('Lang')), $this->metadata->title($catalog), $classes, $this->roles, $this->metadata->associatedFiles($catalog, $this->selection, catalog: true), $catalog->get('AcroForm') !== null, $permissions === null ? null : new AuthenticatedPermissions($permissions->effectiveMask(), true), $this->metadata->pageLabels($catalog, count($tree)), $scripts, $pageScripts, $this->values->budget->diagnostics, $calculationOrder);
     }
 
     /**

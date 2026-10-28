@@ -22,6 +22,14 @@ use PDF\Html\Model\Widget;
 use PDF\Html\Script\ScriptDeriver;
 use PDF\Html\Script\WidgetBinding;
 
+if (($argv[1] ?? '') === '--calculation-order') {
+    $total = new FormField('total', FieldType::Text, value: '0', actions: ['C' => 'event.value = Number(this.getField("intermediate").value) + 1;']);
+    $intermediate = new FormField('intermediate', FieldType::Text, value: '0', actions: ['C' => 'event.value = Number(this.getField("source").value) * 2;']);
+    $source = new FormField('source', FieldType::Text, value: '3');
+    echo (new ScriptDeriver())->derive(new TaggedDocument('order.pdf', [], calculationOrder: ['absent', 'intermediate', 'total', 'intermediate']), [new Widget($total), new Widget($intermediate), new Widget($source)]);
+    exit;
+}
+
 if (($argv[1] ?? '') === '--primary-widget-action') {
     $field = new FormField('action', FieldType::Button, flags: 65536);
     echo (new ScriptDeriver())->derive(new TaggedDocument('primary.pdf', []), [

@@ -96,7 +96,7 @@ final class ScriptDeriver
         $this->diagnostics[] = 'Browser permission enforcement and document trust remain the host application responsibility.';
         $this->diagnostics[] = 'Document scripts share a strict lexical document module; arbitrary host globals and the full Acrobat API are not emulated.';
         $encode = static fn (mixed $value): string => json_encode($value, JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
-        $config = $encode(['fields' => (object) $fields, 'widgets' => (object) $widgetActions, 'operations' => (object) $widgetOperations, 'bindings' => $boundWidgets, 'pages' => (object) $pages, 'allowReset' => $this->formActions->allowReset, 'allowSubmit' => $this->formActions->allowSubmit]);
+        $config = $encode(['calculationOrder' => $document->calculationOrder, 'fields' => (object) $fields, 'widgets' => (object) $widgetActions, 'operations' => (object) $widgetOperations, 'bindings' => $boundWidgets, 'pages' => (object) $pages, 'allowReset' => $this->formActions->allowReset, 'allowSubmit' => $this->formActions->allowSubmit]);
         $bodies = [];
         foreach ($functions as $key => $source) {
             $bodies[] = $encode($key).":function(event){\n".$source."\n}";
@@ -229,8 +229,10 @@ function calculate() {
  if (calculating) return;
  calculating = true;
  try {
-  fieldMap.forEach(field => {
-   if (!field.actions.C) return;
+  const ordered = new Set([...config.calculationOrder, ...fieldMap.keys()]);
+  ordered.forEach(name => {
+   const field = fieldMap.get(name);
+   if (!field?.actions.C) return;
    const event = eventFor(field, "Calculate", field.value);
    invoke(field.actions.C, event);
    if (event.rc) field.value = event.value;

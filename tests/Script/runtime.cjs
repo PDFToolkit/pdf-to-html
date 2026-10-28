@@ -255,3 +255,14 @@ primarySecond.handlers.click[0]({preventDefault(){}});
 primaryFirst.handlers.click[0]({preventDefault(){}});
 assert.deepEqual(primaryAlerts,["second-primary","first-primary"]);
 console.log("PASS primary JavaScript actions bind to the activated widget");
+
+const orderedSource=execFileSync(process.env.PDF_RUNTIME_TEST_PHP ?? "php",[path.join(__dirname,"runtime-fixture.php"),"--calculation-order"],{encoding:"utf8"});
+const orderedTotal = new Control("total"), orderedIntermediate = new Control("intermediate"), orderedInput = new Control("source");
+const orderedDocument={readyState:"complete",querySelector:()=>({elements:[orderedTotal,orderedIntermediate,orderedInput],addEventListener:()=>{}}),defaultView:{alert:()=>{},addEventListener:()=>{}},getElementById:()=>null};
+vm.runInNewContext(orderedSource,{document:orderedDocument},{timeout:1000});
+assert.equal(orderedTotal.value,"7");
+assert.equal(orderedIntermediate.value,"6");
+orderedInput.change("5");
+assert.equal(orderedTotal.value,"11");
+assert.equal(orderedIntermediate.value,"10");
+console.log("Verified explicit calculation order with dependent fields and absent/duplicate manual names.");

@@ -12,7 +12,6 @@ use PDF\Syntax\Object\ArrayType;
 use PDF\Syntax\Object\DictionaryType;
 use PDF\Syntax\Object\IntegerType;
 use PDF\Syntax\Object\NameType;
-use PDF\Syntax\Object\StringObject\LiteralString;
 use PDF\Syntax\Object\StringType;
 
 /** Document metadata, embedded resources and declarative action source; no I/O or execution. */
@@ -274,15 +273,7 @@ final readonly class DocumentMetadataReader
     }
     public function script(?BasicType $action): ?string
     {
-        $dictionary = $this->values->dictionary($action);
-        if ($dictionary === null || $this->values->name($dictionary->get('S')) !== 'JavaScript') {
-            return null;
-        }
-        $script = $this->values->value($dictionary, 'JS');
-        if ($script instanceof EncodedStream) {
-            $script = new LiteralString($this->values->document->streamData($script));
-        }
-        return $this->values->text($script);
+        return (new ScriptActionReader($this->values))->read($action);
     }
     /** @return array<string, string> */
     public function additionalScripts(DictionaryType $owner): array

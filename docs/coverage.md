@@ -2,7 +2,7 @@
 
 [English](coverage.md) · [Français](fr/coverage.md)
 
-Version **0.5.0** implements the derivation mechanisms of the retained reference
+Version **0.5.1** implements the derivation mechanisms of the retained reference
 through native source interpretation, explicit policies and application ports.
 The [clause ledger](requirements.md) records every numbered rule, its decision
 and concrete evidence. Coverage is not universal PDF acceptance, browser layout
@@ -35,7 +35,7 @@ OCR, inferred tagging or reconstruction of arbitrary page layouts.
 3. **Application integration**: rendering engines, authentication, hosting assets,
    browser policies, submissions and permission enforcement remain explicit capabilities.
 
-## Mechanisms verified in 0.5.0
+## Mechanisms and regression coverage
 
 Source authentication additionally uses reader 0.4's native PDF MAC verification.
 `SourceIntegrityTest` and `tools/validate_source_integrity.py` cover tagged R6
@@ -97,6 +97,55 @@ retain their XObject and use transformed Form bounds, preserving BBox clipping,
 Matrix, Group and OC. A structure BBox or explicit page-coordinate viewport can
 override the output bounds. Each matrix is applied once; no painted-pixel crop is computed.
 See [graphics](graphics.md) for the retained context and integration example.
+
+## MathML placement and browser integration
+
+Version 0.5.1 addresses [issue #1](https://github.com/PDFToolkit/pdf-to-html/issues/1).
+Automatically derived CSS `display:inline` or `display:block` must not replace
+the native mathematical layout of MathML elements. On a root `math`, Layout
+Placement Block becomes `display="block"`; Inline needs no generated display
+declaration. Descendant MathML elements keep their native layout. Shared Layout
+classes retain their ordinary display mappings for HTML elements without applying
+those declarations to MathML.
+
+This concerns declarations generated from Layout, including implicit display
+needed for Layout spacing. It does not rewrite explicit author CSS. A MathML
+display attribute supplied through its namespace owner or retained in a fragment
+also remains authoritative; block Placement does not replace it. These rules do
+not turn arbitrary author CSS into compatible mathematical styling.
+
+The retained reference maps MathML structure types directly (§4.3.2.3, physical
+pages 17–18), keeps Formula wrappers separate (§4.3.5.7, pages 31–32), and orders
+Layout before HTML/CSS and MathML namespace attributes (§4.3.7.1, page 43).
+Table 4 (§4.3.7.6, page 47) gives the generic Placement-to-CSS mapping; it does
+not prescribe a MathML `display` attribute. The MathML-specific adaptation uses
+[MathML Core's display model](https://www.w3.org/TR/mathml-core/#css-extensions-for-math-layout)
+and its [native stylesheet](https://www.w3.org/TR/mathml-core/#user-agent-stylesheet)
+to retain mathematical layout. Embedded MathML remains subject to §4.6.4.7,
+pages 66–67, and the existing fragment policy.
+
+[validate_mathml.cjs](../tools/validate_mathml.cjs) is the independent browser
+validation entry point. Its reports must identify the exercised browser versions
+and layout cases; successful checks do not establish full MathML grammar,
+rendering or accessibility conformance. No polyfill or remote runtime is added
+to derived output.
+
+From a checkout with its Composer dependencies installed, install the locked
+validation dependencies and browser engines explicitly, then export the actual
+PHP-derived cases:
+
+```sh
+npm ci --prefix tools
+node tools/node_modules/playwright/cli.js install --with-deps chromium firefox
+mkdir -p _build/mathml
+php tests/export-mathml-cases.php > _build/mathml/cases.json
+node tools/validate_mathml.cjs _build/mathml/cases.json _build/mathml/browsers
+```
+
+Keep `_build/mathml/browsers/report.json` and the PNG screenshots together. The
+report records the browser versions, computed display and superscript/fraction
+geometry for the generated cases; its `passed` result identifies that run.
+HTML parsing and PHPUnit checks remain separate evidence.
 
 ## Policies and browser boundaries
 

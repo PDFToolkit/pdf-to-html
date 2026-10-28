@@ -2,7 +2,7 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
-La version **0.5.0** implémente les mécanismes de dérivation de la référence
+La version **0.5.1** implémente les mécanismes de dérivation de la référence
 conservée par une interprétation source native, des politiques explicites et des
 ports propres à l'application. Le [registre des clauses](requirements.md) associe
 chaque règle numérotée à sa décision et à des preuves concrètes. La couverture
@@ -38,7 +38,7 @@ ni OCR, ni balisage inféré, ni reconstruction de mises en page arbitraires.
    hébergement des ressources, politiques navigateur, soumissions et application
    des permissions restent des capacités explicites.
 
-## Mécanismes vérifiés dans la version 0.5.0
+## Mécanismes et couverture de régression
 
 Les sources à clé publique du lecteur 0.6 utilisent le même contrat de masque
 effectif. `tools/validate_public_key_authentication.py` produit indépendamment
@@ -107,6 +107,58 @@ clipping BBox, Matrix, Group et OC. Une BBox de structure ou un viewport explici
 en coordonnées de page peut remplacer les limites de sortie. Chaque matrice
 est appliquée une fois, sans cadrage par les pixels peints. Le [guide graphique](graphics.md) présente le contexte
 conservé et l'exemple d'intégration.
+
+## Placement MathML et rendu navigateur
+
+La version 0.5.1 traite l’[issue #1](https://github.com/PDFToolkit/pdf-to-html/issues/1).
+Le CSS `display:inline` ou `display:block` dérivé automatiquement ne doit pas
+remplacer la mise en page mathématique native des éléments MathML. Sur une
+racine `math`, Placement Block devient `display="block"` ; Inline ne nécessite
+aucune déclaration display générée. Les descendants MathML gardent leur mise
+en page native. Les classes Layout partagées conservent leurs mappings display
+ordinaires pour les éléments HTML sans les appliquer au MathML.
+
+Cela concerne les déclarations générées depuis Layout, y compris le display
+implicite nécessaire aux espacements Layout. Le CSS explicite de l’auteur n’est
+pas réécrit. Un attribut display MathML fourni par son propriétaire namespace ou
+conservé dans un fragment reste également prioritaire ; Placement Block ne le
+remplace pas. Ces règles ne rendent pas tout CSS explicite compatible avec la
+mise en page mathématique.
+
+La référence conservée mappe directement les types structurels MathML
+(§4.3.2.3, pages physiques 17–18), distingue les wrappers Formula (§4.3.5.7,
+pages 31–32) et traite Layout avant HTML/CSS et les attributs du namespace MathML
+(§4.3.7.1, page 43). La table 4 (§4.3.7.6, page 47) donne le mapping générique
+de Placement vers CSS ; elle ne prescrit pas un attribut MathML `display`.
+L’adaptation propre au MathML utilise le
+[modèle display de MathML Core](https://www.w3.org/TR/mathml-core/#css-extensions-for-math-layout)
+et sa [feuille de style native](https://www.w3.org/TR/mathml-core/#user-agent-stylesheet)
+pour conserver la mise en page mathématique. Le MathML incorporé reste soumis
+au §4.6.4.7, pages 66–67, et à la politique existante des fragments.
+
+[validate_mathml.cjs](../../tools/validate_mathml.cjs) est le point d’entrée de
+validation indépendante dans les navigateurs. Ses rapports doivent identifier
+les versions des navigateurs et les cas de mise en page exercés ; la réussite
+des contrôles ne prouve pas une conformité complète de la grammaire MathML,
+du rendu ou de l’accessibilité. Aucun polyfill ou runtime distant n’est ajouté
+à la sortie dérivée.
+
+Depuis un checkout dont les dépendances Composer sont installées, installer
+explicitement les dépendances de validation verrouillées et les moteurs de
+navigateur, puis exporter les cas réellement dérivés par PHP :
+
+```sh
+npm ci --prefix tools
+node tools/node_modules/playwright/cli.js install --with-deps chromium firefox
+mkdir -p _build/mathml
+php tests/export-mathml-cases.php > _build/mathml/cases.json
+node tools/validate_mathml.cjs _build/mathml/cases.json _build/mathml/browsers
+```
+
+Conserver `_build/mathml/browsers/report.json` avec les captures PNG. Le rapport
+consigne les versions des navigateurs, le display calculé et la géométrie des
+exposants/fractions pour les cas générés ; son résultat `passed` concerne cette
+exécution. L’analyse HTML et les contrôles PHPUnit restent des preuves séparées.
 
 ## Politiques et frontières du navigateur
 

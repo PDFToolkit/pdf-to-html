@@ -7,7 +7,7 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.5.0 implements the reference's derivation mechanisms with explicit
+Version 0.5.1 implements the reference's derivation mechanisms with explicit
 security profiles, native password/public-key/MAC authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
@@ -26,7 +26,7 @@ Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.5.0 accepts reader `^0.6` and core `^0.9 || ^0.10 || ^0.11`.
+Version 0.5.1 accepts reader `^0.6` and core `^0.9 || ^0.10 || ^0.11`.
 Reader 0.6 additionally supports explicitly selected public-key authentication with normalized historical s3 permissions.
 The reader verifies indicated
 ISO/TS 32004 source MACs before content interpretation. Explicit
@@ -73,6 +73,14 @@ with effective permissions and the requested integrity policy preserved before
 source adaptation. The guide documents the port migration and
 [example 04](examples/04-authenticate-source-mac.php). Source authentication
 does not authenticate the resulting HTML or establish certificate trust.
+
+MathML retains its native mathematical layout. Version 0.5.1 corrects the
+automatic Layout-to-CSS mapping that could emit `display:inline` on MathML.
+Inline `<math>` uses its native default; block Placement uses the MathML
+`display="block"` attribute when no explicit MathML display is supplied.
+Source-authored CSS remains explicit and can override browser defaults.
+See [MathML placement and browser integration](docs/coverage.md#mathml-placement-and-browser-integration)
+for attribute precedence, shared classes and rendering limits.
 
 The default source adapter inherits the deriver's policy and limits. Associated
 Alternative/Supplement content is selected before decoding the PDF content it

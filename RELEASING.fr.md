@@ -12,6 +12,8 @@ compatible ou une mise à jour documentaire la version corrective.
 2. Mettre à jour les deux changelogs et documenter entrées, politiques et limites.
 3. Exécuter validation Composer, installation verrouillée, contrôles de plateforme,
    audit, tests, PHPStan, formatage, empreintes et validations HTML/PDF indépendantes.
+   Exécuter `tools/validate_mathml.cjs` avec Chromium et Firefox ; conserver les
+   versions des navigateurs et résultats de mise en page séparément des analyses PHP/HTML.
    Exiger une CI PHP 8.3, 8.4 et 8.5 réussie pour le SHA candidat exact.
 4. Vérifier que `vX.Y.Z` n'existe ni localement ni à distance. Créer un tag annoté
    sur ce SHA validé, le pousser et publier la release GitHub avec les notes

@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+## 0.5.1 - 2026-10-28
+
+- Correct [issue #1](https://github.com/PDFToolkit/pdf-to-html/issues/1): do not project automatically derived Layout `display:inline`/`display:block` onto MathML, including shared classes. Preserve native mathematical layout; map block Placement to `math[display="block"]` without overriding explicit MathML display or source-authored CSS.
+- Document the MathML-specific integration of Deriving HTML 1.2 clauses 4.3.2.3, 4.3.7.1 and 4.3.7.6, with exact physical pages and complete English/French counterparts. Preserve existing constructor calls and stable dependency constraints.
+- Require the exact-candidate PHP 8.3/8.4/8.5 matrix and independent Chromium/Firefox MathML checks before publication. Browser evidence concerns the exercised layout cases, not arbitrary MathML rendering or accessibility certification.
+
 ## 0.5.0 - 2026-10-15
 
 - Require the published Reader `^0.6` for corrected general tokenisation, explicit PDF 2.0 structural policy and normalized historical s3 permission masks; retain the original CMS word through the authentication contract.

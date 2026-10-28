@@ -12,6 +12,8 @@ increment the patch version.
 2. Update both changelogs and document input, policies and limitations.
 3. Run Composer validation, locked installation, platform checks, audit, tests,
    PHPStan, formatting, reference fingerprints and independent HTML/PDF checks.
+   Run `tools/validate_mathml.cjs` with Chromium and Firefox; retain browser
+   versions and the concrete layout results separately from PHP/HTML parsing.
    Require PHP 8.3, 8.4 and 8.5 CI success for the exact candidate SHA.
 4. Verify the new `vX.Y.Z` tag is absent locally and remotely. Create an annotated
    tag at that validated SHA, push it and publish a GitHub release with the

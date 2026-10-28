@@ -7,7 +7,7 @@ selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
 Ce dépôt a été créé spécialement pour implémenter les règles de
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-La version 0.5.0 implémente les mécanismes de dérivation de la référence avec des
+La version 0.5.1 implémente les mécanismes de dérivation de la référence avec des
 profils de sécurité explicites, l’authentification native par mot de passe/clé publique/MAC et un
 rendu fourni par l’application. Le [guide de couverture](docs/fr/coverage.md) et le
 [registre des clauses](docs/fr/requirements.md) décrivent les comportements
@@ -28,7 +28,7 @@ PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
 
-La version 0.5.0 accepte le lecteur `^0.6` et le core `^0.9 || ^0.10 || ^0.11`.
+La version 0.5.1 accepte le lecteur `^0.6` et le core `^0.9 || ^0.10 || ^0.11`.
 Le lecteur 0.6 prend en charge l’authentification par clé publique sur sélection explicite et normalise les permissions historiques s3.
 Le lecteur vérifie
 les MAC sources ISO/TS 32004 signalés avant l’interprétation du contenu.
@@ -76,6 +76,15 @@ pour les octets fournis exacts, en conservant permissions effectives et politiqu
 d’intégrité demandée avant adaptation. Le guide explique la migration du port
 et l’[exemple 04](examples/04-authenticate-source-mac.php). L’authentification
 source ne protège pas le HTML produit et n’établit aucune confiance de certificat.
+
+Le MathML conserve sa mise en page mathématique native. La version 0.5.1 corrige
+le mapping automatique de Layout vers CSS qui pouvait émettre `display:inline`
+sur le MathML. Un `<math>` inline utilise son comportement natif ; Placement
+Block utilise l’attribut MathML `display="block"` si aucun display MathML
+explicite n’est fourni. Le CSS fourni par l’auteur reste explicite et peut
+remplacer les valeurs par défaut du navigateur. Voir
+[le placement MathML et le rendu navigateur](docs/fr/coverage.md#placement-mathml-et-rendu-navigateur)
+pour les priorités, classes partagées et limites de rendu.
 
 L'adaptateur source par défaut reçoit la politique et les limites du dériveur.
 Les contenus Alternative/Supplement sont sélectionnés avant de décoder le contenu

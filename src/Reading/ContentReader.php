@@ -153,62 +153,7 @@ final class ContentReader
     }
     private function portableImage(EncodedStream $stream, int $page, float $logicalWidth, float $logicalHeight, ?GraphicProgram $source = null): ImageContent|GraphicContent
     {
-        $dictionary = $stream->dictionary();
-        $pixelWidth = $this->values->value($dictionary, 'Width');
-        $pixelHeight = $this->values->value($dictionary, 'Height');
-        if (!$pixelWidth instanceof IntegerType || !$pixelHeight instanceof IntegerType || $pixelWidth->integer() <= 0 || $pixelHeight->integer() <= 0) {
-            throw new ReadingException('An image requires positive integer sample dimensions.');
-        }
-        $width = $pixelWidth->integer();
-        $height = $pixelHeight->integer();
-        foreach (['OC', 'Alternates'] as $context) {
-            $value = $this->values->value($dictionary, $context);
-            if ($value !== null && !$value instanceof NullType) {
-                return new GraphicContent('unsupported-image-context', 'Image visibility and alternate selection require the explicit rendering capability; original resources and optional-content configuration are retained.', $logicalWidth, $logicalHeight, $page, $source);
-            }
-        }
-        $filter = $this->values->value($dictionary, 'Filter');
-        if ($filter instanceof ArrayType && count($filter) === 1) {
-            $filter = $this->values->document->resolve($filter->items[0]);
-        }
-        $color = $this->values->name($dictionary->get('ColorSpace'));
-        $bits = $this->values->integer($dictionary->get('BitsPerComponent'), 8);
-        if ($filter instanceof NameType && $filter->value === 'DCTDecode' && $dictionary->get('SMask') === null && $dictionary->get('Mask') === null && $dictionary->get('Decode') === null && in_array($color, ['DeviceGray', 'DeviceRGB'], true)) {
-            $bytes = $stream->encodedBytes();
-            if (!str_starts_with($bytes, "\xff\xd8")) {
-                throw new ReadingException('A DCT image is missing its JPEG signature.');
-            }
-            $this->values->budget->consume('assets', strlen($bytes));
-            return new ImageContent($bytes, 'image/jpeg', $logicalWidth, $logicalHeight, $page, $source);
-        }
-        if (in_array($color, ['DeviceRGB', 'DeviceGray'], true) && $bits === 8 && $dictionary->get('SMask') === null && $dictionary->get('Mask') === null && $dictionary->get('Decode') === null && $width <= 65535 && $height <= 65535) {
-            try {
-                $pixels = $this->values->document->streamData($stream);
-            } catch (\PDF\Reading\UnsupportedPdfFeature $exception) {
-                return new GraphicContent('unsupported-image', $exception->getMessage(), $logicalWidth, $logicalHeight, $page, $source);
-            }
-            $components = $color === 'DeviceRGB' ? 3 : 1;
-            $row = (int) $width * $components;
-            if (strlen($pixels) !== $row * (int) $height) {
-                throw new ReadingException('Image samples do not match their declared dimensions.');
-            }
-            $scanlines = '';
-            for ($index = 0; $index < (int) $height; ++$index) {
-                $scanlines .= "\0" . substr($pixels, $index * $row, $row);
-            }
-            $compressed = gzcompress($scanlines);
-            if ($compressed === false) {
-                throw new ReadingException('PNG sample compression failed.');
-            }
-            $bytes = "\x89PNG\r\n\x1a\n" . $this->chunk('IHDR', pack('NNCCCCC', (int) $width, (int) $height, 8, $components === 3 ? 2 : 0, 0, 0, 0)) . $this->chunk('IDAT', $compressed) . $this->chunk('IEND', '');
-            $this->values->budget->consume('assets', strlen($bytes));
-            return new ImageContent($bytes, 'image/png', $logicalWidth, $logicalHeight, $page, $source);
-        }
-        return new GraphicContent('unsupported-image', 'Image conversion requires an explicit decoder for filters, masks, color spaces or sample depths.', $logicalWidth, $logicalHeight, $page, $source);
-    }
-    private function chunk(string $type, string $bytes): string
-    {
-        return pack('N', strlen($bytes)) . $type . $bytes . pack('N', crc32($type . $bytes));
+        return (new PortableImageReader($this->values))->read($stream, $page, $logicalWidth, $logicalHeight, $source);
     }
 
     /**

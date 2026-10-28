@@ -128,7 +128,7 @@ un codec supplémentaire. Il doit utiliser le budget fourni et placer le curseur
 à la fin du contenu encodé ; le délimiteur est vérifié. La bibliothèque ne
 recherche pas un sous-texte `EI` commode dans des données binaires arbitraires.
 
-L'extraction raster native traite les JPEG et encodages d'échantillons acceptés.
+L’extraction raster native utilise aussi les plans exacts de Reader. Le [contrat des images décodées](image-codecs.md) précise couleur/ICC/alpha JPX, ColorTransform JPEG et cas non représentables explicites.
 Masques, autres espaces couleur et profondeurs peuvent utiliser un placeholder
 ou la capacité explicite de rendu, dont les programmes/ressources originaux
 restent disponibles. `GraphicPdfExporter` reconstruit un PDF isolé et
@@ -299,3 +299,5 @@ Références MathML : [modules RelaxNG officiels](https://www.w3.org/Math/RelaxN
 Lire la [sécurité](security.md) avant d'autoriser le contenu actif.
 
 Les images inline appliquent l’exception EC3 issue 20 (ISO 32000-2, page physique 283) : si le dernier ou seul filtre est ASCIIHexDecode ou ASCII85Decode, les données peuvent suivre immédiatement `ID`. Les autres chaînes conservent le séparateur blanc obligatoire. La liste de filtres normalisée détermine cette exception ; un signe pourcentage dans des données ASCII85 n’est jamais interprété comme un commentaire PDF. Le cadrage du codec détermine toujours la fin des données.
+
+Les [chemins natifs d’image](graphics.md#échantillons-dimage-natifs-et-cadrage-fax) conservent exactement DeviceGray 1/2/4/8/16 et DeviceRGB 8/16 dans PNG. Le cadrage et le décodage fax partagent l’automate Reader ; masques, Decode explicite et autres espaces de couleur gardent leur renderer/substitut explicite. L’oracle indépendant couvre 14 chemins natifs et trois replis, en distinguant les octets 16 bits exacts du rendu d’affichage 8 bits.

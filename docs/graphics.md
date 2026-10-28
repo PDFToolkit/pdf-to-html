@@ -92,6 +92,30 @@ group. Semantic reuse may omit irrelevant paths and shadings, as sections 4.4.1
 and 4.4.5 permit; diagnostics identify those omissions. Images that cannot be
 converted receive a placeholder at their logical display size.
 
+## Native image samples and fax framing
+
+For inline images and image XObjects, the native path preserves `DeviceGray` samples at 1, 2, 4, 8 or 16 bits and `DeviceRGB` samples at 8 or 16 bits in PNG. Packed rows, odd widths and big-endian 16-bit samples are retained exactly; no quantization, colour transform or invented alpha is applied. PNG scanline, compression, chunk assembly and asset buffers are charged before allocation. Logical HTML width/height remain independent of pixel dimensions.
+
+Reader supplies decoding of the available PDF filters, including native CCITT MH/MR/MMR and the T.4/T.6 uncompressed extension. HTML's `InlineFaxBoundaryReader` adapts Reader's `CcittFaxDecoder::decodePrefix()` to the document's cumulative nodes, instructions and byte budgets. It no longer maintains a second fax code table or scanline automaton. Reader returns the consumed byte length and samples; HTML validates the following `EI` delimiter. Encoded bytes containing `EI` cannot terminate an image. A fax without an end-of-block marker and without a positive row count still needs an explicit boundary provider; malformed known encodings are errors, not guessed endpoints. ASCII-wrapped fax data uses its outer codec boundary and Reader's filter chain for samples.
+
+The non-codec sample PNG path requires the default decode mapping and no `Mask` or `SMask`. `Indexed`, CMYK, other colour spaces, masks and explicit `Decode` mappings continue through the preserved graphic program and the explicit renderer or dimensioned placeholder. This avoids silently dropping their colour or transparency semantics. Section 4.4.3 of the retained Deriving HTML reference (physical pages 53–54) permits this explicit placeholder when conversion is unavailable; the new native paths extend capability rather than reinterpret that permission.
+
+[SampleImageReadingTest](../tests/SampleImageReadingTest.php) and
+[validate_sample_images.py](../tools/validate_sample_images.py) cover 14 native
+inline/XObject paths and three valid Decode/soft-mask/colour-key fallbacks.
+pypdf binds the source streams; zlib independently establishes the binary Flate
+inline endpoints, including short payloads its generic EI heuristic rejects.
+PNG CRCs, headers and packed sample bytes are checked exactly. Pillow decodes the
+PNG independently and Poppler renders the original PDF. Raster checks compare
+8-bit display channels (16-bit previews use the high byte); byte comparisons
+prove preservation of all 16 bits separately. The browser harness checks real
+Chromium and Firefox decoding and logical dimensions. The fax oracle retains
+seven independently encoded libtiff samples and compares native PNG pixels with
+Poppler's original PDF rendering; normative uncompressed vectors have separate
+explicit bitmap tests and do not claim an independent uncompressed decoder.
+
+The codec image path additionally consumes exact Reader image planes, preserves JPX ICC/alpha semantics and verifies JPEG ColorTransform before direct reuse. See [decoded images and browser limitations](image-codecs.md) for its rules, explicit rendering fallbacks and independent validation.
+
 ## Reuse the engine for widget appearances
 
 When a `ContentRenderer` is supplied, the derivation session automatically wraps

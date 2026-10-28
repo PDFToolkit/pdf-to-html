@@ -98,6 +98,31 @@ La réutilisation sémantique peut omettre des tracés et dégradés non pertine
 comme le permettent les sections 4.4.1 et 4.4.5 ; les diagnostics les identifient.
 Une image non convertible reçoit un remplacement à sa taille logique d'affichage.
 
+## Échantillons d’image natifs et cadrage fax
+
+Pour les images inline et les XObjects image, le chemin natif conserve les échantillons `DeviceGray` à 1, 2, 4, 8 ou 16 bits et `DeviceRGB` à 8 ou 16 bits dans un PNG. Les lignes compactées, largeurs impaires et échantillons 16 bits en ordre grand-boutiste restent exacts ; aucune quantification, transformation de couleur ou alpha inventé n’est appliqué. Les buffers PNG de lignes, compression, assemblage et ressources sont comptabilisés avant allocation. Les dimensions HTML logiques restent indépendantes des dimensions en pixels.
+
+Reader décode les filtres PDF disponibles, dont CCITT MH/MR/MMR natif et l’extension non compressée T.4/T.6. `InlineFaxBoundaryReader` adapte `CcittFaxDecoder::decodePrefix()` de Reader aux budgets cumulatifs de nœuds, instructions et octets du document HTML. Il ne maintient plus de seconde table de codes ni d’automate de lignes fax. Reader retourne la longueur consommée et les échantillons ; HTML valide le délimiteur `EI` suivant. Des octets encodés contenant `EI` ne terminent pas l’image. Un fax sans marqueur de fin de bloc ni nombre de lignes positif exige toujours un fournisseur de frontière explicite ; un encodage connu malformé produit une erreur, jamais une frontière devinée. Un fax enveloppé dans un encodage ASCII utilise la frontière du codec extérieur et la chaîne de filtres Reader pour ses échantillons.
+
+Le chemin PNG des échantillons hors codecs exige le décodage par défaut et l’absence de `Mask` ou `SMask`. `Indexed`, CMYK, autres espaces de couleur, masques et `Decode` explicite utilisent toujours le programme graphique conservé et le renderer explicite ou le substitut dimensionné. Leurs propriétés de couleur ou de transparence ne sont donc pas abandonnées silencieusement. La section 4.4.3 de la référence Deriving HTML conservée (pages physiques 53–54) autorise ce substitut explicite si la conversion est indisponible ; les nouveaux chemins natifs étendent les capacités sans réinterpréter cette permission.
+
+[SampleImageReadingTest](../../tests/SampleImageReadingTest.php) et
+[validate_sample_images.py](../../tools/validate_sample_images.py) couvrent 14
+chemins natifs inline/XObject et trois replis valides Decode/masque doux/clé de
+couleur. pypdf établit la liaison des streams source ; zlib détermine indépendamment
+les frontières inline Flate binaires, dont les données courtes rejetées par son
+heuristique EI générique. CRC, en-têtes et octets d’échantillons PNG compactés
+sont vérifiés exactement. Pillow décode indépendamment le PNG et Poppler rend le
+PDF original. Le rendu compare des canaux d’affichage 8 bits (octet haut pour
+les aperçus 16 bits) ; les comparaisons d’octets prouvent séparément la
+conservation des 16 bits. Le harness navigateur contrôle le décodage réel et les
+dimensions logiques dans Chromium et Firefox. L’oracle fax conserve sept cas
+encodés indépendamment par libtiff et compare les pixels PNG natifs au rendu du
+PDF original par Poppler ; les vecteurs normatifs non compressés ont des tests
+séparés de bitmaps explicites, sans revendiquer un décodeur indépendant.
+
+Le chemin des codecs utilise aussi les plans exacts de Reader, conserve les règles ICC/alpha JPX et vérifie ColorTransform avant réemploi JPEG. Voir [images décodées et limites du navigateur](image-codecs.md) pour les règles, replis explicites et preuves indépendantes.
+
 ## Réutiliser le moteur pour les apparences de widgets
 
 Lorsqu’un `ContentRenderer` est fourni, la session l’adapte automatiquement en

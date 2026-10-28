@@ -1,0 +1,52 @@
+{
+  "license": "MIT",
+  "openjpeg": {
+    "version": "2.5.4",
+    "revision": "6c4a29b00211eb0430fa0e5e890f1ce5c80f409f",
+    "origin": "PDFToolkit/pdf-codecs original OpenJPEG-generated fixtures, tests/Fixtures/jpx"
+  },
+  "icc": {
+    "generator": "LittleCMS cmsCreateGrayProfile, D50 xy 0.3457/0.3585, gamma2.2; fixed creation date 2026-10-28",
+    "sha256": "a5b596487c1ecb3b99141141427e6584d63252921a2cc36d8a717d7643414aab"
+  },
+  "jpeg": {
+    "generator": "Original RGB pattern, Pillow quality91/subsampling0, 13x7",
+    "pattern": "(17*x+21*y,31*x+7*y,5*x+41*y) mod256"
+  },
+  "associatedOpacity": {
+    "generator": "tools/build_codec_image_sources.py",
+    "encoder": "Pillow/OpenJPEG lossless; cdef type2 explicitly set without changing coded samples"
+  },
+  "files": {
+    "alpha-1.jp2": "71b9211638225a39b60ba93e63055f89fe2cf1f824698d0ec5c742504d5800f7",
+    "alpha-1.jp2.json": "48f4f4697c0a52419a48e829c0b18ae9fb043ede6abfda27ba72aced0d864f72",
+    "associated-exact.jp2": "ae04333182819bec141bd44c2a16d2de1402217b0e94113042b47350296d36c8",
+    "associated-exact.jp2.json": "b55d24d4a7eab292ced02cfd52685dc5247cd314cc2f2fd0b1da666101bb2f2b",
+    "associated-rounded.jp2": "3c7ba5a4edf91b8ad3df560fbc72e6dda7b46747ecf675e21140fed698810423",
+    "associated-rounded.jp2.json": "ccb334ea66634ca7a480ebff6f3496c82f4290b67817e794ea81d06e9b090a87",
+    "gray.icc": "a5b596487c1ecb3b99141141427e6584d63252921a2cc36d8a717d7643414aab",
+    "icc-gray.jp2": "a68aec928cfe1fa395a58aec08a2ab7e9bb8aaf359a4e90a549dd6f6a45fbd49",
+    "icc-gray.jp2.json": "ab3fef9753b5f9368eacb93dc507c1a583da5dc05e44c91582772f7f6d0d341c",
+    "precision-1-signed-0.jp2": "07389d71ced66d329eb1d09923da5822a18240dcf2b39953c555ffddf94420ac",
+    "precision-1-signed-0.jp2.json": "922c31e45eb701332f022438822d6fb2d17eca32081188c45b93a3d6b286b13f",
+    "precision-12-signed-0.jp2": "d960244b1a6737726a554c7e1482955f11b0bbab07c61b377447368c990b16d6",
+    "precision-12-signed-0.jp2.json": "05e305866ff543bab55244c4429613e762de5ad1c06f9d3be36a0daa3da10b19",
+    "precision-16-signed-0.jp2": "aebb1b29c6c5fdc7dda2f7901ae89d1bf578380d1e2e09068fde1188dc87e846",
+    "precision-16-signed-0.jp2.json": "1cb053e08b3079c28029bbe962075005cd491ba84ec05ff0eebdca6ce7e5591a",
+    "precision-2-signed-0.jp2": "e1ededb62cfcafa477ffd02573387a38e2e627702a9256356c8984c33c6c343f",
+    "precision-2-signed-0.jp2.json": "5d3f9239d87a715b786ac314c9fc349632767706774b0fea28af780006688a69",
+    "precision-4-signed-0.jp2": "b230ab30c2acb682aecb2748d06b3ec7dbc68abc6a8e62b059756b0866f90345",
+    "precision-4-signed-0.jp2.json": "0b4bca7d2021ea6c3a4ca5455d16a1ad0acac86f4e239651f11bf9fb81dbfe47",
+    "precision-8-signed-0.jp2": "b6c26ebf4f1fd513818fd4cdf3d31cbf6ca6dd7bdf045b51a06ec7faddf610b4",
+    "precision-8-signed-0.jp2.json": "ab3fef9753b5f9368eacb93dc507c1a583da5dc05e44c91582772f7f6d0d341c",
+    "precision-8-signed-1.jp2": "b056c2758a0d151ec27e3de4c1292540ad4835502d048a42b51d35f850f85ed0",
+    "precision-8-signed-1.jp2.json": "0bd9d3200400575eb9ef75da693d145085f6eeabe38e116f188718bdd3e03fd8",
+    "rgb-16.jp2": "5a8296864e58b23d483d69b119c11b468f1009c1c45fdf6bc468ed49201e94fc",
+    "rgb-16.jp2.json": "4c3b2a6c41867daf6e1396200b814977d9278e812310d00490acb425c1be6db5",
+    "rgb-8.jp2": "d250fcaaa4107e2432c6d153e56487709c5f369f331845f05b2f360d96f7462e",
+    "rgb-8.jp2.json": "3fb744ccad79f424cfb66b82b7733055de09f8a4aa73e655204a79a2674abc4c",
+    "rgb.jpg": "f07f61ba92ac25586eba65ee6abf9c9f6b5f6dfa53cf4044e9144c199d27f3ed",
+    "subsampled-odd-origin.j2k": "6ec6fb9a83436f4de9c6ea62a261c4b82b30da80c9e71d7c24d15b18ef700a23",
+    "subsampled-odd-origin.j2k.json": "cbbb380110ba7ffe2aa6fadee6aa07311a43817d062accfd4e56dfc9ad0fed23"
+  }
+}

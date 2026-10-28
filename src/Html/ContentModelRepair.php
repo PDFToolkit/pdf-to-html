@@ -181,6 +181,9 @@ final class ContentModelRepair
         if ($element->tag === 'table') {
             return $this->table($element);
         }
+        if ($element->tag === 'dl') {
+            return $this->liftOrphanDescriptionLists($element);
+        }
         if (in_array($element->tag, ['thead','tbody','tfoot'], true)) {
             $rows = [];
             foreach ($element->children as $child) {
@@ -209,6 +212,46 @@ final class ContentModelRepair
         $phrasing = $this->phrasing($element->tag) || ($element->tag === 'a' && $this->hasPhrasingAncestor($ancestors));
         $interactiveBoundary = in_array($element->tag, ['a','button'], true) || $insideAnchor;
         return $this->split($element, $phrasing, $interactiveBoundary);
+    }
+
+    /**
+     * A list directly inside a PDF description list has no associated term.
+     * Keep it in reading order outside dl; inventing dt/dd would assign semantics
+     * absent from the source. Lists already inside dd remain valid and untouched.
+     * @return list<HtmlNode>
+     */
+    private function liftOrphanDescriptionLists(Element $element): array
+    {
+        $output = $segment = [];
+        $first = true;
+        $lifted = false;
+        foreach ($element->children as $child) {
+            if ($child instanceof Element && in_array($child->tag, ['ul', 'ol', 'dl'], true)) {
+                if ($segment !== []) {
+                    $output[] = $this->make('dl', $this->segmentAttributes($element, $first), $segment);
+                    $first = false;
+                    $segment = [];
+                } elseif ($first && isset($element->attributes['id'])) {
+                    // Keep an empty dl rather than a span: a parent description
+                    // list can then lift this anchor by the same rule recursively.
+                    $output[] = $this->make('dl', $element->attributes);
+                    $first = false;
+                }
+                $output[] = $child;
+                $lifted = true;
+            } else {
+                $segment[] = $child;
+            }
+        }
+        if (!$lifted) {
+            return [$element];
+        }
+        if ($segment !== []) {
+            $output[] = $this->make('dl', $this->segmentAttributes($element, $first), $segment);
+        }
+        $this->diagnostics[] = 'An orphan nested list moved outside a description list without inventing a term or definition; reading order and identifiers were retained.';
+
+        return $output;
     }
 
     /** @return list<HtmlNode> */

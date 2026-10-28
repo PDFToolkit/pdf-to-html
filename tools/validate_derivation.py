@@ -20,6 +20,13 @@ def check_html(html: str):
     ids = [element.attrib["id"] for element in tree.iter() if "id" in element.attrib]
     assert len(ids) == len(set(ids)), "Duplicate derived IDs"
     for element in tree.iter():
+        if element.tag == 'dl':
+            # HTML5 tokenization alone accepts invalid dl children. Check the
+            # relevant content model independently of PHP's repair algorithm.
+            assert all(child.tag in {'dt', 'dd', 'div', 'script', 'template'} for child in element), 'Invalid direct description-list child'
+            for child in element:
+                if child.tag == 'div':
+                    assert all(item.tag in {'dt', 'dd', 'script', 'template'} for item in child), 'Invalid description-list group'
         assert element.tag not in {"script", "iframe", "object", "embed"}
         assert not any(name.lower().startswith("on") for name in element.attrib)
         for name in ("href", "src", "formaction"):
@@ -83,7 +90,16 @@ def main():
     cases = subprocess.run([args.php, str(root / "tests/export-derivation-cases.php")], cwd=root, text=True, encoding="utf-8", capture_output=True, check=True)
     for name, html in json.loads(cases.stdout).items():
         try:
-            check_html(html)
+            case_tree = check_html(html)
+            if name == 'orphan-list-in-description':
+                container = next(node for node in case_tree.iter('div') if node.attrib.get('data-pdf-se-type') == 'Div')
+                assert [node.tag for node in container] == ['dl', 'ul', 'dl']
+                assert [''.join(node.itertext()) for node in container] == ['before termbefore definition', 'orphan entry', 'after termafter definition']
+                assert container[0].attrib['id'] == 'description'
+                assert 'id' not in container[2].attrib
+            elif name == 'list-in-description-body':
+                definition = next(case_tree.iter('dd'))
+                assert definition.find('ul/li').text == 'nested definition'
         except AssertionError as error:
             raise AssertionError(f"Normative transformation case {name}: {error}") from error
     print("Verified PHP derivation against pypdf and HTML5 parsing: Unicode, roles, forms, navigation, assets and safe output")

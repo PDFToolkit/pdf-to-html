@@ -358,6 +358,9 @@ final class DerivationSession
         if ($role->namespace === 'http://www.w3.org/1999/xhtml' && $tag === 'script' && $properties->actualText === null) {
             $scripts = [];
             foreach ($source->associatedFiles as $file) {
+                if (!in_array($file->relationship, ['Alternative', 'Supplement'], true)) {
+                    continue;
+                }
                 if (in_array(strtolower($file->mediaType), ['text/javascript', 'application/javascript'], true)) {
                     foreach ($this->associated($file) ?? [] as $script) {
                         if ($script instanceof Element) {

@@ -276,7 +276,8 @@ final class SourceReadSession
             $this->associated[$identity] = [];
             return [true, true];
         }
-        $type = $this->resolvedType($dictionary);
+        $role = $this->resolvedRole($dictionary);
+        $type = $role?->type;
         if (in_array($type, ['Private', 'Artifact', 'Annot'], true)) {
             $this->associated[$identity] = [];
             return [true, true];
@@ -287,6 +288,12 @@ final class SourceReadSession
         }
         $all = $direct = false;
         foreach ($this->associated($dictionary) as $file) {
+            if ($role?->namespace === 'http://www.w3.org/1999/xhtml' && strtolower($type ?? '') === 'script'
+                && in_array(strtolower($file->mediaType), ['text/javascript', 'application/javascript'], true)
+                && in_array($file->relationship, ['Alternative', 'Supplement'], true)
+                && $this->selection->accepts($file)) {
+                $all = true;
+            }
             $all = $all || $this->selection->replaces($file);
             $direct = $direct || $this->selection->supplements($file);
         }
@@ -295,12 +302,17 @@ final class SourceReadSession
 
     private function resolvedType(DictionaryType $dictionary): ?string
     {
+        return $this->resolvedRole($dictionary)?->type;
+    }
+
+    private function resolvedRole(DictionaryType $dictionary): ?\PDF\Html\ResolvedRole
+    {
         $type = $this->values->name($dictionary->get('S'));
         if ($type === null) {
             return null;
         }
         [$namespace, $identity] = $this->namespace($dictionary->get('NS'), 1);
-        return (new RoleResolver($this->roles, $this->selection->limits, $this->selection->policy))->resolve(new StructureElement('association-type', $type, namespace: $namespace, namespaceIdentity: $identity))->type;
+        return (new RoleResolver($this->roles, $this->selection->limits, $this->selection->policy))->resolve(new StructureElement('association-type', $type, namespace: $namespace, namespaceIdentity: $identity));
     }
 
     private function hasMathChild(DictionaryType $dictionary): bool

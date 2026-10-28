@@ -25,4 +25,25 @@ foreach (['normal-size' => '[10 20 70 50]', 'double-size' => '[30 40 150 100]'] 
         ];
     }
 }
+foreach (['nested-artifact' => '0 0 1 rg 5 5 5 5 re f', 'artifact-only' => ''] as $name => $expected) {
+    $fixture = new \PDF\Html\Tests\Reading\PdfFixture();
+    $file = (new \PDF\Html\Tests\Rendering\AppearanceCases())->document([
+        10 => $fixture->stream('/Fm Do', '/Type /XObject /Subtype /Form /BBox [0 0 30 15] /Resources << /XObject << /Fm 18 0 R >> >>'),
+        18 => $fixture->stream('/Artifact BMC 1 0 0 rg 0 0 30 15 re f EMC ' . $expected, '/Type /XObject /Subtype /Form /BBox [0 0 30 15] /Resources << >>'),
+    ]);
+    $source = (new \PDF\Html\Reading\ReadPdfSource())->read((new \PDF\Reading\DocumentReader())->read($file), 'artifact.pdf');
+    $widget = $source->structure[0]->children[0]->children[0];
+    if (!$widget instanceof \PDF\Html\Model\Widget) {
+        throw new \LogicException('The independently authored fixture must expose a widget.');
+    }
+    $rendering = (new \PDF\Html\Rendering\GraphicPdfExporter())->export(new \PDF\Html\Model\ContentGroup($widget->appearance));
+    $cases[$name] = [
+        'source' => base64_encode($file->bytes),
+        'state' => 'N',
+        'pdf' => base64_encode($rendering->bytes),
+        'width' => $rendering->widthPoints,
+        'height' => $rendering->heightPoints,
+        'expectedNestedProgram' => $expected,
+    ];
+}
 echo json_encode($cases, JSON_THROW_ON_ERROR);

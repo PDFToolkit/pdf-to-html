@@ -164,13 +164,16 @@ final readonly class GraphicPdfExporter
     private function collect(SourceNode $content, array &$sources, int $depth, GraphicsExportBudget $budget): void
     {
         $budget->node($depth);
+        if (property_exists($content, 'source') && $content->source instanceof GraphicProgram) {
+            $sources[] = $content->source;
+        }
+        // Even an artifact-only Form needs a filtered stream override. The writer
+        // suppresses its painting while retaining state needed by following content.
         if ($content instanceof MarkedContent && $content->artifact) {
             return;
         }
-        if (property_exists($content, 'source') && $content->source instanceof GraphicProgram) {
-            $sources[] = $content->source;
-            return;
-        }
+        // A Form group's source is its caller's Do instruction; the children retain
+        // the called program. Both are needed to filter artifacts inside nested Forms.
         if ($content instanceof ContentGroup || $content instanceof MarkedContent || $content instanceof StructureElement) {
             foreach ($content->children as $child) {
                 $this->collect($child, $sources, $depth + 1, $budget);

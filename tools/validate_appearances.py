@@ -47,6 +47,12 @@ def validate(directory, args):
         if isinstance(value, DictionaryObject) and not isinstance(value, StreamObject):
             selected = value.raw_get(widget['/AS'])
         appearances[NameObject('/N')] = selected
+        if 'expectedNestedProgram' in case:
+            # The independent control contains only the authored semantic blue
+            # square (or no paint), never the red decorative Artifact background.
+            form = selected.get_object()
+            nested = form['/Resources']['/XObject']['/Fm']
+            nested.set_data(case['expectedNestedProgram'].encode('ascii'))
         control_pdf = directory / (name + '-native.pdf')
         with control_pdf.open('wb') as stream:
             control.write(stream)
@@ -60,14 +66,19 @@ def validate(directory, args):
         crop = b''.join(native[(row * native_width + left) * 3:(row * native_width + right) * 3]
                         for row in range(native_height - top, native_height - bottom))
         assert pixels == crop, name
-        expected = {'N': (255, 0, 0), 'D': (0, 0, 255), 'R': (0, 255, 0)}[case['state']]
+        expected = ((255, 255, 255) if 'expectedNestedProgram' in case
+                    else {'N': (255, 0, 0), 'D': (0, 0, 255), 'R': (0, 255, 0)}[case['state']])
         assert tuple(pixels[:3]) == expected, name
-        assert any(max(pixels[offset:offset + 3]) < 64 for offset in range(0, len(pixels), 3)), ('text missing', name)
+        if 'expectedNestedProgram' in case:
+            assert b'\xff\x00\x00' not in [pixels[offset:offset + 3] for offset in range(0, len(pixels), 3)], ('artifact painted', name)
+        else:
+            assert any(max(pixels[offset:offset + 3]) < 64 for offset in range(0, len(pixels), 3)), ('text missing', name)
         subprocess.run([args.pdftoppm, '-r', '72', '-singlefile', '-png', str(isolated_pdf), str(directory / name)], check=True, capture_output=True)
-        records.append({'case': name, 'width': width, 'height': height, 'exactNativeAnnotationPixels': True,
-                        'independentStateSelection': case['state'], 'preview': str(directory / (name + '.png'))})
+        records.append({'case': name, 'width': width, 'height': height, 'exactIndependentAnnotationPixels': True,
+                        'independentStateSelection': case['state'], 'artifactFiltered': 'expectedNestedProgram' in case,
+                        'preview': str(directory / (name + '.png'))})
     report = {'passed': True, 'cases': records, 'independentTools': ['pypdf', 'Poppler'],
-              'scope': 'Six normal/down/rollover appearances at two widget sizes, compared byte-for-byte to the native annotation rendering; source resources, text, transformed BBox clipping and Rect scaling retained.'}
+              'scope': 'Six normal/down/rollover appearances at two widget sizes compared byte-for-byte to native annotation rendering, plus two nested Form controls excluding Artifact paint; resources, text, transformed BBox clipping and Rect scaling retained.'}
     (directory / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
 

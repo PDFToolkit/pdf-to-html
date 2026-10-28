@@ -66,7 +66,11 @@ final class AttributeDeriver
                         if ($key === 'Headers') {
                             $tableHeaders = preg_split('/\s+/u', trim($value), -1, PREG_SPLIT_NO_EMPTY) ?: [];
                         }
+                        if ($key === 'Scope') {
+                            unset($html['scope'], $html['data-pdf-table-scope']);
+                        }
                         if ($key === 'Scope' && $value === 'Both') {
+                            $html['data-pdf-table-scope'] = 'Both';
                             $diagnostics[] = 'Scope Both has no HTML scope value; explicit Headers associations are retained when supplied.';
                         } else {
                             $html[$target] = $key === 'Scope' ? match ($value) {

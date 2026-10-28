@@ -37,6 +37,17 @@ final class AttributeDeriverTest extends TestCase
         self::assertSame([], $deriver->derive([$attribute], $uri, '19:0')->html);
         self::assertSame([], $deriver->derive([$attribute], $uri)->html);
     }
+    public function testBothScopeKeepsItsSourceMeaningWithoutAnInvalidOrStaleHtmlScope(): void
+    {
+        $deriver = new AttributeDeriver();
+        $both = $deriver->derive([new AttributeObject('Table', ['Scope' => 'Row']), new AttributeObject('Table', ['Scope' => 'Both'])]);
+        self::assertSame('Both', $both->html['data-pdf-table-scope']);
+        self::assertArrayNotHasKey('scope', $both->html);
+        $column = $deriver->derive([new AttributeObject('Table', ['Scope' => 'Both']), new AttributeObject('Table', ['Scope' => 'Column'])]);
+        self::assertSame('col', $column->html['scope']);
+        self::assertArrayNotHasKey('data-pdf-table-scope', $column->html);
+    }
+
     public function testTableAttributesDoNotBecomeCssAndBothScopeHasADiagnostic(): void
     {
         $deriver = new AttributeDeriver();

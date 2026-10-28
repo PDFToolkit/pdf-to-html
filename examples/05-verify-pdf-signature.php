@@ -113,7 +113,7 @@ final readonly class VerifyPdfSignatureExample
     }
 }
 
-if (count($argv) !== 4) {
+if (!isset($argv) || count($argv) !== 4) {
     throw new InvalidArgumentException('Usage: php examples/05-verify-pdf-signature.php input.pdf signer.der|signer.pem output.html');
 }
 (new VerifyPdfSignatureExample())->run($argv[1], $argv[2], $argv[3]);

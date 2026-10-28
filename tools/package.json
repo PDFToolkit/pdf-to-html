@@ -1,0 +1,8 @@
+{
+  "name": "pdftoolkit-html-validation",
+  "private": true,
+  "description": "Independent browser validation for derived HTML",
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

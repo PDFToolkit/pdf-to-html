@@ -8,6 +8,38 @@ permissions:
   contents: read
 
 jobs:
+  mathml-browsers:
+    name: MathML in Chromium and Firefox
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: ctype, dom, iconv, mbstring, zlib, openssl
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: composer install --no-interaction --prefer-dist
+      - run: npm ci --prefix tools --ignore-scripts
+      - run: npm audit --prefix tools
+      - run: node tools/node_modules/playwright/cli.js install --with-deps chromium firefox
+      - name: Check native math layout, exponents and fractions in both engines
+        run: |
+          mkdir -p _build/mathml
+          php tests/export-mathml-cases.php > _build/mathml/cases.json
+          node tools/validate_mathml.cjs _build/mathml/cases.json _build/mathml/browsers
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: mathml-browser-evidence
+          path: _build/mathml
+          if-no-files-found: error
+
   php:
     name: PHP ${{ matrix.php }}
     runs-on: ubuntu-latest

@@ -91,17 +91,20 @@ final class ContentReader
         return $this->complete[$key] = $this->instructions($bytes, $page->attributes->resources, $page, $key, 1, initialMatrix: $this->pageMatrix($page));
     }
     /** @return list<SourceNode> */
-    public function stream(ReadPage $page, EncodedStream $stream, DictionaryType $resources, int $depth, ?DictionaryType $initialFont = null, ?ContentMatrix $initialMatrix = null, ?GraphicProgram $parent = null): array
+    public function stream(ReadPage $page, EncodedStream $stream, DictionaryType $resources, int $depth, ?DictionaryType $initialFont = null, ?ContentMatrix $initialMatrix = null, ?GraphicProgram $parent = null, ?string $invocation = null): array
     {
         $this->values->budget->depth($depth);
         $key = $this->streamKey($page, $stream);
+        if ($invocation !== null) {
+            $key .= '@' . $invocation;
+        }
         $identity = spl_object_id($stream);
         if ($initialMatrix === null && isset($this->complete[$key])) {
             return $this->complete[$key];
         }
         $matrix = $initialMatrix ?? $this->pageMatrix($page);
         $formMatrix = $this->values->value($stream->dictionary(), 'Matrix');
-        if ($formMatrix !== null) {
+        if ($formMatrix !== null && !$formMatrix instanceof NullType) {
             if (!$formMatrix instanceof ArrayType) {
                 throw new ReadingException('A Form XObject Matrix must contain six numeric coefficients.');
             }
@@ -126,7 +129,7 @@ final class ContentReader
                 throw new ReadingException('A Form XObject BBox requires four numeric coordinates.');
             }
             $bounds = $box instanceof ArrayType ? $this->transformedBox($box, $matrix) : $this->pageBox($page);
-            return $this->complete[$key] = $this->instructions($this->values->document->streamData($stream), $resources, $page, $key, $depth, $initialFont, $matrix, $bounds, $parent, $stream);
+            return $this->complete[$key] = $this->instructions($this->values->document->streamData($stream), $resources, $page, $key, $depth, $initialFont, $matrix, $bounds, $parent, $stream, $invocation);
         } finally {
             unset($this->loading[$identity]);
         }
@@ -212,7 +215,7 @@ final class ContentReader
      * @param null|array{float, float, float, float} $boundingBox
      * @return list<SourceNode>
      */
-    private function instructions(string $bytes, DictionaryType $resources, ReadPage $page, string $key, int $depth, ?DictionaryType $initialFont = null, ?ContentMatrix $initialMatrix = null, ?array $boundingBox = null, ?GraphicProgram $parent = null, ?EncodedStream $sourceStream = null): array
+    private function instructions(string $bytes, DictionaryType $resources, ReadPage $page, string $key, int $depth, ?DictionaryType $initialFont = null, ?ContentMatrix $initialMatrix = null, ?array $boundingBox = null, ?GraphicProgram $parent = null, ?EncodedStream $sourceStream = null, ?string $invocation = null): array
     {
         $frames = [new MarkedContentFrame(null, new StructureProperties())];
         $font = $initialFont;
@@ -397,7 +400,7 @@ final class ContentReader
                 $this->values->budget->consume('nodes');
                 if ($subtype === 'Form') {
                     $source = $program($index, $index);
-                    $frame->children[] = new ContentGroup($this->stream($page, $object, $resources, $depth + 1, $font, $matrix, $source), $number, $source);
+                    $frame->children[] = new ContentGroup($this->stream($page, $object, $resources, $depth + 1, $font, $matrix, $source, $invocation === null ? null : $invocation . ':Do:' . $index), $number, $source);
                 } elseif ($subtype === 'Image') {
                     $frame->children[] = $this->image($object, $number, $matrix, $program($index, $index));
                 } else {

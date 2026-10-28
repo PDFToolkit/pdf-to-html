@@ -674,11 +674,47 @@ final class SourceReadSession
                 }
             }
         }
-        $appearanceNodes = [];
-        if ($normal instanceof EncodedStream && $page !== null) {
-            $appearanceNodes = $this->content->stream($page, $normal, $page->attributes->resources, 1);
+        $appearanceState = $this->values->name($annotation->get('AS'));
+        $appearanceNodes = $this->appearanceNodes($page, $normal, $appearanceState, $rect, 'normal:' . spl_object_id($annotation));
+        $down = $appearance === null ? null : $this->values->value($appearance, 'D');
+        $rollover = $appearance === null ? null : $this->values->value($appearance, 'R');
+        return new Widget($field, $page === null ? null : $this->number($page), $this->values->integer($annotation->get('F')), $rect, $pageBox, $appearanceState ?? 'Off', $states, $caption === null ? null : $this->values->text($caption->get('CA')), $appearanceNodes, $this->values->name($annotation->get('H')), $border === null ? null : $this->values->name($border->get('S')), $border === null ? null : $this->values->number($border->get('W'), 1), $caption === null ? null : $this->numericArray($caption->get('BC')), $caption === null ? null : $this->numericArray($caption->get('BG')), $inherit('Q') === null ? null : $this->values->integer($inherit('Q')), $optionIndex, $type === FieldType::Signature ? 'Signature validation is not performed by HTML derivation.' : null, actions: $widgetActions, downAppearance: $this->appearanceNodes($page, $down, $appearanceState, $rect, 'down:' . spl_object_id($annotation)), rolloverAppearance: $this->appearanceNodes($page, $rollover, $appearanceState, $rect, 'rollover:' . spl_object_id($annotation)));
+    }
+
+    /**
+     * @param array{int|float, int|float, int|float, int|float} $rectangle
+     * @return list<SourceNode>
+     */
+    private function appearanceNodes(?ReadPage $page, ?BasicType $appearance, ?string $state, array $rectangle, string $invocation): array
+    {
+        if ($page === null || $appearance === null || $appearance instanceof NullType) {
+            return [];
         }
-        return new Widget($field, $page === null ? null : $this->number($page), $this->values->integer($annotation->get('F')), $rect, $pageBox, $this->values->name($annotation->get('AS')) ?? 'Off', $states, $caption === null ? null : $this->values->text($caption->get('CA')), $appearanceNodes, $this->values->name($annotation->get('H')), $border === null ? null : $this->values->name($border->get('S')), $border === null ? null : $this->values->number($border->get('W'), 1), $caption === null ? null : $this->numericArray($caption->get('BC')), $caption === null ? null : $this->numericArray($caption->get('BG')), $inherit('Q') === null ? null : $this->values->integer($inherit('Q')), $optionIndex, $type === FieldType::Signature ? 'Signature validation is not performed by HTML derivation.' : null, actions: $widgetActions);
+        if ($appearance instanceof DictionaryType) {
+            // An unmatched or absent AS paints no state; do not substitute Off or the first entry.
+            $appearance = $state === null ? null : $this->values->value($appearance, $state);
+            if ($appearance === null || $appearance instanceof NullType) {
+                return [];
+            }
+        }
+        if (!$appearance instanceof EncodedStream) {
+            throw new ReadingException('A selected widget appearance must resolve to a stream.');
+        }
+        if ($rectangle[0] == $rectangle[2] || $rectangle[1] == $rectangle[3]) {
+            return [];
+        }
+        $box = $this->rectangle($appearance->dictionary()->get('BBox'));
+        if ($box[0] == $box[2] || $box[1] == $box[3]) {
+            $this->values->budget->diagnostic('A widget appearance has an empty bounding box and paints no content.');
+            return [];
+        }
+        $matrix = $this->values->value($appearance->dictionary(), 'Matrix');
+        if ($matrix !== null && !$matrix instanceof NullType && !$matrix instanceof ArrayType) {
+            throw new ReadingException('An appearance Matrix requires six numeric coefficients.');
+        }
+        $placement = new AppearancePlacement($box, $matrix instanceof ArrayType ? ContentMatrix::operands($matrix->items) : new ContentMatrix(), $rectangle);
+        $initial = (new PageTransform($page))->matrix->concatenate($placement->beforeFormMatrix);
+        return $this->content->stream($page, $appearance, $page->attributes->resources, 1, initialMatrix: $initial, invocation: 'appearance:' . $invocation);
     }
 
     private function fieldName(DictionaryType $field): string

@@ -69,16 +69,18 @@ final class DerivationSession
     private int $nodeCount = 0;
     private int $sourceBytes = 0;
     private string $css = '';
+    private readonly ?AppearanceRenderer $appearanceRenderer;
 
     public function __construct(
         private readonly TaggedDocument $document,
         private readonly DerivationPolicy $policy,
         private readonly DerivationLimits $limits,
         private readonly ?ContentRenderer $renderer,
-        private readonly ?AppearanceRenderer $appearanceRenderer = null,
+        ?AppearanceRenderer $appearanceRenderer = null,
     ) {
         $this->safety = new SafetyFilter($policy, $limits);
         $this->assets = new AssetCollection($limits);
+        $this->appearanceRenderer = $appearanceRenderer ?? ($renderer === null ? null : new \PDF\Html\Rendering\ContentAppearanceRenderer($renderer, $limits, $this->assets));
         $this->roles = new RoleResolver($document->roleMappings, $limits, $policy);
         $this->attributes = new AttributeDeriver();
         $this->mathLayout = new MathMlLayout($limits);

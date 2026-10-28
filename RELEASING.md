@@ -14,6 +14,12 @@ increment the patch version.
    PHPStan, formatting, reference fingerprints and independent HTML/PDF checks.
    Run `tools/validate_mathml.cjs` with Chromium and Firefox; retain browser
    versions and the concrete layout results separately from PHP/HTML parsing.
+   Run `validate_attribute_conformance.cjs`, `validate_widgets.cjs` and
+   `validate_signature_popovers.cjs` on actual PHP exports in both browsers.
+   Run the independent `validate_appearances.py` and `validate_signatures.py`
+   oracles, plus example 05 with the committed test signer in DER and PEM form.
+   Preserve reports/screenshots and exact source/tool versions; mathematical
+   signature integrity must not be reported as full PKI trust.
    Require PHP 8.3, 8.4 and 8.5 CI success for the exact candidate SHA.
 4. Verify the new `vX.Y.Z` tag is absent locally and remotely. Create an annotated
    tag at that validated SHA, push it and publish a GitHub release with the

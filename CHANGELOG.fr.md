@@ -4,6 +4,15 @@
 
 ## Non publié
 
+## 0.6.0 - 2026-10-28
+
+- Ajouter les objets explicites de validation liés à la source et un adaptateur à certificat épinglé vers le vérificateur du core. Exiger le jeton Contents physique exact et une révision signée complète ; distinguer `integrity-verified` de la confiance du certificat, de sa révocation et des permissions sur les changements ultérieurs. Présenter les explications dans des popovers HTML natifs sans activer les scripts PDF.
+- Ajouter `ContentAppearanceRenderer`, sélectionner les streams ou états nommés d’apparence normal/appuyé/survol et ajuster leurs limites transformées au rectangle d’annotation. Appliquer les modes N/I/O/P/T en CSS en conservant la priorité des styles de l’auteur.
+- Conserver la casse des propriétés CSS personnalisées et les noms Unicode légaux des UserProperties, neutraliser la spécificité des sélecteurs partagés de labels de liste et réparer les listes de description imbriquées orphelines sans inventer de terme ni dupliquer les identifiants.
+- Conserver les propriétés combinées ou vides du contenu marqué, confier toute une opération d’affichage de texte au rendu de secours si son Unicode est incomplet et exclure les artefacts des programmes Form imbriqués.
+- Lire les chaînes d’actions JavaScript bornées dans l’ordre source, lier les actions principales des widgets à leur activation et conserver l’ordre explicite des calculs AcroForm. Sélectionner les remplacements de scripts HTML associés avant de décoder les descendants ignorés.
+- Compléter la matrice de toutes les clauses Deriving HTML 1.2 et les guides FR/EN avec preuves d’implémentation, adaptations HTML et responsabilités applicatives. Ajouter des oracles indépendants navigateur, apparences et signatures ; exiger leurs résultats sur le candidat exact avant publication. Les contraintes stables de dépendances restent inchangées.
+
 ## 0.5.1 - 2026-10-28
 
 - Corriger l’[issue #1](https://github.com/PDFToolkit/pdf-to-html/issues/1) : ne pas projeter les `display:inline`/`display:block` automatiquement dérivés de Layout sur le MathML, y compris via des classes partagées. Conserver la mise en page mathématique native ; traduire Placement Block en `math[display="block"]` sans remplacer un display MathML explicite ni le CSS fourni par l’auteur.

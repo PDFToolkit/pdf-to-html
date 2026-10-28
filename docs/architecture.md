@@ -142,8 +142,20 @@ traversal depth is capped too. See the [graphics guide](graphics.md).
 heuristic binary `EI` searching. The provider interprets the exact payload
 boundary and consumes the supplied source budget.
 
-The optional fourth argument is `PDF\Html\Forms\AppearanceRenderer`, which
-converts explicit widget-appearance nodes to HTML nodes. Reading a PDF appearance
-stream and implementing a visual appearance engine remain different tasks.
-Both capabilities belong to the application, with its chosen resources and
-execution policy. The package launches no external process implicitly.
+The optional fourth argument is `PDF\Html\Forms\AppearanceRenderer`. The
+session reuses a supplied `ContentRenderer` through `ContentAppearanceRenderer`
+when no separate appearance capability is given. A separate renderer remains
+an explicit override. Source reading selects N/D/R and AS, preserving each
+appearance's Matrix/BBox-to-Rect placement; the application owns the visual engine.
+See [graphics](graphics.md).
+
+`ReadPdfSource` also accepts `SignatureValidationProvider`. Its immutable request
+contains the exact source document, signature dictionary and field name; the
+result binds to that request's identity and supplies a typed status and escaped
+explanation. Derivation displays it without repeating validation or exporting PDF
+scripts. See [signatures](signatures.md) for the distinction between the supplied
+integrity adapter and an application's complete validation policy.
+
+`TaggedDocument::$calculationOrder` preserves AcroForm CO as field names. The
+optional script bridge uses this explicit order; no global document registry or
+implicit Acrobat runtime is introduced.

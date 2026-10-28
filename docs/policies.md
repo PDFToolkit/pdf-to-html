@@ -128,6 +128,21 @@ The [context oracle](../tools/validate_graphics_context.py) compares original an
 exported Poppler output for inherited text clipping, artifacts, transparency and
 optional content. See the [graphics guide](graphics.md) for the concrete port.
 
+## Widget interaction and signature validation
+
+Highlighting modes and selected down/rollover appearances use library-owned CSS,
+with no PDF-script opt-in. Explicit author CSS remains authoritative. An existing
+content renderer is automatically adapted for appearances; a separately supplied
+`AppearanceRenderer` overrides it. Native signature popovers likewise do not
+require PDF scripts.
+
+Signature validation has its own explicit `ReadPdfSource` provider, separate from
+source decryption/MAC authentication and from `allowActiveContent`. With no
+provider, a signed field reports `not-validated`. `SignatureOutputValidation`
+reports only pinned-certificate integrity; complete trust/revocation/timestamp and
+revision-permission decisions require an application policy. Read
+[signatures](signatures.md) before interpreting a status as approval.
+
 ## Persist all returned assets
 
 `DerivationResult` contains HTML, CSS, assets and diagnostics. Enabled library

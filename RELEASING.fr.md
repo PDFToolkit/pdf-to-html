@@ -14,6 +14,12 @@ compatible ou une mise à jour documentaire la version corrective.
    audit, tests, PHPStan, formatage, empreintes et validations HTML/PDF indépendantes.
    Exécuter `tools/validate_mathml.cjs` avec Chromium et Firefox ; conserver les
    versions des navigateurs et résultats de mise en page séparément des analyses PHP/HTML.
+   Exécuter `validate_attribute_conformance.cjs`, `validate_widgets.cjs` et
+   `validate_signature_popovers.cjs` sur les vrais exports PHP dans les deux navigateurs.
+   Exécuter les oracles indépendants `validate_appearances.py` et
+   `validate_signatures.py`, ainsi que l’exemple 05 avec le certificat de test
+   conservé en DER et PEM. Garder rapports/captures et versions source/outils
+   exactes ; ne pas présenter l’intégrité mathématique comme une confiance PKI complète.
    Exiger une CI PHP 8.3, 8.4 et 8.5 réussie pour le SHA candidat exact.
 4. Vérifier que `vX.Y.Z` n'existe ni localement ni à distance. Créer un tag annoté
    sur ce SHA validé, le pousser et publier la release GitHub avec les notes

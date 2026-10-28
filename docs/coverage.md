@@ -2,7 +2,7 @@
 
 [English](coverage.md) · [Français](fr/coverage.md)
 
-Version **0.5.1** implements the derivation mechanisms of the retained reference
+Version **0.6.0** implements the derivation mechanisms of the retained reference
 through native source interpretation, explicit policies and application ports.
 The [clause ledger](requirements.md) records every numbered rule, its decision
 and concrete evidence. Coverage is not universal PDF acceptance, browser layout
@@ -62,6 +62,38 @@ it does not authenticate generated HTML.
 These tests supplement the original semantic HTML5 and real PDF fixture checks.
 The ledger covers the other standard mappings, properties, owners and annexes.
 They are executable implementation decisions, not a blanket certification claim.
+
+## What 0.6.0 completes
+
+CSS custom properties retain their case; valid Unicode UserProperties names stay
+distinct. Shared list-label guards no longer add specificity over later author
+CSS. Description lists lift orphan child lists outside dl while preserving
+reading order, destinations and legitimate nesting within dd. HTML script
+Supplement selection now precedes ignored descendant decoding.
+
+Marked-content properties combine even when ActualText or expansion text is
+empty. A partially decoded text-show instruction uses one visual fallback, without
+duplicating already decoded fragments. Nested Form artifacts remain excluded,
+including artifact-only child programs. Source widget appearances select AP
+normal/down/rollover states, fit them to Rect and reuse the explicit content
+renderer through `ContentAppearanceRenderer`.
+
+`HighlightingMode` maps N/I/O/P/T to library CSS while keeping native form semantics
+and author-style priority. N is neutral, I inverts, O inverts the border, P/T use
+the down appearance when supplied and otherwise a one-pixel push. R supplies the
+hover appearance. These are browser interaction mappings, not an arbitrary
+pixel-identical reproduction of a PDF viewer.
+
+Bounded JavaScript Next chains preserve source order. Primary widget A scripts
+run on activation under the script policy; AcroForm CO becomes
+`TaggedDocument::$calculationOrder` and orders calculation events. This remains a
+scoped field/event bridge, not a complete Acrobat runtime.
+
+The new [signature capability](signatures.md) validates original PDF bytes on
+explicit request and displays the result in a native popover. The supplied
+adapter reports `integrity-verified` against a chosen certificate, not a PKI or
+revision-permission decision. Without validation, a signed field remains
+`not-validated`; an empty field is `unsigned`.
 
 ## Accepted file inputs and extension ports
 
@@ -198,6 +230,17 @@ CI verifies PHP 8.3–8.5, PHPUnit, PHPStan, PSR-12 and Composer checks, plus:
 9. [validate_page_identifiers.py](../tools/validate_page_identifiers.py): HTML5
    checks of actual content parents, unique targets, navigation and field expansion.
 
+10. [validate_attribute_conformance.cjs](../tools/validate_attribute_conformance.cjs):
+    actual browser Unicode attributes, CSS custom-property identity and shared-class cascade.
+11. [validate_widgets.cjs](../tools/validate_widgets.cjs): highlighting, down/rollover
+    states and author CSS with page JavaScript disabled in Chromium and Firefox.
+12. [validate_appearances.py](../tools/validate_appearances.py): pypdf/Poppler comparison
+    of selected native annotation appearances, transformed sizes and nested artifacts.
+13. [validate_signatures.py](../tools/validate_signatures.py): independently produced
+    PDF/CMS fixtures, exact covered revisions, wrong certificates and tampering.
+14. [validate_signature_popovers.cjs](../tools/validate_signature_popovers.cjs):
+    escaped explanations and pointer/keyboard activation without PDF JavaScript.
+
 Pinned glyph-list and inline-fixture builders are also checked without changing
 their released bytes. Authentication dispatch and final Alternative/Headers
 targets have dedicated regression cases in the released PHPUnit suite.
@@ -224,7 +267,7 @@ that incompatible markup can be reproduced unchanged:
 | Widget mappings, [pages 59–60](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=59): rich-text RV | Retain plain text with a diagnostic. HTML `input` has no children and `textarea` cannot contain rich-text element markup. |
 | Widget flags, [pages 59–60](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=59): ReadOnly | Use native `readonly` where HTML provides it. Other controls retain `data-pdf-readonly` and report the application/runtime enforcement requirement; ARIA metadata alone does not prevent interaction. See `testReadOnlyChoiceUsesAnExplicitBridgeRatherThanInvalidReadonly` in the widget tests. |
 | 4.4.7.3, [page 55](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=55): marked-content Alt | Emit `span role="img" aria-label="…"` instead of invalid `span[alt]`, treating the described sequence as a named atomic group. Report the adaptation and review its assistive-technology semantics. |
-| Table attributes, [page 45](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=45): Scope Both | Omit unsupported `scope="both"` with a diagnostic; retain explicit Headers associations when supplied. |
+| Table attributes, [page 45](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=45): Scope Both | Preserve `data-pdf-table-scope="Both"`, omit unsupported `scope="both"` with a diagnostic and retain explicit Headers. This §4.3.4 adaptation preserves the source value without synthesizing header relations; later Row/Column replaces the metadata. |
 | Widget mappings, [page 59](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=59): FileSelect value | Do not prefill a browser file input; omit the PDF value and report the limitation. |
 | 4.6 and annex A, [pages 65–68](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=65): associated content | Scripts, imported stylesheets/SVG and active head content need an explicit policy. Imported CSS remains restricted; imports, URL-bearing declarations and expressions are filtered. HTTP-equivalent metadata such as refresh is never imported. |
 

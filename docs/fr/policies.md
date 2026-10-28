@@ -139,6 +139,22 @@ sorties Poppler originales et exportées pour le clipping du texte hérité,
 les artefacts, la transparence et le contenu optionnel.
 Le [guide graphique](graphics.md) présente le port concret.
 
+## Interaction des widgets et validation des signatures
+
+Modes de surbrillance et apparences appuyée/survol sélectionnées utilisent le CSS
+propre à la bibliothèque, sans autoriser les scripts PDF. Le CSS auteur explicite
+reste prioritaire. Un renderer de contenu existant est automatiquement adapté aux
+apparences ; un `AppearanceRenderer` fourni séparément le remplace. Les popovers
+natifs de signature ne nécessitent pas non plus de script PDF.
+
+La validation des signatures possède son fournisseur explicite dans
+`ReadPdfSource`, distinct du déchiffrement/MAC source et de `allowActiveContent`.
+Sans fournisseur, un champ signé rapporte `not-validated`.
+`SignatureOutputValidation` rapporte seulement l’intégrité avec certificat épinglé ;
+confiance/révocation/horodatage et permissions des révisions nécessitent une
+politique applicative. Lire les [signatures](signatures.md) avant d’interpréter un
+état comme une approbation.
+
 ## Conserver toutes les ressources renvoyées
 
 `DerivationResult` contient HTML, CSS, ressources et diagnostics. Les runtimes

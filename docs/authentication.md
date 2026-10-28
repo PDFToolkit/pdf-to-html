@@ -227,3 +227,10 @@ user/owner masks, wrong passwords and corrupt sources. They also reject a
 provider's valid MAC graph of another file, policy downgrades and adapted
 permission elevation. Certificate trust and signature mathematics are separate
 capabilities and are not inferred from these checks.
+
+## Signature validation is separate
+
+Version 0.6.0 adds an explicit source-signature provider and actionable status UI.
+Password/public-key decryption and source PDF MAC checks do not activate it.
+[The signature guide](signatures.md) shows the selected-certificate integrity
+adapter and the responsibilities of a complete application validation policy.

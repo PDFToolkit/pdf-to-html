@@ -7,7 +7,7 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.5.1 implements the reference's derivation mechanisms with explicit
+Version 0.6.0 implements the reference's derivation mechanisms with explicit
 security profiles, native password/public-key/MAC authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
@@ -19,14 +19,14 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 ## Install
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.5"
+composer require "pdftoolkit/pdf-to-html:^0.6"
 ```
 
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.5.1 accepts reader `^0.6` and core `^0.9 || ^0.10 || ^0.11`.
+Version 0.6.0 accepts reader `^0.6` and core `^0.9 || ^0.10 || ^0.11`.
 Reader 0.6 additionally supports explicitly selected public-key authentication with normalized historical s3 permissions.
 The reader verifies indicated
 ISO/TS 32004 source MACs before content interpretation. Explicit
@@ -107,6 +107,19 @@ transparency and optional content. A structure BBox or explicit page-coordinate
 viewport can override the output bounds. No painted-pixel crop is inferred.
 See the [graphics guide](docs/graphics.md) for the executable integration example.
 
+Version 0.6.0 adds `ContentAppearanceRenderer` to reuse that explicit rendering
+engine for widget appearances, with normal/down/rollover states fitted to the
+annotation rectangle. Native CSS implements the PDF highlighting modes while
+preserving actual form controls and author-style precedence.
+
+Signed fields expose a native HTML popover with an explanation. Inject
+`ReadPdfSource(signatureValidation: $provider)` to validate the original PDF
+through an explicit `SignatureValidationProvider`. The supplied
+`SignatureOutputValidation` adapter checks signature mathematics against a chosen
+certificate and reports `integrity-verified`; it does not decide certificate
+trust, revocation or whether later revisions were permitted. The derived HTML
+remains unsigned. See the [signature guide](docs/signatures.md).
+
 ResetForm uses the PDF default value `/DV`, including its absence, and honors
 field selection, parent names and exclusion. SubmitForm has explicit HTML export,
 selection and mapping-name behavior. Both need `FormActionPolicy` permission;
@@ -149,6 +162,7 @@ provides the input PDF, rendered pages, executable PHP and actual HTML result.
 - [Policies](docs/policies.md): shared profiles, forms, scripts and rendering.
 - [Security](docs/security.md): budgets, HTML/CSS/URL validation and active content.
 - [Authentication](docs/authentication.md): native credentials and effective user/owner permissions.
+- [Signatures](docs/signatures.md): source-bound validation, status UI and PKI boundaries.
 - [Retained reference](docs/reference.md): original PDF, license and fingerprint.
 - [Complete API and guides](https://pdftoolkit.github.io/modules/to-html/).
 

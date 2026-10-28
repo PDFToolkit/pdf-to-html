@@ -2,7 +2,7 @@
 
 [English](../coverage.md) · [Français](coverage.md)
 
-La version **0.5.1** implémente les mécanismes de dérivation de la référence
+La version **0.6.0** implémente les mécanismes de dérivation de la référence
 conservée par une interprétation source native, des politiques explicites et des
 ports propres à l'application. Le [registre des clauses](requirements.md) associe
 chaque règle numérotée à sa décision et à des preuves concrètes. La couverture
@@ -70,6 +70,40 @@ extension de l’annexe C n’authentifie pas le HTML produit.
 Ces tests complètent les contrôles initiaux du HTML5 sémantique et de la fixture
 PDF réelle. Le registre couvre les autres mappings, propriétés, propriétaires et
 annexes. Ce sont des décisions exécutables, sans certification générale implicite.
+
+## Ce que complète la version 0.6.0
+
+Les propriétés CSS personnalisées conservent leur casse ; les noms Unicode légaux
+des UserProperties restent distincts. Les filtres partagés des labels de liste
+n’ajoutent plus de spécificité face au CSS auteur ultérieur. Les listes de
+description déplacent les listes enfants orphelines hors de dl en conservant ordre,
+destinations et imbrications légitimes dans dd. La sélection Supplement des scripts
+HTML précède désormais le décodage des descendants ignorés.
+
+Les propriétés de contenu marqué se combinent même si ActualText ou le texte
+d’expansion est vide. Une instruction d’affichage de texte partiellement décodée
+utilise un seul repli visuel, sans dupliquer les fragments déjà décodés. Les
+artefacts des Form imbriqués restent exclus, y compris dans les programmes enfants
+ne contenant que des artefacts. Les apparences source des widgets sélectionnent
+les états AP normal/appuyé/survol, les ajustent au Rect et réutilisent le renderer
+explicite via `ContentAppearanceRenderer`.
+
+`HighlightingMode` traduit N/I/O/P/T en CSS de la bibliothèque en conservant
+sémantique native des contrôles et priorité des styles auteur. N est neutre,
+I inverse, O inverse la bordure, P/T utilisent l’apparence appuyée si fournie ou
+un décalage d’un pixel. R fournit l’apparence au survol. Ces mappings d’interaction
+navigateur ne reproduisent pas arbitrairement un viewer PDF pixel pour pixel.
+
+Les chaînes JavaScript Next bornées conservent l’ordre source. Les scripts A des
+widgets s’exécutent à l’activation sous la politique des scripts ; CO AcroForm
+devient `TaggedDocument::$calculationOrder` et ordonne les événements de calcul.
+Cela reste un pont champs/événements délimité, pas un runtime Acrobat complet.
+
+La nouvelle [capacité de signature](signatures.md) valide les octets PDF originaux
+sur demande explicite et présente le résultat dans un popover natif. L’adaptateur
+fourni rapporte `integrity-verified` avec un certificat choisi, sans décision PKI
+ou de permission des révisions. Sans validation, un champ signé reste
+`not-validated` ; un champ vide est `unsigned`.
 
 ## Fichiers acceptés et ports d'extension
 
@@ -213,6 +247,17 @@ La CI vérifie PHP 8.3–8.5, PHPUnit, PHPStan, PSR-12 et Composer, ainsi que :
 9. [validate_page_identifiers.py](../../tools/validate_page_identifiers.py) : contrôles
    HTML5 des parents réels, cibles uniques, navigation et expansion des champs.
 
+10. [validate_attribute_conformance.cjs](../../tools/validate_attribute_conformance.cjs) :
+    attributs Unicode, identité des propriétés CSS et cascade partagée dans les navigateurs.
+11. [validate_widgets.cjs](../../tools/validate_widgets.cjs) : surbrillance, états
+    appuyé/survol et CSS auteur avec JavaScript désactivé dans Chromium et Firefox.
+12. [validate_appearances.py](../../tools/validate_appearances.py) : comparaison
+    pypdf/Poppler des apparences natives sélectionnées, tailles transformées et artefacts imbriqués.
+13. [validate_signatures.py](../../tools/validate_signatures.py) : fixtures PDF/CMS
+    indépendantes, révisions couvertes exactes, certificats incorrects et altérations.
+14. [validate_signature_popovers.cjs](../../tools/validate_signature_popovers.cjs) :
+    explications échappées et activation souris/clavier sans JavaScript PDF.
+
 Les builders des listes de glyphes et fixtures inline épinglées sont également
 contrôlés sans modifier leurs octets publiés. Le déclenchement d'authentification
 et les cibles finales Alternative/Headers ont des régressions PHPUnit dédiées.
@@ -239,7 +284,7 @@ diagnostics, sans prétendre reproduire à l'identique un balisage incompatible 
 | Widgets, [pages 59–60](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=59) : texte riche RV | Conserver le texte brut avec un diagnostic. Un `input` HTML n'a pas d'enfant et `textarea` ne peut pas contenir de balisage riche. |
 | Flags des widgets, [pages 59–60](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=59) : ReadOnly | Utiliser `readonly` natif lorsque HTML le prévoit. Les autres contrôles conservent `data-pdf-readonly` et signalent la nécessité d'une application/runtime d'exécution ; les seules métadonnées ARIA ne bloquent pas l'interaction. Voir `testReadOnlyChoiceUsesAnExplicitBridgeRatherThanInvalidReadonly` dans les tests des widgets. |
 | 4.4.7.3, [page 55](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=55) : Alt du contenu marqué | Produire `span role="img" aria-label="…"` plutôt qu'un `span[alt]` invalide, en traitant la séquence décrite comme un groupe atomique nommé. Signaler l'adaptation et vérifier son sens avec les technologies d'assistance. |
-| Attributs de tableau, [page 45](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=45) : Scope Both | Omettre le `scope="both"` non accepté avec diagnostic ; conserver les associations Headers explicites lorsqu'elles sont fournies. |
+| Attributs de tableau, [page 45](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=45) : Scope Both | Conserver `data-pdf-table-scope="Both"`, omettre `scope="both"` non accepté avec diagnostic et garder les Headers explicites. Cette adaptation §4.3.4 conserve la valeur source sans synthétiser de relations ; Row/Column ultérieur remplace la métadonnée. |
 | Widgets, [page 59](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=59) : valeur FileSelect | Ne pas préremplir un sélecteur de fichier du navigateur ; omettre la valeur PDF et signaler cette limite. |
 | 4.6 et annexe A, [pages 65–68](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf#page=65) : contenu associé | Scripts, feuilles de style/SVG importés et métadonnées actives demandent une politique explicite. Le CSS importé reste restreint : imports, déclarations portant des URL et expressions sont filtrés. Les métadonnées HTTP-equivalent telles que refresh ne sont jamais importées. |
 

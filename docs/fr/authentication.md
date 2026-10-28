@@ -240,3 +240,11 @@ de mot de passe et corruptions. Ils refusent aussi le graphe MAC valide d’un
 autre fichier, les relâchements de politique et les élévations de permissions.
 La confiance dans les certificats et la validation mathématique des signatures
 sont des capacités distinctes, sans déduction à partir de ces contrôles.
+
+## La validation des signatures est distincte
+
+La version 0.6.0 ajoute un fournisseur explicite de validation des signatures
+source et une interface d’état actionnable. Le déchiffrement par mot de passe/clé
+publique et les contrôles MAC source ne l’activent pas. Le [guide des signatures](signatures.md)
+présente l’adaptateur d’intégrité avec certificat choisi et les responsabilités
+d’une politique applicative complète de validation.

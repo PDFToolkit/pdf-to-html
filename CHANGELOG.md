@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+## 0.6.0 - 2026-10-28
+
+- Add explicit source-bound signature validation objects and a pinned-certificate adapter to the core verifier. Require the exact physical Contents token and a complete signed revision; report `integrity-verified` separately from certificate trust, revocation and later-change permissions. Show explanations in native HTML popovers without enabling PDF scripts.
+- Add `ContentAppearanceRenderer`, select normal/down/rollover appearance streams or named states, and fit their transformed bounds to the annotation rectangle. Implement highlighting modes N/I/O/P/T in CSS with author styles retaining precedence.
+- Preserve CSS custom-property case and legal Unicode UserProperties names, keep shared list-label selectors neutral in the cascade, and repair orphan nested description lists without inventing terms or duplicating identifiers.
+- Preserve combined and empty marked-content properties, route an entire text-show operation through visual fallback when Unicode is incomplete, and exclude artifacts inside nested Form programs.
+- Read bounded JavaScript action chains in source order, bind primary widget actions to activation, and preserve explicit AcroForm calculation order. Select associated HTML script replacements before decoding ignored descendants.
+- Expand the complete Deriving HTML 1.2 clause matrix and English/French guides with implementation evidence, HTML adaptations and application responsibilities. Add independent browser, appearance and signature oracles; require their exact-candidate results before publication. Existing stable dependency ranges are unchanged.
+
 ## 0.5.1 - 2026-10-28
 
 - Correct [issue #1](https://github.com/PDFToolkit/pdf-to-html/issues/1): do not project automatically derived Layout `display:inline`/`display:block` onto MathML, including shared classes. Preserve native mathematical layout; map block Placement to `math[display="block"]` without overriding explicit MathML display or source-authored CSS.

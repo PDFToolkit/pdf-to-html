@@ -59,6 +59,14 @@ Generated library form runtimes are externalized too. They contain library code,
 not embedded PDF script bodies when PDF scripting is disabled. They still need
 to be served deliberately under the application's browser policy.
 
+An explicitly supplied signature provider is a different capability. Its result
+must bind to the exact request/source/field, and its explanation is escaped as
+text. The supplied integrity adapter checks the physical Contents gap and complete
+signed revision before calling a chosen core verifier. An `integrity-verified`
+state does not establish PKI trust, revocation, timestamp validity, permission for
+later PDF revisions or authenticity of the derived HTML. The browser popover is
+an explanation, not a trust root. See [signatures](signatures.md).
+
 ## Validate before serialization
 
 Escape text and attribute values. Validate element/attribute names, URL schemes,

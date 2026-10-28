@@ -65,6 +65,15 @@ code de la bibliothèque et aucun corps de script PDF lorsque les scripts PDF
 sont désactivés. Ils demandent néanmoins une mise à disposition volontaire
 suivant la politique navigateur de l'application.
 
+Un fournisseur explicite de validation de signature est une autre capacité.
+Son résultat doit se lier à la requête/source/champ exacts et son explication est
+échappée comme texte. L’adaptateur d’intégrité fourni contrôle l’intervalle Contents
+physique et la révision signée complète avant d’appeler le vérificateur choisi du
+core. `integrity-verified` ne prouve ni confiance PKI, ni révocation, ni validité
+d’horodatage, ni permission des révisions PDF ultérieures, ni authenticité du HTML
+dérivé. Le popover explique un résultat, sans constituer une racine de confiance.
+Voir les [signatures](signatures.md).
+
 ## Valider avant sérialisation
 
 Échapper textes et attributs. Valider noms d'éléments et d'attributs, schémas d'URL,

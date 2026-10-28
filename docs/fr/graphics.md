@@ -98,6 +98,38 @@ La réutilisation sémantique peut omettre des tracés et dégradés non pertine
 comme le permettent les sections 4.4.1 et 4.4.5 ; les diagnostics les identifient.
 Une image non convertible reçoit un remplacement à sa taille logique d'affichage.
 
+## Réutiliser le moteur pour les apparences de widgets
+
+Lorsqu’un `ContentRenderer` est fourni, la session l’adapte automatiquement en
+`ContentAppearanceRenderer` pour les widgets. Un `AppearanceRenderer` explicite
+reste prioritaire. Pour configurer directement l’adaptateur :
+
+```php
+use PDF\Html\Rendering\ContentAppearanceRenderer;
+
+$deriver = new HtmlDeriver(
+    renderer: $renderer,
+    appearanceRenderer: new ContentAppearanceRenderer($renderer),
+);
+```
+
+Le lecteur sélectionne les streams AP N/D/R ou l’état nommé correspondant
+exactement à AS. Il ne choisit pas arbitrairement un état si AS manque ou ne
+correspond pas. Les limites Matrix/BBox sont ajustées au Rect du widget, puis
+composées une seule fois avec rotation et UserUnit de page ; chaque utilisation
+conserve son contexte d’appel. Apparence normale et légende restent disponibles ;
+les apparences appuyée/survol participent aux interactions CSS natives des widgets.
+
+L’adaptateur rend toute l’apparence en un groupe et vérifie octets PNG/JPEG/GIF
+portables, dimensions logiques et budgets de sortie/ressources. L’adaptateur
+automatique partage le budget cumulatif de ressources de la session. Il n’effectue
+aucune entrée/sortie implicite. Renderer, polices et environnement restent fournis
+par l’application ; l’absence de capacité visuelle produit le repli textuel
+documenté, pas des pixels inventés.
+[validate_appearances.py](../../tools/validate_appearances.py) compare les exports
+isolés avec le rendu natif des annotations via pypdf/Poppler indépendants, dont deux
+tailles, N/D/R, artefacts imbriqués et cas ne contenant que des artefacts.
+
 ## Preuves de rendu indépendantes
 
 `tools/validate_graphics.py` analyse les exports avec pypdf et les rend avec

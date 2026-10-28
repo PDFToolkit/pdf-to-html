@@ -92,6 +92,37 @@ group. Semantic reuse may omit irrelevant paths and shadings, as sections 4.4.1
 and 4.4.5 permit; diagnostics identify those omissions. Images that cannot be
 converted receive a placeholder at their logical display size.
 
+## Reuse the engine for widget appearances
+
+When a `ContentRenderer` is supplied, the derivation session automatically wraps
+it in `ContentAppearanceRenderer` for widgets. An explicit `AppearanceRenderer`
+still takes precedence. To configure the adapter directly:
+
+```php
+use PDF\Html\Rendering\ContentAppearanceRenderer;
+
+$deriver = new HtmlDeriver(
+    renderer: $renderer,
+    appearanceRenderer: new ContentAppearanceRenderer($renderer),
+);
+```
+
+The reader selects AP N/D/R streams, or a named state matching AS exactly. It does
+not choose an arbitrary dictionary state if AS is absent or unmatched. Form
+Matrix/BBox bounds are fitted to the widget Rect and composed with page rotation
+and UserUnit once; repeated uses keep their own invocation context. Normal
+appearance and caption remain available; down/rollover appearances participate in
+native widget CSS interactions.
+
+The adapter renders the whole appearance as one group and verifies portable
+PNG/JPEG/GIF bytes, logical dimensions and output/asset budgets. The session's
+automatic adapter shares its cumulative asset budget. It performs no implicit
+I/O. The application still supplies the renderer, fonts and execution environment;
+a missing visual capability yields the documented textual fallback, not invented
+pixels. [validate_appearances.py](../tools/validate_appearances.py) compares isolated
+exports with native annotation rendering through independent pypdf/Poppler,
+including two sizes, N/D/R and artifact-only/nested artifact cases.
+
 ## Independent rendering evidence
 
 `tools/validate_graphics.py` parses exported PDFs with pypdf and renders them

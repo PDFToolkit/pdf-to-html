@@ -151,8 +151,20 @@ Voir le [guide graphique](graphics.md).
 recherche heuristique d'un `EI` binaire. Le fournisseur interprète la frontière
 exacte du contenu et consomme le budget source fourni.
 
-Le quatrième argument optionnel est `PDF\Html\Forms\AppearanceRenderer`, qui
-convertit les nœuds explicites d'apparence des widgets en nœuds HTML. Lire un flux
-d'apparence PDF et implémenter son moteur visuel restent des tâches distinctes.
-Ces deux capacités appartiennent à l'application, avec ses ressources et sa
-politique d'exécution. Le package ne lance aucun processus externe implicitement.
+Le quatrième argument optionnel est `PDF\Html\Forms\AppearanceRenderer`. La
+session réutilise un `ContentRenderer` fourni via `ContentAppearanceRenderer` si
+aucune capacité d’apparence distincte n’est donnée. Le renderer séparé reste une
+surcharge explicite. La lecture sélectionne N/D/R et AS en conservant le placement
+Matrix/BBox-vers-Rect de chaque apparence ; le moteur visuel appartient à
+l’application. Voir les [graphiques](graphics.md).
+
+`ReadPdfSource` accepte aussi `SignatureValidationProvider`. Sa requête immuable
+contient document source, dictionnaire de signature et nom de champ exacts ; le
+résultat se lie à l’identité de cette requête et fournit un état typé et une
+explication échappée. La dérivation les affiche sans répéter la validation ni
+exporter de script PDF. Les [signatures](signatures.md) distinguent l’adaptateur
+d’intégrité fourni de la politique complète de validation de l’application.
+
+`TaggedDocument::$calculationOrder` conserve CO AcroForm sous forme de noms de
+champs. Le pont optionnel de scripts suit cet ordre explicite, sans registre
+global de documents ni runtime Acrobat implicite.

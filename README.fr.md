@@ -7,7 +7,7 @@ selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
 Ce dépôt a été créé spécialement pour implémenter les règles de
 [Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-La version 0.5.1 implémente les mécanismes de dérivation de la référence avec des
+La version 0.6.0 implémente les mécanismes de dérivation de la référence avec des
 profils de sécurité explicites, l’authentification native par mot de passe/clé publique/MAC et un
 rendu fourni par l’application. Le [guide de couverture](docs/fr/coverage.md) et le
 [registre des clauses](docs/fr/requirements.md) décrivent les comportements
@@ -21,14 +21,14 @@ de convertir tout PDF.
 ## Installer
 
 ```sh
-composer require "pdftoolkit/pdf-to-html:^0.5"
+composer require "pdftoolkit/pdf-to-html:^0.6"
 ```
 
 PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3,
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
 
-La version 0.5.1 accepte le lecteur `^0.6` et le core `^0.9 || ^0.10 || ^0.11`.
+La version 0.6.0 accepte le lecteur `^0.6` et le core `^0.9 || ^0.10 || ^0.11`.
 Le lecteur 0.6 prend en charge l’authentification par clé publique sur sélection explicite et normalise les permissions historiques s3.
 Le lecteur vérifie
 les MAC sources ISO/TS 32004 signalés avant l’interprétation du contenu.
@@ -112,6 +112,19 @@ Une BBox de structure ou un viewport explicite en coordonnées de page peut
 remplacer ces limites. Aucun cadrage par les pixels peints n'est calculé.
 Le [guide graphique](docs/fr/graphics.md) fournit un exemple d'intégration exécutable.
 
+La version 0.6.0 ajoute `ContentAppearanceRenderer` pour réutiliser ce moteur
+explicite avec les apparences de widgets, dont les états normal/appuyé/survol
+ajustés au rectangle d’annotation. Le CSS natif applique les modes de surbrillance
+PDF en conservant les vrais contrôles et la priorité des styles de l’auteur.
+
+Les champs signés proposent un popover HTML natif contenant une explication.
+Injecter `ReadPdfSource(signatureValidation: $provider)` pour valider le PDF
+original via un `SignatureValidationProvider` explicite. L’adaptateur fourni
+`SignatureOutputValidation` vérifie la signature mathématique avec un certificat
+choisi et rapporte `integrity-verified` ; il ne décide ni de la confiance du
+certificat, ni de sa révocation, ni de l’autorisation des révisions ultérieures.
+Le HTML dérivé reste non signé. Voir le [guide des signatures](docs/fr/signatures.md).
+
 ResetForm utilise la valeur par défaut PDF `/DV`, y compris son absence, et
 respecte sélection, noms parents et exclusion. SubmitForm possède des règles
 explicites d'export HTML, de sélection et de noms de mapping. Les deux demandent
@@ -156,6 +169,7 @@ fournit le PDF d'entrée, ses pages rendues, le PHP exécutable et le HTML obten
 - [Politiques](docs/fr/policies.md) : profils communs, formulaires, scripts et rendu.
 - [Sécurité](docs/fr/security.md) : budgets, validation HTML/CSS/URL et contenu actif.
 - [Authentification](docs/fr/authentication.md) : identifiants natifs et permissions utilisateur/propriétaire effectives.
+- [Signatures](docs/fr/signatures.md) : validation liée à la source, interface d’état et frontières PKI.
 - [Référence conservée](docs/fr/reference.md) : PDF original, licence et empreinte.
 - [API complète et guides](https://pdftoolkit.github.io/fr/modules/to-html/).
 

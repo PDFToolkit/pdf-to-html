@@ -319,11 +319,6 @@ final class SourceReadSession
         return [$all, $all || $direct];
     }
 
-    private function resolvedType(DictionaryType $dictionary): ?string
-    {
-        return $this->resolvedRole($dictionary)?->type;
-    }
-
     private function resolvedRole(DictionaryType $dictionary): ?\PDF\Html\ResolvedRole
     {
         $type = $this->values->name($dictionary->get('S'));

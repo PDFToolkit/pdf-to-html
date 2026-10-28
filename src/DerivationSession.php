@@ -6,6 +6,7 @@ namespace PDF\Html;
 
 use PDF\Html\Attributes\AttributeDeriver;
 use PDF\Html\Attributes\DerivedAttributes;
+use PDF\Html\Attributes\MathMlLayout;
 use PDF\Html\Forms\WidgetDeriver;
 use PDF\Html\Forms\AppearanceRenderer;
 use PDF\Html\Html\ContentModelRepair;
@@ -40,6 +41,7 @@ final class DerivationSession
     private readonly AssetCollection $assets;
     private readonly RoleResolver $roles;
     private readonly AttributeDeriver $attributes;
+    private readonly MathMlLayout $mathLayout;
     private readonly ClassName $className;
     private readonly PageContentIdentifiers $pageIdentifiers;
     /** @var list<Diagnostic> */
@@ -79,6 +81,7 @@ final class DerivationSession
         $this->assets = new AssetCollection($limits);
         $this->roles = new RoleResolver($document->roleMappings, $limits, $policy);
         $this->attributes = new AttributeDeriver();
+        $this->mathLayout = new MathMlLayout($limits);
         $this->className = new ClassName();
         $this->pageIdentifiers = new PageContentIdentifiers($limits);
     }
@@ -119,6 +122,7 @@ final class DerivationSession
             $navigation->children[] = new Element('a', ['href' => '#PDF-Page-' . $page], [new Text($this->document->pageLabels[$page] ?? (string) $page)]);
         }
         array_unshift($body->children, $navigation);
+        $this->mathLayout->protectClassStyles($body);
         $this->safety->filter($body);
         if ($this->policy->allowActiveContent || $this->policy->formActions->enabled()) {
             $scripts = new ScriptDeriver($this->policy->allowActiveContent, $this->policy->formActions);
@@ -242,10 +246,22 @@ final class DerivationSession
             $derived = $this->attributes->derive($attributes);
             $label = $this->attributes->derive($this->withoutPlacement($attributes));
             $selector = '.' . $this->className->encode($name);
-            $this->css .= $selector . '{' . $this->safety->cssText($this->safety->css($label->css)) . "}\n";
+            $common = $label->css;
+            if ($label->layoutDisplay) {
+                unset($common['display']);
+                $this->css .= $this->mathLayout->classSelector($selector) . '{display:' . $label->css['display'] . "}\n";
+            }
+            $this->css .= $selector . '{' . $this->safety->cssText($this->safety->css($common)) . "}\n";
             $placement = array_diff_assoc($derived->css, $label->css);
             if ($placement !== []) {
-                $this->css .= $selector . ':not([data-pdf-list-label]){' . $this->safety->cssText($this->safety->css($placement)) . "}\n";
+                $placementSelector = $selector . ':not([data-pdf-list-label])';
+                if ($derived->layoutDisplay && isset($placement['display'])) {
+                    $this->css .= $this->mathLayout->classSelector($placementSelector) . '{display:' . $placement['display'] . "}\n";
+                    unset($placement['display']);
+                }
+                if ($placement !== []) {
+                    $this->css .= $placementSelector . '{' . $this->safety->cssText($this->safety->css($placement)) . "}\n";
+                }
             }
         }
     }
@@ -274,6 +290,9 @@ final class DerivationSession
         $parent = $ancestors === [] ? null : $ancestors[array_key_last($ancestors)];
         $listLabel = $type === 'Lbl' && $parent === 'LI';
         $derived = $this->effectiveAttributes($source, $listLabel);
+        if ($role->namespace === 'http://www.w3.org/1998/Math/MathML') {
+            $derived = $this->mathLayout->adapt($derived, $type === 'math');
+        }
         foreach ($derived->diagnostics as $message) {
             $this->diagnostics[] = new Diagnostic('attribute-adaptation', $message, $source->key);
         }
@@ -379,7 +398,7 @@ final class DerivationSession
             }
         }
         $association = $properties->actualText === null && !($type === 'Formula' && $hasMath)
-            ? $this->associationPlan($source, $element) : new AssociationPlan();
+            ? $this->associationPlan($source, $element, $derived) : new AssociationPlan();
         if ($association->alternative) {
             $nodes = $association->nodes;
             $target = null;
@@ -984,7 +1003,7 @@ final class DerivationSession
         return 'span';
     }
 
-    private function associationPlan(StructureElement $source, Element $element): AssociationPlan
+    private function associationPlan(StructureElement $source, Element $element, DerivedAttributes $derived): AssociationPlan
     {
         $supplement = false;
         $replacement = false;
@@ -1013,6 +1032,14 @@ final class DerivationSession
             foreach ($nodes as $node) {
                 if ($node instanceof Element) {
                     $attrs = $element->attributes;
+                    if ($node->tag === 'math') {
+                        // The fragment owns its MathML attributes; inherited Layout CSS must not replace math layout.
+                        unset($attrs['style']);
+                        $inherited = new Element('math', $attrs);
+                        $mathAttributes = $this->mathLayout->adapt($derived, true);
+                        $this->applyAttributes($inherited, $mathAttributes->html, $mathAttributes->css);
+                        $attrs = $inherited->attributes;
+                    }
                     if ($associated !== [] || $file->relationship === 'Supplement') {
                         unset($attrs['id']);
                     }

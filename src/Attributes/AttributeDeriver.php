@@ -24,6 +24,8 @@ final class AttributeDeriver
         }
         usort($ordered, static fn (array $a, array $b): int => ($a[0] <=> $b[0]) ?: ($a[1] <=> $b[1]));
         $html = $css = $diagnostics = [];
+        $layoutDisplay = false;
+        $placement = null;
         $position = $numbering = $noteType = null;
         $printField = false;
         $tableHeaders = null;
@@ -86,7 +88,14 @@ final class AttributeDeriver
                     if ($key === 'TextPosition' && in_array($value, ['Sub','Sup'], true)) {
                         $position = strtolower($value);
                     } else {
+                        $hadDisplay = isset($css['display']);
                         $this->layout($css, $key, $value, $diagnostics);
+                        if ($key === 'Placement' && in_array($value, ['Block', 'Inline'], true)) {
+                            $placement = strtolower((string) $value);
+                            $layoutDisplay = true;
+                        } elseif (!$hadDisplay && isset($css['display'])) {
+                            $layoutDisplay = true;
+                        }
                     }
                 }
             } elseif ($owner === 'PrintField') {
@@ -100,6 +109,9 @@ final class AttributeDeriver
                 foreach ($values as $key => $value) {
                     if (!in_array($key, ['O','NS'], true)) {
                         $css[strtolower($key)] = $this->string($value);
+                        if (strtolower($key) === 'display') {
+                            $layoutDisplay = false;
+                        }
                     }
                 }
             } elseif (str_starts_with($owner, 'HTML-') || str_starts_with($owner, 'ARIA-') || ($owner === 'NSO' && $namespace !== null && $attribute->namespace === $namespace && $namespaceIdentity !== null && $attribute->namespaceIdentity === $namespaceIdentity)) {
@@ -124,6 +136,9 @@ final class AttributeDeriver
                                 $parts = explode(':', $declaration, 2);
                                 if (count($parts) === 2) {
                                     $css[strtolower(trim($parts[0]))] = trim($parts[1]);
+                                    if (strtolower(trim($parts[0])) === 'display') {
+                                        $layoutDisplay = false;
+                                    }
                                 }
                             }
                         }
@@ -135,7 +150,7 @@ final class AttributeDeriver
                 $diagnostics[] = 'Unsupported attribute owner: '.$owner.'.';
             }
         }
-        return new DerivedAttributes($html, $css, $position, $numbering, $printField, $noteType, array_values(array_unique($diagnostics)), $tableHeaders);
+        return new DerivedAttributes($html, $css, $position, $numbering, $printField, $noteType, array_values(array_unique($diagnostics)), $tableHeaders, $layoutDisplay, $placement);
     }
     private function priority(AttributeObject $attribute): int
     {

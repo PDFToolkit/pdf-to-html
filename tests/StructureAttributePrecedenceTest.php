@@ -94,7 +94,7 @@ final class StructureAttributePrecedenceTest extends TestCase
         self::assertTrue($labelNode->hasAttribute('data-pdf-list-label'));
         self::assertStringNotContainsString('float:', $labelNode->getAttribute('style'));
         self::assertStringNotContainsString('display:', $labelNode->getAttribute('style'));
-        self::assertStringContainsString(':not([data-pdf-list-label]){display:block}', $html);
+        self::assertStringContainsString(':not([data-pdf-list-label]):where(:not([data-pdf-math-layout])){display:block}', $html);
         self::assertStringContainsString('color:rgb(255, 0, 0)', $labelNode->getAttribute('style'));
     }
 

@@ -254,7 +254,7 @@ final class DerivationSession
             $this->css .= $selector . '{' . $this->safety->cssText($this->safety->css($common)) . "}\n";
             $placement = array_diff_assoc($derived->css, $label->css);
             if ($placement !== []) {
-                $placementSelector = $selector . ':not([data-pdf-list-label])';
+                $placementSelector = $selector . ':where(:not([data-pdf-list-label]))';
                 if ($derived->layoutDisplay && isset($placement['display'])) {
                     $this->css .= $this->mathLayout->classSelector($placementSelector) . '{display:' . $placement['display'] . "}\n";
                     unset($placement['display']);

@@ -47,6 +47,15 @@ final class SignatureOutputValidationTest extends TestCase
         }
     }
 
+    public function testPhysicalInspectionLimitDoesNotClaimThatTheSignatureIsInvalid(): void
+    {
+        $fixtures = new SignatureFixture();
+        $source = new SignatureVerificationSource(new \PDF\Reading\RevisionHistoryReader(new \PDF\Reading\ReaderLimits(maxFileBytes: 16)));
+        $result = (new SignatureOutputValidation(new OpenSslSignatureOutputVerifier(), $fixtures->certificate(), $source))->validate($fixtures->request());
+        self::assertSame(SignatureValidationStatus::Indeterminate, $result->status);
+        self::assertStringContainsString('limit', $result->message);
+    }
+
     public function testReconstructedContentsRequiresAnExplicitProvenanceProvider(): void
     {
         $fixtures = new SignatureFixture();

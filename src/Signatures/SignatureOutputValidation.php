@@ -20,9 +20,9 @@ final readonly class SignatureOutputValidation implements SignatureValidationPro
             $input = $this->source->input($request, $this->certificate);
             $this->verifier->verify($input)->validateBinding($input);
             return new SignatureValidationResult($request, SignatureValidationStatus::IntegrityVerified, 'The signed PDF bytes authenticate against the selected certificate. Certificate trust, revocation and later PDF changes have not been validated; the derived HTML is not signed.');
-        } catch (\PDF\Reading\UnsupportedPdfFeature $error) {
+        } catch (\PDF\Reading\ParseException $error) {
             return new SignatureValidationResult($request, SignatureValidationStatus::Indeterminate, $error->getMessage());
-        } catch (\InvalidArgumentException|\OverflowException|\PDF\Reading\ParseException $error) {
+        } catch (\InvalidArgumentException|\OverflowException $error) {
             return new SignatureValidationResult($request, SignatureValidationStatus::Invalid, 'PDF signature verification failed: ' . $error->getMessage());
         } catch (\LogicException $error) {
             return new SignatureValidationResult($request, SignatureValidationStatus::Indeterminate, $error->getMessage());

@@ -14,6 +14,9 @@ use PDF\Html\Reading\ReadingLimits;
 use PDF\Html\Reading\UnsupportedInlineImageFeature;
 use PDF\Reading\ByteCursor;
 use PDF\Reading\FileBytes;
+use PDF\Reading\ReadBudget;
+use PDF\Reading\ReaderLimits;
+use PDF\Reading\StreamDecoder;
 use PDF\Syntax\Object\DictionaryType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -39,14 +42,14 @@ final class InlineFaxReadingTest extends TestCase
         }
     }
 
-    public function testFaxPdfDerivesDimensionedPlaceholdersAndFollowingText(): void
+    public function testFaxPdfDerivesNativeImagesAndFollowingText(): void
     {
         $bytes = file_get_contents(__DIR__ . '/Fixtures/inline-fax.pdf');
         self::assertIsString($bytes);
         $result = (new PdfToHtml())->convert(new FileBytes($bytes), 'fax.pdf');
         self::assertSame(7, substr_count($result->html, '<img '));
         self::assertStringContainsString('Following the fax images', $result->html);
-        self::assertCount(7, array_filter($result->diagnostics, static fn ($item): bool => $item->code === 'image-placeholder'));
+        self::assertCount(0, array_filter($result->diagnostics, static fn ($item): bool => $item->code === 'image-placeholder'));
     }
 
     public function testRowsWithoutEndOfBlockStopAtTheExactByteBoundary(): void
@@ -76,11 +79,45 @@ final class InlineFaxReadingTest extends TestCase
         iterator_to_array($this->reader()->read('BI /W 8 /H 1 /BPC 1 /CS /G /F /CCF /DP <<' . $parameters . '>> ID ' . $data . ' EI q Q'));
     }
 
-    public function testOptionalExtensionsRequireAnExplicitCodecProvider(): void
+    public function testUndefinedExtensionsRequireAnExplicitCodecProvider(): void
     {
         $this->expectException(UnsupportedInlineImageFeature::class);
         $this->expectExceptionMessage('InlineImageBoundaryProvider');
-        iterator_to_array($this->reader()->read('BI /W 8 /H 1 /BPC 1 /CS /G /F /CCF /DP <</K -1 /Columns 8>> ID ' . self::bits('0000001111') . ' EI'));
+        iterator_to_array($this->reader()->read('BI /W 8 /H 1 /BPC 1 /CS /G /F /CCF /DP <</K -1 /Columns 8>> ID ' . self::bits('0000001000') . ' EI'));
+    }
+
+    public function testUncompressedExtensionRetainsEiBytesInsideItsPixels(): void
+    {
+        $encoded = self::bits('0000001111' . '1111110100010101001001' . '00000010' . '000000000001000000000001');
+        self::assertStringContainsString('EI', $encoded);
+        $instructions = iterator_to_array($this->reader()->read('BI /W 22 /H 1 /BPC 1 /CS /G /F /CCF /DP <</K -1 /Columns 22>> ID ' . $encoded . ' EI q Q'), false);
+        self::assertSame($encoded, $instructions[0]->inlineImage?->bytes);
+        self::assertSame(['BI', 'q', 'Q'], array_column($instructions, 'operator'));
+    }
+
+    public function testT4UncompressedSamplesSurviveDirectAndAsciiWrappedInlineFraming(): void
+    {
+        // T.4 table 5 literal/exit patterns: independently recorded normative 20-pixel row.
+        $encoded = base64_decode('ABAPpEIIEA==', true);
+        self::assertIsString($encoded);
+        $parameters = '<</K 0 /Columns 20 /Rows 1 /EndOfLine true /EndOfBlock false>>';
+        foreach ([['/CCF', $parameters, $encoded], ['[/AHx /CCF]', '[null ' . $parameters . ']', bin2hex($encoded) . '>']] as [$filters, $decode, $data]) {
+            $instructions = iterator_to_array($this->reader()->read('BI /W 20 /H 1 /BPC 1 /CS /G /F ' . $filters . ' /DP ' . $decode . ' ID ' . $data . ' EI q Q'), false);
+            self::assertSame(['BI', 'q', 'Q'], array_column($instructions, 'operator'));
+            $image = $instructions[0]->inlineImage;
+            self::assertInstanceOf(InlineImageData::class, $image);
+            self::assertSame($data, $image->bytes);
+            self::assertSame(base64_decode('W73w', true), (new StreamDecoder())->decode($image->stream(), new ReadBudget(new ReaderLimits())));
+        }
+    }
+
+    public function testCumulativeFaxWorkIsSharedAcrossInlineImages(): void
+    {
+        $encoded = self::bits('1' . '000000000001000000000001');
+        $instruction = 'BI /W 8 /H 1 /BPC 1 /CS /G /F /CCF /DP <</K -1 /Columns 8>> ID ' . $encoded . ' EI ';
+        $reader = new ContentInstructionReader(new ReadingBudget(new ReadingLimits(maximumNodes: 3)));
+        $this->expectExceptionMessage('cumulative source nodes');
+        iterator_to_array($reader->read(str_repeat($instruction, 4)));
     }
 
     public function testExplicitProviderIsValidatedAndDoesNotRescueMalformedKnownCodecs(): void

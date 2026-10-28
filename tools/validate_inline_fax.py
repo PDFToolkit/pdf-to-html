@@ -1,4 +1,4 @@
-"""Verify libtiff CCITT strips and native HTML fallbacks against pypdf, HTML5 and Poppler."""
+"""Verify libtiff CCITT strips and native PNG output against pypdf, HTML5 and Poppler."""
 from pathlib import Path
 import argparse
 import base64
@@ -10,6 +10,7 @@ import tempfile
 import html5lib
 from pypdf import PdfReader
 from pypdf.generic import ContentStream
+from validate_inline_derivation import png_samples
 
 
 def pbm(data):
@@ -80,9 +81,13 @@ def main():
             assert image.attrib['alt'] == case['name']
             assert int(image.attrib['width']) == round(case['width'] * 4 / 3)
             assert int(image.attrib['height']) == round(case['height'] * 4 / 3)
+            location = image.attrib['src']
+            data = base64.b64decode(location.removeprefix('data:image/png;base64,'), validate=True) if location.startswith('data:image/png;base64,') else (temporary / location).read_bytes()
+            assert data[24:26] == bytes([1, 0]), case['name']
+            assert png_samples(data) == base64.b64decode(case['bitmap']), case['name']
         assert 'Following the fax images' in ''.join(html.itertext())
-        assert sum(diagnostic['code'] == 'image-placeholder' for diagnostic in report['diagnostics']) == len(images)
-    print('Verified seven libtiff CCITT encodings, exact framing, HTML5 fallbacks and every pixel independently with Poppler')
+        assert sum(diagnostic['code'] == 'image-placeholder' for diagnostic in report['diagnostics']) == 0
+    print('Verified seven libtiff CCITT encodings, exact framing, HTML5 native PNG samples and every pixel independently with Poppler')
 
 
 if __name__ == '__main__':

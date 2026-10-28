@@ -15,7 +15,22 @@ final class ReadingBudget
     }
     public function consume(string $kind, int $amount = 1): void
     {
-        $maximum = match ($kind) {
+        $maximum = $this->maximum($kind);
+        $used = $this->used[$kind] ?? 0;
+        if ($amount < 0 || $amount > $maximum - $used) {
+            throw new ReadingException('The cumulative source ' . $kind . ' budget was exceeded.');
+        }
+        $this->used[$kind] = $used + $amount;
+    }
+
+    public function remaining(string $kind): int
+    {
+        return $this->maximum($kind) - ($this->used[$kind] ?? 0);
+    }
+
+    private function maximum(string $kind): int
+    {
+        return match ($kind) {
             'nodes' => $this->limits->maximumNodes,
             'instructions' => $this->limits->maximumInstructions,
             'content' => $this->limits->maximumContentBytes,
@@ -25,11 +40,6 @@ final class ReadingBudget
             'assets' => $this->limits->maximumAssetsBytes,
             default => throw new \LogicException('Unknown adaptation budget.'),
         };
-        $used = $this->used[$kind] ?? 0;
-        if ($amount < 0 || $amount > $maximum - $used) {
-            throw new ReadingException('The cumulative source ' . $kind . ' budget was exceeded.');
-        }
-        $this->used[$kind] = $used + $amount;
     }
     public function depth(int $depth): void
     {

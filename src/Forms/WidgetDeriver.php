@@ -24,6 +24,9 @@ final readonly class WidgetDeriver
     public function derive(Widget $widget, string $id): WidgetRendering
     {
         $source = $widget->field;
+        $highlighting = HighlightingMode::fromPdf($widget->highlighting);
+        $highlightStyle = new WidgetHighlightStyle($highlighting, $id);
+        $downAppearance = $rolloverAppearance = false;
         $diagnostics = [];
         $field = new Element('input', ['id' => $id, 'name' => $source->name, 'form' => $this->formId]);
         $siblings = [];
@@ -69,6 +72,23 @@ final readonly class WidgetDeriver
             }
             if ($source->type === FieldType::Signature && $field->children === []) {
                 $field->children[] = new Text('PDF signature: '.($widget->signatureStatus ?? 'not validated'));
+            }
+            if ($widget->rolloverAppearance !== [] || $highlighting->usesDownAppearance() && $widget->downAppearance !== []) {
+                if ($this->appearanceRenderer === null) {
+                    $diagnostics[] = 'Interactive button appearances require an AppearanceRenderer; Push uses its offset fallback.';
+                } else {
+                    $normal = new Element('span', ['data-pdf-widget-appearance' => 'normal'], $field->children);
+                    $appearances = new Element('span', ['data-pdf-widget-appearances' => ''], [$normal]);
+                    $field->children = [$appearances];
+                    if ($widget->rolloverAppearance !== []) {
+                        $appearances->children[] = new Element('span', ['data-pdf-widget-appearance' => 'rollover', 'aria-hidden' => 'true'], $this->appearanceRenderer->render($widget->rolloverAppearance));
+                        $rolloverAppearance = true;
+                    }
+                    if ($highlighting->usesDownAppearance() && $widget->downAppearance !== []) {
+                        $appearances->children[] = new Element('span', ['data-pdf-widget-appearance' => 'down', 'aria-hidden' => 'true'], $this->appearanceRenderer->render($widget->downAppearance));
+                        $downAppearance = true;
+                    }
+                }
             }
         } elseif ($source->type === FieldType::Button) {
             $field->attributes['type'] = ($source->flags & 32768) !== 0 ? 'radio' : 'checkbox';
@@ -181,17 +201,14 @@ final readonly class WidgetDeriver
         if ($widget->alignment !== null) {
             $css['text-align'] = [0 => 'left',1 => 'center',2 => 'right'][$widget->alignment] ?? 'left';
         }
-        if ($widget->highlighting !== null) {
-            $field->attributes['data-pdf-highlight'] = $widget->highlighting;
-            $diagnostics[] = 'Widget highlighting is retained as metadata; browser interaction styling is application dependent.';
-        }
+        $css = $highlightStyle->apply($field, $css);
         if (!$this->visible($widget)) {
             $css['display'] = 'none';
         }
         if ($css !== []) {
             $field->attributes['style'] = implode(';', array_map(static fn (string $key, string $value): string => $key.':'.$value, array_keys($css), array_values($css)));
         }
-        return new WidgetRendering([$field, ...$siblings], $field, $diagnostics);
+        return new WidgetRendering([$field, ...$siblings], $field, $diagnostics, $highlightStyle->css($downAppearance, $rolloverAppearance));
     }
     /**
      * @param list<int|float> $color

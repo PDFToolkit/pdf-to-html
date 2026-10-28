@@ -608,6 +608,7 @@ final class DerivationSession
             }
         } elseif ($source instanceof Widget) {
             $rendered = (new WidgetDeriver($this->appearanceRenderer, formActions: $this->policy->formActions))->derive($source, 'pdf-widget-' . $this->widgetIndex($source));
+            $this->css .= $rendered->css;
             $this->renderedWidgets[] = $source;
             $this->widgetBindings[] = new WidgetBinding($source, $rendered->field->attributes['id']);
             foreach ($rendered->diagnostics as $message) {
@@ -949,6 +950,7 @@ final class DerivationSession
     {
         $id = $this->identifiers[$source->key];
         $rendering = (new WidgetDeriver($this->appearanceRenderer, formActions: $this->policy->formActions))->derive($widget, $id);
+        $this->css .= $rendering->css;
         $field = $rendering->field;
         foreach ($rendering->diagnostics as $message) {
             $this->diagnostics[] = new Diagnostic('widget-adaptation', $message, $source->key);

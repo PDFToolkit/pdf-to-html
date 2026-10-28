@@ -484,7 +484,8 @@ final class SafetyFilter
         if (str_starts_with($name, 'on') || in_array($name, ['srcdoc', 'is', 'xmlns:xlink'], true)) {
             return $this->policy->allowActiveContent && str_starts_with($name, 'on');
         }
-        if (preg_match('/\A(?:data|aria)-[a-z0-9_.:-]+\z/D', $name) === 1
+        if (str_starts_with($name, 'data-') && strlen($name) > 5 && (new AttributeName())->valid($name)
+            || preg_match('/\Aaria-[a-z0-9_.:-]+\z/D', $name) === 1
             || in_array($name, ['id', 'class', 'lang', 'title', 'style', 'role', 'dir', 'hidden', 'tabindex', 'translate'], true)) {
             return true;
         }

@@ -48,7 +48,7 @@ final class Serializer
             if (strlen($name) + 4 > $this->limits->maximumOutputBytes - $this->bytes) {
                 throw new DerivationException('An HTML attribute name exceeds the byte budget.');
             }
-            if (preg_match('/\A[a-zA-Z_:][a-zA-Z0-9_.:-]*\z/D', $name) !== 1) {
+            if (!(new AttributeName())->valid($name)) {
                 throw new DerivationException('Invalid output attribute name.');
             }
             $this->append(' '.$name.'="', $output);

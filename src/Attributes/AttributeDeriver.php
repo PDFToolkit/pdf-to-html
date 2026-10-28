@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PDF\Html\Attributes;
 
 use PDF\Html\Model\AttributeObject;
+use PDF\Html\Html\AttributeName;
 
 /**
      * Deriving HTML 1.2 §§4.3.7.1–12. Resource and active-content policy belongs to the output boundary.
@@ -40,7 +41,7 @@ final class AttributeDeriver
                     if (!is_array($property) || !isset($property['N']) || !is_string($property['N'])) {
                         continue;
                     }
-                    $name = strtolower((string) preg_replace('/[^a-zA-Z0-9_.:-]/u', '_', $property['N']));
+                    $name = (new AttributeName())->userProperty($property['N']);
                     foreach (['V', 'F', 'H'] as $suffix) {
                         if (array_key_exists($suffix, $property)) {
                             $html['data-pdf-up-'.$name.'-'.strtolower($suffix)] = $this->string($property[$suffix]);

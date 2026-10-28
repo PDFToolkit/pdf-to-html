@@ -2,12 +2,15 @@
 from pathlib import Path
 import argparse
 import base64
+import hashlib
 import io
 import json
+import struct
 import subprocess
 import tempfile
 
 import html5lib
+from PIL import Image
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import DecodedStreamObject, NameObject
 
@@ -51,14 +54,57 @@ def main():
         images = list(html.iter('img'))
         assert [image.attrib['alt'] for image in images] == manifest['images']
         assert 'Text after all inline images' in ''.join(html.itertext())
-        for name in ('rgb-asciihex', 'rgb-ascii85'):
-            image = next(image for image in images if image.attrib['alt'] == name)
-            location = image.attrib['src']
-            data = (base64.b64decode(location.split(',', 1)[1], validate=True)
-                if location.startswith('data:image/png;base64,') else (directory / location).read_bytes())
-            assert png_samples(data).hex() == manifest['rgbSamplesHex']
-        assert len(report['assets']) == 4
-    print('Verified EC3 issue 20: two separator-free ASCII inline images, exact RGB samples, all 12 image mappings and following text using independent pypdf/HTML5/PNG checks.')
+        assert all([int(image.attrib['width']), int(image.attrib['height'])] == manifest['logicalCssPixels'] for image in images)
+        assets = {asset['filename']: asset for asset in report['assets']}
+        assert len(assets) == len(report['assets']), 'No duplicate asset records'
+        by_hash = {asset['sha256']: asset for asset in report['assets']}
+        assert len(by_hash) == len(assets), 'Identical bytes must share an asset'
+        referenced = set()
+        png_groups = {}
+        fallback_sources = set()
+        for image in images:
+            name, location = image.attrib['alt'], image.attrib['src']
+            if location.startswith('data:'):
+                header, encoded = location.split(',', 1)
+                assert header.endswith(';base64')
+                data = base64.b64decode(encoded, validate=True)
+                asset = by_hash[hashlib.sha256(data).hexdigest()]
+                assert header == 'data:' + asset['mediaType'] + ';base64'
+                location = asset['filename']
+                assert (directory / location).read_bytes() == data
+            else:
+                asset = assets[location]
+                data = (directory / location).read_bytes()
+            referenced.add(location)
+            assert hashlib.sha256(data).hexdigest() == asset['sha256']
+            if name == 'gray-jpeg':
+                assert asset['mediaType'] == 'image/jpeg'
+                assert asset['sha256'] == manifest['jpegSha256']
+            elif name in ('cmyk-placeholder', 'mask-placeholder', 'indexed-placeholder'):
+                assert asset['mediaType'] == 'image/gif'
+                with Image.open(io.BytesIO(data)) as placeholder:
+                    assert placeholder.size == (1, 1)
+                    assert placeholder.convert('RGBA').getpixel((0, 0))[3] == 0
+                fallback_sources.add(location)
+            else:
+                assert asset['mediaType'] == 'image/png'
+                if name.startswith('rgb-'):
+                    expected = (manifest['rgbSamplesHex'], (1, 1, 8, 2))
+                elif name == 'two-bit-placeholder':
+                    # The historical fixture label remains unchanged. This is
+                    # now a native packed-gray image, not a fourth fallback.
+                    expected = ('1b', (4, 1, 2, 0))
+                else:
+                    assert name in ('gray-raw', 'gray-runlength', 'lzw-placeholder')
+                    expected = (manifest['graySamplesHex'], (4, 1, 8, 0))
+                assert (png_samples(data).hex(), struct.unpack('>IIBB', data[16:26])) == expected, name
+                png_groups.setdefault(expected, set()).add(location)
+        assert len(png_groups) == 3 and all(len(locations) == 1 for locations in png_groups.values())
+        assert referenced == set(assets), 'No missing or unreferenced asset'
+        assert len(fallback_sources) == 1
+        assert sum(item['code'] == 'image-placeholder' for item in report['diagnostics']) == 3
+        assert len(assets) == len(png_groups) + len(fallback_sources) + 1, 'Three PNG groups, shared fallback and original JPEG'
+    print('Verified EC3 issue 20: two separator-free ASCII inline images, all 12 mappings, three exact PNG groups including packed gray, original JPEG, three shared placeholders and following text using independent pypdf/HTML5/PNG/Pillow checks.')
 
 
 if __name__ == '__main__':

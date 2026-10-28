@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   mathml-browsers:
-    name: MathML in Chromium and Firefox
+    name: HTML semantics in Chromium and Firefox
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -33,11 +33,35 @@ jobs:
           mkdir -p _build/mathml
           php tests/export-mathml-cases.php > _build/mathml/cases.json
           node tools/validate_mathml.cjs _build/mathml/cases.json _build/mathml/browsers
+      - name: Check widget appearances and pointer states in both engines
+        run: |
+          mkdir -p _build/widgets
+          php tests/export-widget-cases.php > _build/widgets/cases.json
+          node tools/validate_widgets.cjs _build/widgets/cases.json _build/widgets/browsers
+      - name: Check table, list and text attributes in both engines
+        run: |
+          mkdir -p _build/attributes
+          php tests/export-attribute-conformance.php > _build/attributes/derived.html
+          node tools/validate_attribute_conformance.cjs _build/attributes/derived.html _build/attributes/browsers
+      - name: Check native signature status popovers and runtime isolation in both engines
+        run: |
+          mkdir -p _build/signature-popovers
+          php tests/export-signature-cases.php > _build/signature-popovers/cases.json
+          node tools/validate_signature_popovers.cjs _build/signature-popovers/cases.json _build/signature-popovers/browsers
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: mathml-browser-evidence
           path: _build/mathml
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: semantic-browser-evidence
+          path: |
+            _build/widgets
+            _build/attributes
+            _build/signature-popovers
           if-no-files-found: error
 
   php:
@@ -88,6 +112,10 @@ jobs:
         run: python tools/validate_graphics.py --php php
       - name: Compare exported graphics contexts against independent Poppler oracles
         run: python tools/validate_graphics_context.py --php php
+      - name: Compare widget appearances and filtered artifacts with native Poppler controls
+        run: python tools/validate_appearances.py --php php --work-dir _build/appearances
+      - name: Validate signed revision integrity with independent PDF and CMS parsers
+        run: python tools/validate_signatures.py --php php --report _build/signatures/report.json
       - name: Validate CCITT inline boundaries with independent libtiff payloads and Poppler
         run: python tools/validate_inline_fax.py --php php
       - name: Validate actual derivation with independent PDF and HTML5 parsers
@@ -111,3 +139,18 @@ jobs:
         env:
           PDFTOOLKIT_PASSWORD: native-user
         run: php examples/04-authenticate-source-mac.php tests/Fixtures/source-integrity/tagged-mac-r6-standalone.pdf "$RUNNER_TEMP/authenticated.html"
+      - name: Execute the explicit-certificate signature example
+        run: |
+          php examples/05-verify-pdf-signature.php tests/Fixtures/signatures/signed-padded.pdf tests/Fixtures/signatures/signer.der "$RUNNER_TEMP/signature-der.html"
+          php examples/05-verify-pdf-signature.php tests/Fixtures/signatures/signed-padded.pdf tests/Fixtures/signatures/signer.pem "$RUNNER_TEMP/signature-pem.html"
+          php examples/05-verify-pdf-signature.php tests/Fixtures/signatures/signed-padded.pdf tests/Fixtures/signatures/wrong.der "$RUNNER_TEMP/signature-wrong.html"
+          cmp "$RUNNER_TEMP/signature-der.html" "$RUNNER_TEMP/signature-pem.html"
+          python -c 'import pathlib, sys, html5lib; expected = ["integrity-verified", "invalid"]; actual = [[e.attrib["data-pdf-signature-status"] for e in html5lib.parse(pathlib.Path(p).read_text()).iter() if "data-pdf-signature-status" in e.attrib] for p in sys.argv[1:]]; assert actual == [[s] for s in expected], actual' "$RUNNER_TEMP/signature-der.html" "$RUNNER_TEMP/signature-wrong.html"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-content-evidence-php-${{ matrix.php }}
+          path: |
+            _build/appearances
+            _build/signatures
+          if-no-files-found: error

@@ -244,3 +244,14 @@ rawFormatted.change("12");
 assert.equal(rawFormatted.value,"$12");
 assert.equal(rawInspection.value,"12:12");
 console.log("PASS document scripts and page lifecycle, exact bindings, targeted reset/defaults, opt-in submission, raw/formatted values, validation, readonly and prototype names");
+const primarySource=execFileSync(process.env.PDF_RUNTIME_TEST_PHP ?? "php",[path.join(__dirname,"runtime-fixture.php"),"--primary-widget-action"],{encoding:"utf8"});
+const primaryFirst=new Control("action", "", "button"), primarySecond=new Control("action", "", "button");
+const primaryAlerts=[];
+vm.runInNewContext(primarySource,{document:{...document,
+ querySelector:()=>({elements:[primaryFirst,primarySecond],addEventListener:()=>{}}),
+ defaultView:{alert:value=>primaryAlerts.push(value),addEventListener:()=>{}}
+}},{timeout:1000});
+primarySecond.handlers.click[0]({preventDefault(){}});
+primaryFirst.handlers.click[0]({preventDefault(){}});
+assert.deepEqual(primaryAlerts,["second-primary","first-primary"]);
+console.log("PASS primary JavaScript actions bind to the activated widget");

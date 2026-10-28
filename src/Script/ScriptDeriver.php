@@ -59,7 +59,7 @@ final class ScriptDeriver
             // Older source models mixed field and widget actions in FormField.
             // Keep that input compatible without sharing annotation-specific events.
             foreach ($this->includePdfScripts ? [...$field->actions, ...$widget->actions] : [] as $event => $source) {
-                if (!in_array($event, ['Fo', 'Bl', 'E', 'X', 'D', 'U'], true)) {
+                if (!in_array($event, ['Fo', 'Bl', 'E', 'X', 'D', 'U', 'A'], true)) {
                     continue;
                 }
                 $key = 'f'.count($functions);
@@ -297,6 +297,7 @@ function install() {
   });
   el.addEventListener("click", native => {
    if (field.readonly) { native.preventDefault(); field.sync(); return; }
+   invoke(actions.A, eventFor(field, "MouseUp", field.value));
    if (operation?.kind === "reset") { native.preventDefault(); resetFields(operation.fields, operation.exclude); }
    else if (operation?.kind === "submit") {
     let coordinates = null;

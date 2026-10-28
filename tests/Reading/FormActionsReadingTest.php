@@ -13,6 +13,15 @@ use PHPUnit\Framework\TestCase;
 
 final class FormActionsReadingTest extends TestCase
 {
+    public function testPrimaryJavaScriptActionAndItsChainBelongToTheClickedWidget(): void
+    {
+        [, $button] = $this->widgets([
+            15 => '<< /S /JavaScript /JS (first\(\);) /Next << /S /JavaScript /JS (second\(\);) >> >>',
+        ]);
+        self::assertSame("first();\n;\nsecond();", $button->actions['A']);
+        self::assertSame([], $button->field->actions);
+    }
+
     public function testDefaultValueAndResetSelectionUseInheritedQualifiedNames(): void
     {
         [$text, $button] = $this->widgets();

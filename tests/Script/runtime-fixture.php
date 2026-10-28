@@ -22,6 +22,15 @@ use PDF\Html\Model\Widget;
 use PDF\Html\Script\ScriptDeriver;
 use PDF\Html\Script\WidgetBinding;
 
+if (($argv[1] ?? '') === '--primary-widget-action') {
+    $field = new FormField('action', FieldType::Button, flags: 65536);
+    echo (new ScriptDeriver())->derive(new TaggedDocument('primary.pdf', []), [
+        new Widget($field, actions: ['A' => 'app.alert("first-primary");']),
+        new Widget($field, actions: ['A' => 'app.alert("second-primary");']),
+    ]);
+    exit;
+}
+
 if (($argv[1] ?? '') === '--form-actions') {
     $fields = [
         new FormField('Person.Name', FieldType::Text, value: 'Current name', defaultValue: 'Ada', mappingName: 'customer_name'),

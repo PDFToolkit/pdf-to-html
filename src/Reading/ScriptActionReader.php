@@ -30,7 +30,10 @@ final readonly class ScriptActionReader
         return $scripts === [] ? null : implode("\n;\n", $scripts);
     }
 
-    /** @param array<int, true> $seen @return list<string> */
+    /**
+     * @param array<int, true> $seen
+     * @return list<string>
+     */
     private function actions(BasicType $source, int $depth, array &$seen): array
     {
         $this->values->budget->depth($depth);

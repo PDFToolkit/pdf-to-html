@@ -635,6 +635,12 @@ final class SourceReadSession
         $widgetActions = array_intersect_key($this->metadata->additionalScripts($annotation), array_fill_keys(['Fo', 'Bl', 'E', 'X', 'D', 'U'], true));
         $action = $this->values->dictionary($annotation->get('A'));
         $actionType = $action === null ? null : $this->values->name($action->get('S'));
+        if ($actionType === 'JavaScript') {
+            $script = $this->metadata->script($action);
+            if ($script !== null) {
+                $widgetActions['A'] = $script;
+            }
+        }
         $target = $action === null ? null : $this->values->text($action->get('F'));
         if ($action !== null && $target === null) {
             $file = $this->values->dictionary($action->get('F'));

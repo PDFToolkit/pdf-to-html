@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+## 0.8.1 - 2026-10-29
+
+- Preserve filtered stylesheet links associated with structure elements when the explicit embedded-stylesheet policy is enabled. Apply the same relation and URL restrictions as head links; keep scripts, imports and remote resources blocked by default.
+- Document the normative Supplement content rule separately: direct marked content is replaced, while child structure elements remain. Add native and browser regression checks for accepted and rejected stylesheets.
+
 ## 0.8.0 - 2026-10-29
 
 - Keep generated list labels beside block bodies with zero-specificity layout CSS; preserve author overrides, paragraphs, nested lists and mobile wrapping.

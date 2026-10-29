@@ -4,6 +4,11 @@
 
 ## Non publié
 
+## 0.8.1 - 2026-10-29
+
+- Conserver les liens vers les feuilles CSS filtrées associées aux éléments de structure lorsque la politique explicite de styles incorporés est activée. Appliquer les mêmes restrictions de relation et d’URL que dans l’en-tête ; scripts, imports et ressources distantes restent bloqués par défaut.
+- Documenter séparément la règle normative du Supplement : les contenus marqués directs sont remplacés, tandis que les sous-structures sont conservées. Ajouter des contrôles natifs et navigateur des feuilles acceptées et refusées.
+
 ## 0.8.0 - 2026-10-29
 
 - Maintenir les libellés des listes générées à côté des corps contenant des blocs, avec un CSS sans spécificité ; préserver les styles auteur, les paragraphes, les sous-listes et le retour à la ligne sur mobile.

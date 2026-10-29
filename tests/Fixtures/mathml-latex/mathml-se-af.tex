@@ -1,0 +1,38 @@
+% Original PDFToolkit regression fixture, distributed under the repository MIT licence.
+% Compile twice with LuaLaTeX from TeX Live 2026. No shell escape is required.
+% Fixed identifiers and random seed make the retained fixture byte reproducible.
+\ExplSyntaxOn\sys_gset_rand_seed:n {20261029}\ExplSyntaxOff
+\pdfvariable trailerid {[<504446546f6f6c6b69744d617468534502> <504446546f6f6c6b69744d617468534502>]}
+\DocumentMetadata{
+  lang=en-US,
+  pdfversion=2.0,
+  tagging=on,
+  tagging-setup={math/setup={mathml-SE,mathml-AF}}
+}
+\documentclass{article}
+\usepackage{unicode-math}
+\pagestyle{empty}
+\title{MathML structure and associated files}
+\author{PDFToolkit}
+\date{}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\section{Inline mathematics}
+The expression $x^{2}+\frac{1}{2}$ stays inside this sentence.
+
+\section{Displayed mathematics}
+The fraction and exponent below are also mathematical structure elements.
+\[
+E=mc^{2}+\frac{1}{2}
+\]
+
+\section{A small matrix}
+Rows and columns are represented by MathML table elements.
+\[
+\begin{pmatrix}1&2\\3&4\end{pmatrix}
+\]
+
+The source PDF contains both MathML tags and associated MathML XML files.
+\end{document}

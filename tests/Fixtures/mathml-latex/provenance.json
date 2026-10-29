@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "author": "PDFToolkit",
+  "sourceLicense": "MIT (repository LICENSE)",
+  "embeddedFonts": {
+    "family": "Latin Modern / Latin Modern Math",
+    "license": "GUST Font License 1.0",
+    "url": "https://www.gust.org.pl/projects/e-foundry/licenses/GUST-FONT-LICENSE.txt"
+  },
+  "compiler": "This is LuaHBTeX, Version 1.24.0 (TeX Live 2026)",
+  "sourceDateEpoch": 1793232000,
+  "timeZone": "UTC",
+  "command": [
+    "lualatex",
+    "--no-shell-escape",
+    "--halt-on-error",
+    "--interaction=nonstopmode",
+    "<source.tex>"
+  ],
+  "passes": 2,
+  "packages": {
+    "latex.ltx": {
+      "bytes": 776142,
+      "sha256": "19d3b75884681539e1ef7a427af472bfe80d9ff214b84b9ca45e790d3e89c5c4"
+    },
+    "tagpdf.sty": {
+      "bytes": 149027,
+      "sha256": "d595590695dbe61b2bdb969bc9b2998d3a4841554cfdba916df8321d86ca9862"
+    },
+    "latex-lab-testphase-math.sty": {
+      "bytes": 1759,
+      "sha256": "f737460268ba66199a3700946738e893f848720f24ce5987bbd4083a47099c0a"
+    },
+    "luamml.sty": {
+      "bytes": 9926,
+      "sha256": "8159bf3b1ef55f814defa767f11e4254313f7a8f4ac37a3cb7f8106e7772971c"
+    },
+    "unicode-math.sty": {
+      "bytes": 1474,
+      "sha256": "91388a2e1332388bcf8393d79a9fb67f4bd197f982503297dbf971f5f7cec111"
+    },
+    "fontspec.sty": {
+      "bytes": 3780,
+      "sha256": "b190fc3e1a226b1deeffd441183406d3c9bc490f582ff4f5f5d8d927072f6469"
+    },
+    "amsmath.sty": {
+      "bytes": 88826,
+      "sha256": "8bf35130be39e123cbd0e4f0c09d3806d745d4c08ee391a543a8b9675191e6a7"
+    }
+  },
+  "reference": "https://latex3.github.io/tagging-project/documentation/usage-instructions#mathml-structure-element-tagging",
+  "fixtures": {
+    "mathml-se": {
+      "source": {
+        "path": "mathml-se.tex",
+        "bytes": 1154,
+        "sha256": "7eb62ba41dbd34e10fe9000bd239b84a23066edac89f056bad3c3b8f7703d058"
+      },
+      "pdf": {
+        "path": "mathml-se.pdf",
+        "bytes": 36145,
+        "sha256": "e00ce0f33a0aa675e740c8ddff171b5bc6a463722c4fd9dede70e4ee3359cee6"
+      },
+      "mode": "mathml-SE",
+      "independentCleanBuildsIdentical": true,
+      "logVersionsAndWarnings": [
+        "LaTeX2e <2026-06-01>",
+        "L3 programming layer <2026-09-09>",
+        "Package: pdfmanagement-init 2026-10-06 v0.97d LaTeX PDF management bundle",
+        "Package: tagpdf-base 2026-10-08 v1.0h part of tagpdf - provide base, no-op vers",
+        "Package: latex-lab-testphase-latest 2026-05-02 v0.1g latex-lab modules",
+        "Package: tagpdf 2026-10-08 v1.0h  LaTeX kernel code for PDF tagging",
+        "Package: tagpdf-mc-code-lua 2026-10-08 v1.0h tagpdf - mc code only for the luam",
+        "Package: latex-lab-testphase-names 2026-04-28 v0.8k Code related to the names o",
+        "Package: latex-lab-testphase-new-or-2 2026-01-16 v0.86d Changes to the output r",
+        "Package: latex-lab-testphase-block 2026-06-10 v1.0c blockenv implementation",
+        "Package: latex-lab-enumitem 2026-04-21 v0.80f Emulating enumitem",
+        "Package: latex-lab-testphase-context 2026-05-26 v0.6a Providing context for ins",
+        "Package: latex-lab-kernel-changes 2026-04-27 v0.85j General kernel and class ch",
+        "Package: latex-lab-testphase-sec 2026-04-28 v0.84o Code related to the tagging",
+        "Package: latex-lab-testphase-sec-template 2026-05-25 v0.9g heading implementati",
+        "Package: latex-lab-testphase-toc 2026-04-28 v0.85k  Code related to the tagging",
+        "Package: latex-lab-testphase-minipage 2026-04-24 v0.81k Code related to the tag",
+        "Package: latex-lab-testphase-graphic 2026-04-28 v0.80i Code related to the tagg",
+        "Package: latex-lab-testphase-float 2026-04-24 v0.81n Code related to the taggin",
+        "Package: latex-lab-testphase-bib 2026-05-28 v0.81f Code related to the tagging",
+        "Package: latex-lab-testphase-text 2026-04-27 v0.85g Code related to the tagging",
+        "Package: latex-lab-testphase-marginpar 2026-04-24 v0.85i Changes related to the",
+        "Package: latex-lab-testphase-title 2026-05-27 v0.85g Changes related to the tag",
+        "Package: latex-lab-testphase-table 2026-04-28 v0.85t Code related to the taggin",
+        "Package: array 2026/02/24 v2.7b Tabular extension package (FMi)",
+        "Package: latex-lab-testphase-math 2025-03-10 v0.8d code related to the math tag",
+        "Package: latex-lab-testphase-firstaid 2026-06-08 v0.85x Temporary patches to ex",
+        "Package: latex-lab-testphase-tikz 2026-05-12 v0.80i Code related to the tagging",
+        "Package: pdfmanagement-firstaid 2026-10-06 v0.97d LaTeX PDF management bundle /",
+        "Document Class: article 2025/01/22 v1.4n Standard LaTeX document class",
+        "Package: expl3 2026-09-09 L3 programming layer (loader)",
+        "Package: unicode-math 2023/08/13 v0.8r Unicode maths in XeLaTeX and LuaLaTeX",
+        "Package: unicode-math-luatex 2023/08/13 v0.8r Unicode maths in XeLaTeX and LuaL",
+        "Package: xparse 2025-10-09 L3 Experimental document command parser",
+        "Package: l3keys2e 2025-10-09 LaTeX2e option processing using LaTeX3 keys",
+        "Package: fontspec 2026/08/11 v2.9h Font selection for XeLaTeX and LuaLaTeX",
+        "Package: fontspec-luatex 2026/08/11 v2.9h Font selection for XeLaTeX and LuaLaT",
+        "Package: fontenc 2025/07/18 v2.1d Standard LaTeX package",
+        "Package: fix-cm 2020/11/24 v1.1t fixes to LaTeX",
+        "Package: amsmath 2026/05/19 v2.18d AMS math features",
+        "Package: amstext 2024/11/17 v2.01 AMS text",
+        "Package: amsbsy 1999/11/29 v1.2d Bold Symbols",
+        "Package: amsopn 2022/04/08 v2.04 operator names",
+        "Package: lualatex-math 2022/01/01 v1.12 Patches for mathematics typesetting wit",
+        "Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)",
+        "Package: luamml 2026-06-20 v0.9.2 Automatically generate presentational MathML",
+        "Package: luamml-patches-kernel 2026-06-20 v0.9.2 Feel free to add a description",
+        "Package: luamml-patches-amsmath 2026-06-20 v0.9.2 Feel free to add a descriptio",
+        "LaTeX2e <2026-06-01>",
+        "L3 programming layer <2026-09-09>"
+      ]
+    },
+    "mathml-se-af": {
+      "source": {
+        "path": "mathml-se-af.tex",
+        "bytes": 1164,
+        "sha256": "361cfca8e7de4db02dd0dcec2bcda13db95b06c32271f554e99cc7cc2e0a5484"
+      },
+      "pdf": {
+        "path": "mathml-se-af.pdf",
+        "bytes": 37279,
+        "sha256": "3c81c472e9184056a81232216014d69bac7541b6c96fd858f8f560c759ad864f"
+      },
+      "mode": "mathml-SE,mathml-AF",
+      "independentCleanBuildsIdentical": true,
+      "logVersionsAndWarnings": [
+        "LaTeX2e <2026-06-01>",
+        "L3 programming layer <2026-09-09>",
+        "Package: pdfmanagement-init 2026-10-06 v0.97d LaTeX PDF management bundle",
+        "Package: tagpdf-base 2026-10-08 v1.0h part of tagpdf - provide base, no-op vers",
+        "Package: latex-lab-testphase-latest 2026-05-02 v0.1g latex-lab modules",
+        "Package: tagpdf 2026-10-08 v1.0h  LaTeX kernel code for PDF tagging",
+        "Package: tagpdf-mc-code-lua 2026-10-08 v1.0h tagpdf - mc code only for the luam",
+        "Package: latex-lab-testphase-names 2026-04-28 v0.8k Code related to the names o",
+        "Package: latex-lab-testphase-new-or-2 2026-01-16 v0.86d Changes to the output r",
+        "Package: latex-lab-testphase-block 2026-06-10 v1.0c blockenv implementation",
+        "Package: latex-lab-enumitem 2026-04-21 v0.80f Emulating enumitem",
+        "Package: latex-lab-testphase-context 2026-05-26 v0.6a Providing context for ins",
+        "Package: latex-lab-kernel-changes 2026-04-27 v0.85j General kernel and class ch",
+        "Package: latex-lab-testphase-sec 2026-04-28 v0.84o Code related to the tagging",
+        "Package: latex-lab-testphase-sec-template 2026-05-25 v0.9g heading implementati",
+        "Package: latex-lab-testphase-toc 2026-04-28 v0.85k  Code related to the tagging",
+        "Package: latex-lab-testphase-minipage 2026-04-24 v0.81k Code related to the tag",
+        "Package: latex-lab-testphase-graphic 2026-04-28 v0.80i Code related to the tagg",
+        "Package: latex-lab-testphase-float 2026-04-24 v0.81n Code related to the taggin",
+        "Package: latex-lab-testphase-bib 2026-05-28 v0.81f Code related to the tagging",
+        "Package: latex-lab-testphase-text 2026-04-27 v0.85g Code related to the tagging",
+        "Package: latex-lab-testphase-marginpar 2026-04-24 v0.85i Changes related to the",
+        "Package: latex-lab-testphase-title 2026-05-27 v0.85g Changes related to the tag",
+        "Package: latex-lab-testphase-table 2026-04-28 v0.85t Code related to the taggin",
+        "Package: array 2026/02/24 v2.7b Tabular extension package (FMi)",
+        "Package: latex-lab-testphase-math 2025-03-10 v0.8d code related to the math tag",
+        "Package: latex-lab-testphase-firstaid 2026-06-08 v0.85x Temporary patches to ex",
+        "Package: latex-lab-testphase-tikz 2026-05-12 v0.80i Code related to the tagging",
+        "Package: pdfmanagement-firstaid 2026-10-06 v0.97d LaTeX PDF management bundle /",
+        "Document Class: article 2025/01/22 v1.4n Standard LaTeX document class",
+        "Package: expl3 2026-09-09 L3 programming layer (loader)",
+        "Package: unicode-math 2023/08/13 v0.8r Unicode maths in XeLaTeX and LuaLaTeX",
+        "Package: unicode-math-luatex 2023/08/13 v0.8r Unicode maths in XeLaTeX and LuaL",
+        "Package: xparse 2025-10-09 L3 Experimental document command parser",
+        "Package: l3keys2e 2025-10-09 LaTeX2e option processing using LaTeX3 keys",
+        "Package: fontspec 2026/08/11 v2.9h Font selection for XeLaTeX and LuaLaTeX",
+        "Package: fontspec-luatex 2026/08/11 v2.9h Font selection for XeLaTeX and LuaLaT",
+        "Package: fontenc 2025/07/18 v2.1d Standard LaTeX package",
+        "Package: fix-cm 2020/11/24 v1.1t fixes to LaTeX",
+        "Package: amsmath 2026/05/19 v2.18d AMS math features",
+        "Package: amstext 2024/11/17 v2.01 AMS text",
+        "Package: amsbsy 1999/11/29 v1.2d Bold Symbols",
+        "Package: amsopn 2022/04/08 v2.04 operator names",
+        "Package: lualatex-math 2022/01/01 v1.12 Patches for mathematics typesetting wit",
+        "Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)",
+        "Package: luamml 2026-06-20 v0.9.2 Automatically generate presentational MathML",
+        "Package: luamml-patches-kernel 2026-06-20 v0.9.2 Feel free to add a description",
+        "Package: luamml-patches-amsmath 2026-06-20 v0.9.2 Feel free to add a descriptio",
+        "LaTeX2e <2026-06-01>",
+        "L3 programming layer <2026-09-09>"
+      ]
+    },
+    "latex-layout": {
+      "source": {
+        "path": "latex-layout.tex",
+        "bytes": 1157,
+        "sha256": "7723b2475453fbe3b8a9bf459c1f2009328c417b76c31879abaa7a055d2e44f7"
+      },
+      "pdf": {
+        "path": "latex-layout.pdf",
+        "bytes": 35578,
+        "sha256": "ddd75daccb45696b6c5b49daed89b6b603a30e1d32a4e9670518c7497b26053c"
+      },
+      "mode": "mathml-SE,mathml-AF",
+      "independentCleanBuildsIdentical": true,
+      "logVersionsAndWarnings": [
+        "LaTeX2e <2026-06-01>",
+        "L3 programming layer <2026-09-09>",
+        "Package: pdfmanagement-init 2026-10-06 v0.97d LaTeX PDF management bundle",
+        "Package: tagpdf-base 2026-10-08 v1.0h part of tagpdf - provide base, no-op vers",
+        "Package: latex-lab-testphase-latest 2026-05-02 v0.1g latex-lab modules",
+        "Package: tagpdf 2026-10-08 v1.0h  LaTeX kernel code for PDF tagging",
+        "Package: tagpdf-mc-code-lua 2026-10-08 v1.0h tagpdf - mc code only for the luam",
+        "Package: latex-lab-testphase-names 2026-04-28 v0.8k Code related to the names o",
+        "Package: latex-lab-testphase-new-or-2 2026-01-16 v0.86d Changes to the output r",
+        "Package: latex-lab-testphase-block 2026-06-10 v1.0c blockenv implementation",
+        "Package: latex-lab-enumitem 2026-04-21 v0.80f Emulating enumitem",
+        "Package: latex-lab-testphase-context 2026-05-26 v0.6a Providing context for ins",
+        "Package: latex-lab-kernel-changes 2026-04-27 v0.85j General kernel and class ch",
+        "Package: latex-lab-testphase-sec 2026-04-28 v0.84o Code related to the tagging",
+        "Package: latex-lab-testphase-sec-template 2026-05-25 v0.9g heading implementati",
+        "Package: latex-lab-testphase-toc 2026-04-28 v0.85k  Code related to the tagging",
+        "Package: latex-lab-testphase-minipage 2026-04-24 v0.81k Code related to the tag",
+        "Package: latex-lab-testphase-graphic 2026-04-28 v0.80i Code related to the tagg",
+        "Package: latex-lab-testphase-float 2026-04-24 v0.81n Code related to the taggin",
+        "Package: latex-lab-testphase-bib 2026-05-28 v0.81f Code related to the tagging",
+        "Package: latex-lab-testphase-text 2026-04-27 v0.85g Code related to the tagging",
+        "Package: latex-lab-testphase-marginpar 2026-04-24 v0.85i Changes related to the",
+        "Package: latex-lab-testphase-title 2026-05-27 v0.85g Changes related to the tag",
+        "Package: latex-lab-testphase-table 2026-04-28 v0.85t Code related to the taggin",
+        "Package: array 2026/02/24 v2.7b Tabular extension package (FMi)",
+        "Package: latex-lab-testphase-math 2025-03-10 v0.8d code related to the math tag",
+        "Package: latex-lab-testphase-firstaid 2026-06-08 v0.85x Temporary patches to ex",
+        "Package: latex-lab-testphase-tikz 2026-05-12 v0.80i Code related to the tagging",
+        "Package: pdfmanagement-firstaid 2026-10-06 v0.97d LaTeX PDF management bundle /",
+        "Document Class: article 2025/01/22 v1.4n Standard LaTeX document class",
+        "Package: expl3 2026-09-09 L3 programming layer (loader)",
+        "Package: unicode-math 2023/08/13 v0.8r Unicode maths in XeLaTeX and LuaLaTeX",
+        "Package: unicode-math-luatex 2023/08/13 v0.8r Unicode maths in XeLaTeX and LuaL",
+        "Package: xparse 2025-10-09 L3 Experimental document command parser",
+        "Package: l3keys2e 2025-10-09 LaTeX2e option processing using LaTeX3 keys",
+        "Package: fontspec 2026/08/11 v2.9h Font selection for XeLaTeX and LuaLaTeX",
+        "Package: fontspec-luatex 2026/08/11 v2.9h Font selection for XeLaTeX and LuaLaT",
+        "Package: fontenc 2025/07/18 v2.1d Standard LaTeX package",
+        "Package: fix-cm 2020/11/24 v1.1t fixes to LaTeX",
+        "Package: amsmath 2026/05/19 v2.18d AMS math features",
+        "Package: amstext 2024/11/17 v2.01 AMS text",
+        "Package: amsbsy 1999/11/29 v1.2d Bold Symbols",
+        "Package: amsopn 2022/04/08 v2.04 operator names",
+        "Package: lualatex-math 2022/01/01 v1.12 Patches for mathematics typesetting wit",
+        "Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)",
+        "Package: luamml 2026-06-20 v0.9.2 Automatically generate presentational MathML",
+        "Package: luamml-patches-kernel 2026-06-20 v0.9.2 Feel free to add a description",
+        "Package: luamml-patches-amsmath 2026-06-20 v0.9.2 Feel free to add a descriptio",
+        "LaTeX2e <2026-06-01>",
+        "L3 programming layer <2026-09-09>"
+      ]
+    }
+  }
+}

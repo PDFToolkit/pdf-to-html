@@ -1,0 +1,39 @@
+% Original PDFToolkit regression fixture, distributed under the repository MIT licence.
+% Compile twice with LuaLaTeX from TeX Live 2026. No shell escape is required.
+% Fixed identifiers and random seed make the retained fixture byte reproducible.
+\ExplSyntaxOn\sys_gset_rand_seed:n {20261029}\ExplSyntaxOff
+\pdfvariable trailerid {[<504446546f6f6c6b69744d617468534503> <504446546f6f6c6b69744d617468534503>]}
+\DocumentMetadata{
+  lang=en-US,
+  pdfversion=2.0,
+  tagging=on,
+  tagging-setup={math/setup={mathml-SE,mathml-AF}}
+}
+\documentclass{article}
+\usepackage{unicode-math}
+\pagestyle{empty}
+\title{Lists and aligned equations from LaTeX}
+\author{PDFToolkit}
+\date{}
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\section{A list with two levels}
+\begin{itemize}
+\item A first item with a short description.
+\item A second item with a nested list.
+  \begin{itemize}
+  \item A nested item.
+  \item Another nested item.
+  \end{itemize}
+\item A final item.
+\end{itemize}
+
+\section{Two aligned equations}
+\begin{align}
+  x+y &= 3 \\
+  2x-y &= 0
+\end{align}
+The two equality signs should share a column, with equation numbers on the right.
+\end{document}

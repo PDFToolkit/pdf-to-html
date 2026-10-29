@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+## 0.8.0 - 2026-10-29
+
+- Keep generated list labels beside block bodies with zero-specificity layout CSS; preserve author overrides, paragraphs, nested lists and mobile wrapping.
+- Add an explicit embedded-stylesheet capability independent of scripts. Filter nested `@supports`/`@media` rules with cumulative byte, token and depth limits; preserve ordered browser fallback declarations while rejecting imports, resource URLs and executable CSS.
+- Add an opt-in catalogue HTML Supplement interoperability policy for LaTeX's separate list and equation stylesheets. Preserve the strict first-Supplement default and report the deliberate interpretation in diagnostics.
+- Retain real, reproducible LuaLaTeX MathML SE fixtures, with and without associated MathML, source files and byte provenance. Verify structure precedence, fractions, exponents, matrices and associated CSS with independent Chromium/Firefox observations.
+- Address issue #2 by linking directly to the publisher's PDF in English/French documentation while retaining the unchanged repository copy and fingerprint. Explain the CSS policy and browser integration boundaries in both languages.
+
 ## 0.7.0 - 2026-10-28
 
 - Use Reader 0.7 image planes for optional JPEG, JPEG 2000 and JBIG2 decoding. Interpret PDF colour-space precedence, Decode and SMaskInData explicitly; preserve exact legal PNG sample depths, Gray/RGB ICC profiles and representable alpha. Keep unsupported colour/grid/precision representations in the explicit graphics-rendering path.

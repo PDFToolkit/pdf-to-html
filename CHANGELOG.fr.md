@@ -4,6 +4,14 @@
 
 ## Non publié
 
+## 0.8.0 - 2026-10-29
+
+- Maintenir les libellés des listes générées à côté des corps contenant des blocs, avec un CSS sans spécificité ; préserver les styles auteur, les paragraphes, les sous-listes et le retour à la ligne sur mobile.
+- Ajouter une capacité explicite pour les feuilles de style embarquées, indépendante des scripts. Filtrer les règles `@supports`/`@media` imbriquées avec des limites cumulées d’octets, de jetons et de profondeur ; conserver l’ordre des déclarations de repli tout en rejetant imports, URL de ressources et CSS exécutable.
+- Ajouter une politique optionnelle d’interopérabilité des Supplements HTML du catalogue pour les feuilles de style séparées des listes et équations LaTeX. Conserver le premier Supplement par défaut et signaler cette interprétation explicite dans les diagnostics.
+- Conserver de vraies fixtures LuaLaTeX MathML SE reproductibles, avec et sans MathML associé, leurs sources et la provenance des octets. Vérifier la priorité de la structure, fractions, exposants, matrices et CSS associées avec des observations indépendantes dans Chromium/Firefox.
+- Traiter l’issue #2 en reliant directement le PDF de l’éditeur depuis la documentation FR/EN, tout en conservant la copie inchangée du dépôt et son empreinte. Expliquer les politiques CSS et les limites de l’intégration aux navigateurs dans les deux langues.
+
 ## 0.7.0 - 2026-10-28
 
 - Utiliser les plans image du Reader 0.7 pour le décodage optionnel JPEG, JPEG 2000 et JBIG2. Appliquer explicitement les priorités couleur PDF, Decode et SMaskInData ; conserver les profondeurs PNG exactes, les profils ICC Gray/RGB et l’alpha représentable. Confier les couleurs, grilles ou précisions non représentables au rendu graphique explicite.

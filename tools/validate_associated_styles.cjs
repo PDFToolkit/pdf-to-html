@@ -20,6 +20,22 @@ class AssociatedStylesValidation {
     ])), selectors);
   }
 
+  async listLayout(page) {
+    return page.evaluate(() => ({
+      viewport: innerWidth,
+      width: document.documentElement.scrollWidth,
+      nestedLists: document.querySelectorAll('li ul').length,
+      items: Array.from(document.querySelectorAll('[data-pdf-list-layout]'), item => {
+        const label = item.querySelector(':scope > [data-pdf-list-marker]');
+        const paragraph = item.querySelector(':scope > [data-pdf-se-type="LBody"] [data-pdf-list-first]');
+        const range = document.createRange();
+        range.selectNodeContents(paragraph);
+        const lines = Array.from(range.getClientRects(), rect => ({ top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right }));
+        return { labelTop: label.getBoundingClientRect().top, text: paragraph.textContent, lines };
+      }),
+    }));
+  }
+
   async run() {
     assert.equal(Object.keys(this.cases).length, 2);
     await fs.mkdir(this.output, { recursive: true });
@@ -57,6 +73,24 @@ class AssociatedStylesValidation {
                   assert.equal(observed[index].properties[property], expected, `${name}/${caseName}/${property}`);
                 }
               }
+            }
+            if (caseName === 'latex-catalogue-styles') {
+              result.listLayouts = [];
+              for (const width of [1200, 320]) {
+                await actualPage.setViewportSize({ width, height: 900 });
+                const layout = await this.listLayout(actualPage);
+                result.listLayouts.push(layout);
+                assert.equal(layout.items.length, 5, 'All five source list items must remain');
+                assert.equal(layout.nestedLists, 1, 'Nested list hierarchy must remain');
+                assert(layout.width <= layout.viewport, `${name}: list overflow at ${width}px`);
+                for (const item of layout.items) {
+                  assert(item.text.length > 0 && item.lines.length > 0);
+                  assert(Math.abs(item.labelTop - item.lines[0].top) <= 4, `${name}: list marker detached from first line at ${width}px`);
+                }
+                if (width === 320) assert(layout.items.some(item => item.lines.length > 1), 'Narrow view must exercise wrapped list paragraphs');
+                await actualPage.screenshot({ path: path.join(this.output, `${name}-${caseName}-${width}.png`), fullPage: true });
+              }
+              await actualPage.setViewportSize({ width: 1200, height: 900 });
             }
             assert.deepEqual(requests, [], 'Associated styles must not cause network requests');
             await actualPage.screenshot({ path: path.join(this.output, `${name}-${caseName}.png`), fullPage: true });

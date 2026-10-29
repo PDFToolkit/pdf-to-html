@@ -217,3 +217,25 @@ fragments associés originaux dans Chromium et Firefox. Un contrôle distinct
 vérifie que les conditions `@supports`/`@media` imbriquées modifient effectivement
 les styles calculés. Ces fixtures finies ne prouvent pas la prise en charge de
 tous les documents LaTeX, mécanismes CSS ou technologies d’assistance.
+
+## Garder les libellés de liste près du contenu bloc
+
+Un `LBody` dérivé peut contenir des paragraphes ou des éléments de regroupement.
+Un conteneur simplement inline laisse ces blocs commencer à la ligne suivante,
+avec le libellé seul au-dessus. `ListLayout` fournit deux colonnes CSS uniquement
+aux éléments `LI` générés dont les enfants sont un `Lbl` et un `LBody` contenant
+des blocs. Il conserve l’ordre source, les identifiants, les paragraphes et les
+listes imbriquées. Le premier bloc commence sans marge haute par défaut. Toutes
+les règles générées utilisent `:where()` de spécificité nulle : les styles auteur
+de l’item, du libellé et du paragraphe restent prioritaires. Les corps purement
+textuels, listes de définitions et listes HTML explicites sont inchangés.
+Le diagnostic `list-block-layout` décrit cette adaptation visuelle, permise par
+la note sur les styles de libellés du §4.3.5.4, page physique 28.
+
+L’oracle navigateur vérifie la vraie liste LaTeX à 1200 et 320 pixels CSS : les
+libellés restent près de la première ligne, les paragraphes reviennent à la ligne
+sans débordement et la liste imbriquée reste intacte. Il vérifie aussi la priorité
+des styles auteur explicites d’affichage et de marge. L’ordre des cellules
+mathématiques et le CSS source sont conservés ; le MathML de cette fixture place
+les numéros d’équation à gauche, et le convertisseur ne les déplace pas pour
+imiter leur position physique dans le PDF.

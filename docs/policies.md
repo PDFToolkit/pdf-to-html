@@ -200,3 +200,23 @@ original associated fragments in Chromium and Firefox. A separate control
 checks that nested `@supports`/`@media` conditions actually affect computed
 styles. These finite fixtures do not establish support for every
 LaTeX document, CSS feature or assistive technology.
+
+## Keep list labels beside block content
+
+A derived `LBody` can contain paragraphs or grouping elements. A plain inline
+wrapper still lets those blocks start on the next line, leaving the label alone.
+`ListLayout` supplies two CSS columns only for generated `LI` elements whose
+children are a `Lbl` and a block-containing `LBody`. It preserves the source
+order, identifiers, paragraphs and nested lists. The first block starts without
+a default top margin. All generated rules use `:where()` with zero specificity,
+so author styles on the item, marker and paragraph remain authoritative.
+Flat text bodies, description lists and explicit HTML lists are unchanged.
+The diagnostic `list-block-layout` records this visual adaptation, permitted
+by the label-styling note in §4.3.5.4, physical page 28.
+
+The browser oracle checks the real LaTeX list at 1200 and 320 CSS pixels: markers
+remain beside the first text line, wrapped paragraphs do not overflow and the
+nested list remains intact. It also checks explicit author display and margin
+overrides. Mathematical cell order and source CSS are preserved; this fixture's
+MathML places equation numbers on the left, and the converter does not move them
+to imitate the PDF's physical placement.

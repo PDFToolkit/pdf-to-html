@@ -13,6 +13,7 @@ use PDF\Html\Html\ContentModelRepair;
 use PDF\Html\Html\Element;
 use PDF\Html\Html\ExpansionText;
 use PDF\Html\Html\PageContentIdentifiers;
+use PDF\Html\Html\ListLayout;
 use PDF\Html\Html\HtmlNode;
 use PDF\Html\Html\SafetyFilter;
 use PDF\Html\Html\Serializer;
@@ -124,6 +125,12 @@ final class DerivationSession
             $navigation->children[] = new Element('a', ['href' => '#PDF-Page-' . $page], [new Text($this->document->pageLabels[$page] ?? (string) $page)]);
         }
         array_unshift($body->children, $navigation);
+        $listLayout = new ListLayout($this->limits);
+        $listLayout->adapt($body);
+        $this->css .= $listLayout->css();
+        if ($listLayout->count() > 0) {
+            $this->diagnostics[] = new Diagnostic('list-block-layout', 'Generated list labels and block bodies use low-specificity CSS columns; explicit author styles remain authoritative.');
+        }
         $this->mathLayout->protectClassStyles($body);
         $this->safety->filter($body);
         if ($this->policy->allowActiveContent || $this->policy->formActions->enabled()) {

@@ -25,7 +25,7 @@ final readonly class MathMlLayout
         if ($root && $attributes->layoutDisplay && $attributes->placement === 'block') {
             $html['display'] ??= 'block';
         }
-        return new DerivedAttributes($html, $css, $attributes->textPosition, $attributes->listNumbering, $attributes->printField, $attributes->noteType, $attributes->diagnostics, $attributes->tableHeaders);
+        return new DerivedAttributes($html, $css, $attributes->textPosition, $attributes->listNumbering, $attributes->printField, $attributes->noteType, $attributes->diagnostics, $attributes->tableHeaders, htmlStyleProperties: $attributes->htmlStyleProperties);
     }
 
     public function classSelector(string $selector): string

@@ -1,0 +1,8 @@
+{
+  "source": "https://github.com/user-attachments/files/33816512/example.pdf",
+  "discussion": "https://github.com/latex3/tagging-project/issues/1662",
+  "sha256": "25c567628f155250e6b9b959fc93604a5b41fa2d79419e9b3ce6cb3981a684a1",
+  "bytesPreserved": true,
+  "purpose": "Regression input: catalogue HTML Supplement files latex-list-css.html and latex-align-css.html, nested supports rule and repeated browser fallback declarations.",
+  "scope": "Retained third-party report attachment for interoperability testing; the project's MIT licence does not relicense this PDF. No universal LaTeX or accessibility conformance is inferred."
+}

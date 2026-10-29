@@ -6,6 +6,7 @@ namespace PDF\Html\Attributes;
 
 use PDF\Html\Model\AttributeObject;
 use PDF\Html\Html\AttributeName;
+use PDF\Html\Html\CssDeclarations;
 
 /**
      * Deriving HTML 1.2 §§4.3.7.1–12. Resource and active-content policy belongs to the output boundary.
@@ -24,7 +25,7 @@ final class AttributeDeriver
             $ordered[] = [$this->priority($attribute), $index, $attribute];
         }
         usort($ordered, static fn (array $a, array $b): int => ($a[0] <=> $b[0]) ?: ($a[1] <=> $b[1]));
-        $html = $css = $diagnostics = [];
+        $html = $css = $diagnostics = $htmlStyleProperties = [];
         $layoutDisplay = false;
         $placement = null;
         $position = $numbering = $noteType = null;
@@ -114,6 +115,7 @@ final class AttributeDeriver
                 foreach ($values as $key => $value) {
                     if (!in_array($key, ['O','NS'], true)) {
                         $css[$this->cssPropertyName($key)] = $this->string($value);
+                        unset($htmlStyleProperties[$this->cssPropertyName($key)]);
                         if (strtolower($key) === 'display') {
                             $layoutDisplay = false;
                         }
@@ -137,13 +139,12 @@ final class AttributeDeriver
                     } else {
                         $html[$name] = $this->string($value);
                         if ($name === 'style') {
-                            foreach (explode(';', $html[$name]) as $declaration) {
-                                $parts = explode(':', $declaration, 2);
-                                if (count($parts) === 2) {
-                                    $css[$this->cssPropertyName(trim($parts[0]))] = trim($parts[1]);
-                                    if (strtolower(trim($parts[0])) === 'display') {
-                                        $layoutDisplay = false;
-                                    }
+                            foreach ((new CssDeclarations($html[$name]))->pairs() as [$property, $cssValue]) {
+                                $property = $this->cssPropertyName($property);
+                                $css[$property] = $cssValue;
+                                $htmlStyleProperties[$property] = true;
+                                if ($property === 'display') {
+                                    $layoutDisplay = false;
                                 }
                             }
                         }
@@ -155,7 +156,7 @@ final class AttributeDeriver
                 $diagnostics[] = 'Unsupported attribute owner: '.$owner.'.';
             }
         }
-        return new DerivedAttributes($html, $css, $position, $numbering, $printField, $noteType, array_values(array_unique($diagnostics)), $tableHeaders, $layoutDisplay, $placement);
+        return new DerivedAttributes($html, $css, $position, $numbering, $printField, $noteType, array_values(array_unique($diagnostics)), $tableHeaders, $layoutDisplay, $placement, array_keys($htmlStyleProperties));
     }
     /** CSS custom properties are case-sensitive; ordinary CSS property names are not. */
     private function cssPropertyName(string $name): string

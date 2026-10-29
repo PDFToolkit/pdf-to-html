@@ -16,6 +16,8 @@ final readonly class DerivationPolicy
         public bool $includeGraphics = true,
         public bool $preferVisualFigures = false,
         public FormActionPolicy $formActions = new FormActionPolicy(),
+        public bool $allowEmbeddedStylesheets = false,
+        public bool $mergeCatalogHtmlSupplements = false,
     ) {
     }
 }

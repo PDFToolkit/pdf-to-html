@@ -68,9 +68,9 @@ final readonly class DocumentMetadataReader
         $files = [];
         $sources = $this->values->items($owner->get('AF'));
         if ($catalog) {
-            $supplement = $this->catalogSupplement($sources, $selection);
-            if ($supplement !== null) {
-                $sources = [$supplement];
+            $supplements = $this->catalogSupplements($sources, $selection);
+            if ($supplements !== []) {
+                $sources = $supplements;
             }
         }
         foreach ($sources as $value) {
@@ -106,7 +106,7 @@ final readonly class DocumentMetadataReader
             }
         }
         foreach ($descriptors as $index => [, $stream, $descriptor]) {
-            $applicable = $selection === null || ($catalog ? $headSupplement === null || $headSupplement === $index : in_array($descriptor->relationship, ['Alternative', 'Supplement'], true));
+            $applicable = $selection === null || ($catalog ? $headSupplement === null || $headSupplement === $index || $selection->policy->mergeCatalogHtmlSupplements : in_array($descriptor->relationship, ['Alternative', 'Supplement'], true));
             $bytes = null;
             if ($decode && $stream !== null && $applicable && ($selection === null || $selection->accepts($descriptor))) {
                 $bytes = $this->values->document->streamData($stream);
@@ -117,9 +117,13 @@ final readonly class DocumentMetadataReader
         return $files;
     }
 
-    /** @param list<BasicType> $sources */
-    private function catalogSupplement(array $sources, ?AssociatedFileSelection $selection): ?BasicType
+    /**
+     * @param list<BasicType> $sources
+     * @return list<BasicType>
+     */
+    private function catalogSupplements(array $sources, ?AssociatedFileSelection $selection): array
     {
+        $supplements = [];
         foreach ($sources as $source) {
             $this->values->budget->consume('nodes');
             $file = $this->values->dictionary($source);
@@ -131,10 +135,13 @@ final readonly class DocumentMetadataReader
             $url = $embedded === null && $this->values->name($file->get('FS')) === 'URL' ? $this->values->text($file->get('F')) : null;
             $type = $stream instanceof EncodedStream ? $this->values->name($stream->dictionary()->get('Subtype')) : ($url === null ? null : $this->urlMediaType($url));
             if ($type !== null && in_array(strtolower($type), ['text/html', 'application/xhtml+xml'], true) && ($selection === null || $selection->accepts(new AssociatedFile('head-fragment', $type, 'Supplement', url: $url)))) {
-                return $source;
+                $supplements[] = $source;
+                if (!($selection?->policy->mergeCatalogHtmlSupplements ?? false)) {
+                    break;
+                }
             }
         }
-        return null;
+        return $supplements;
     }
     /** Deriving HTML 1.2, 4.6.3/Table 9, physical PDF pages 62–63; no resource is fetched. */
     private function urlMediaType(string $url): string

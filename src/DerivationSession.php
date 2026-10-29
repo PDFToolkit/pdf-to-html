@@ -254,7 +254,7 @@ final class DerivationSession
                 unset($common['display']);
                 $this->css .= $this->mathLayout->classSelector($selector) . '{display:' . $label->css['display'] . "}\n";
             }
-            $this->css .= $selector . '{' . $this->safety->cssText($this->safety->css($common)) . "}\n";
+            $this->css .= $selector . '{' . $this->safety->mergeStyle($label->html['style'] ?? '', array_diff_key($common, array_flip($label->htmlStyleProperties))) . "}\n";
             $placement = array_diff_assoc($derived->css, $label->css);
             if ($placement !== []) {
                 $placementSelector = $selector . ':where(:not([data-pdf-list-label]))';
@@ -335,7 +335,7 @@ final class DerivationSession
         if ($type === 'LBody' && $kind !== 'dl') {
             $element->attributes['style'] = 'display:inline';
         }
-        $css = $derived->css;
+        $css = $derived->cssOverrides();
         if (in_array($type, ['L', 'TOC'], true) && $this->hasExplicitLabels($source)) {
             $css['list-style-type'] = 'none';
         }
@@ -735,16 +735,11 @@ final class DerivationSession
      */
     private function mergeStyle(Element $element, array $css): void
     {
-        $existing = [];
-        foreach (explode(';', $element->attributes['style'] ?? '') as $part) {
-            $pair = explode(':', $part, 2);
-            if (count($pair) === 2) {
-                $existing[trim($pair[0])] = trim($pair[1]);
-            }
-        }
-        $style = $this->safety->cssText($this->safety->css([...$existing, ...$css]));
+        $style = $this->safety->mergeStyle($element->attributes['style'] ?? '', $css);
         if ($style !== '') {
             $element->attributes['style'] = $style;
+        } else {
+            unset($element->attributes['style']);
         }
     }
 
@@ -975,7 +970,7 @@ final class DerivationSession
         } elseif ($source->namespace === null) {
             $field->attributes['data-pdf-se-type-original'] = $source->type;
         }
-        $this->applyAttributes($field, $derived->html, $derived->css);
+        $this->applyAttributes($field, $derived->html, $derived->cssOverrides());
         $output = [];
         foreach ($source->children as $child) {
             if ($child === $widget) {
@@ -1047,7 +1042,7 @@ final class DerivationSession
                         unset($attrs['style']);
                         $inherited = new Element('math', $attrs);
                         $mathAttributes = $this->mathLayout->adapt($derived, true);
-                        $this->applyAttributes($inherited, $mathAttributes->html, $mathAttributes->css);
+                        $this->applyAttributes($inherited, $mathAttributes->html, $mathAttributes->cssOverrides());
                         $attrs = $inherited->attributes;
                     }
                     if ($associated !== [] || $file->relationship === 'Supplement') {
@@ -1100,16 +1095,12 @@ final class DerivationSession
             if ($url !== null && $this->policy->allowRemoteResources) {
                 return [new Element('link', ['rel' => 'stylesheet', 'href' => $url])];
             }
-            if ($this->policy->allowActiveContent) {
-                if (!$this->policy->allowRemoteResources && preg_match('/@import|url\s*\(|\\\\|\/\*/i', $file->bytes ?? '') === 1) {
-                    $this->diagnostics[] = new Diagnostic('associated-css-resources-blocked', 'A stylesheet that may reference other resources needs an explicit remote-resource policy.', $file->filename);
-                    return null;
-                }
+            if ($this->policy->allowEmbeddedStylesheets || $this->policy->allowActiveContent) {
                 $sheet = $this->safety->stylesheet($file->bytes ?? '');
                 $name = $this->assets->add($file->filename, 'text/css', $sheet);
                 return [new Element('link', ['rel' => 'stylesheet', 'type' => 'text/css', 'href' => $name])];
             }
-            $this->diagnostics[] = new Diagnostic('associated-css-blocked', 'Associated stylesheets require an explicit active-content policy.', $file->filename);
+            $this->diagnostics[] = new Diagnostic('associated-css-blocked', 'Associated stylesheets require the embedded-stylesheet or active-content policy.', $file->filename);
             return null;
         }
         if (in_array($type, ['text/javascript', 'application/javascript'], true)) {
@@ -1147,14 +1138,24 @@ final class DerivationSession
 
     private function catalogAssociations(Element $head): void
     {
+        $supplements = 0;
         foreach ($this->document->associatedFiles as $file) {
             if ($file->relationship === 'Supplement' && in_array(strtolower($file->mediaType), ['text/html', 'application/xhtml+xml'], true)) {
                 $nodes = $this->associated($file, true);
                 if ($nodes !== null) {
                     array_push($head->children, ...$nodes);
                 }
-                return;
+                if (!$this->policy->mergeCatalogHtmlSupplements) {
+                    return;
+                }
+                ++$supplements;
             }
+        }
+        if ($supplements > 0) {
+            if ($supplements > 1) {
+                $this->diagnostics[] = new Diagnostic('catalog-html-supplements-merged', 'The explicit interoperability policy merged catalogue HTML Supplements in PDF order; strict section 4.2.2 selects only the first.');
+            }
+            return;
         }
         foreach ($this->document->associatedFiles as $file) {
             $nodes = $this->associated($file, true);

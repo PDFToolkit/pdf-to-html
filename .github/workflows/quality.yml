@@ -36,6 +36,11 @@ jobs:
           mkdir -p _build/mathml
           php tests/export-mathml-cases.php > _build/mathml/cases.json
           node tools/validate_mathml.cjs _build/mathml/cases.json _build/mathml/browsers
+      - name: Compare embedded LaTeX CSS and nested conditions in both engines
+        run: |
+          mkdir -p _build/associated-styles
+          php tests/export-associated-styles.php > _build/associated-styles/cases.json
+          node tools/validate_associated_styles.cjs _build/associated-styles/cases.json _build/associated-styles/browsers
       - name: Check widget appearances and pointer states in both engines
         run: |
           mkdir -p _build/widgets
@@ -72,6 +77,7 @@ jobs:
         with:
           name: semantic-browser-evidence
           path: |
+            _build/associated-styles
             _build/widgets
             _build/attributes
             _build/signature-popovers

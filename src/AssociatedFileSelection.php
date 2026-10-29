@@ -30,7 +30,7 @@ final readonly class AssociatedFileSelection
             'image/svg+xml' => $file->url !== null || $this->policy->allowActiveContent,
             'text/css' => $file->url !== null
                 ? $this->policy->allowRemoteResources
-                : $this->policy->allowActiveContent && ($this->policy->allowRemoteResources || preg_match('/@import|url\s*\(|\\\\|\/\*/i', $file->bytes ?? '') !== 1),
+                : $this->policy->allowEmbeddedStylesheets || $this->policy->allowActiveContent,
             default => false,
         };
     }

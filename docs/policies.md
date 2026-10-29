@@ -67,6 +67,8 @@ dispatch, adapter/provider failures, null entries and unverified permission reje
 | Capability | Default | Enabled behavior |
 | --- | --- | --- |
 | `allowActiveContent` | false | Export trusted PDF ECMAScript and supported active associated content. This does not execute code in PHP or make source scripts safe. |
+| `allowEmbeddedStylesheets` | false | Retain filtered embedded CSS without enabling PDF scripts, event handlers or remote resources. |
+| `mergeCatalogHtmlSupplements` | false | Opt into the documented LaTeX interoperability profile: process all accepted catalogue HTML Supplements in PDF order instead of only the first. |
 | `allowRemoteResources` | false | Emit permitted remote resource URLs. A receiving browser can fetch them; the PHP library does not. Remote HTML imports additionally require active-content permission. |
 | `allowHtmlNamespace` | true | Derive recognized explicit HTML structure types under the safety filter. Disabling it requires a role mapping into another recognized namespace. |
 | `formActions.allowReset` | false | Enable the library-owned ResetForm bridge, with `/DV`, selected fields, parent-name matching and exclusion. |
@@ -154,3 +156,47 @@ filenames preserved. Asset names pass the package's storage boundary validation.
 Serving those files, accepting submissions, enforcing authenticated PDF
 permissions and choosing an origin/content-security policy belong to the host
 application. Read [security](security.md) and inspect diagnostics before publishing.
+
+## Retain embedded styles without enabling scripts
+
+```php
+$policy = new DerivationPolicy(
+    allowEmbeddedStylesheets: true,
+    mergeCatalogHtmlSupplements: true,
+);
+$converter = new PdfToHtml(deriver: new HtmlDeriver($policy));
+```
+
+`allowEmbeddedStylesheets` admits local `text/css` associated files and embedded
+`style` elements. Every declaration still passes `CssSafetyFilter`: ordered
+fallbacks such as `text-align:right; text-align:-moz-right;
+text-align:-webkit-right` remain in source order. Nested `@supports` and `@media`
+blocks are retained within the supported grammar and cumulative byte/token/depth
+budgets. Imports, URL/image resource functions, escapes, expressions, unsupported
+at-rules and malformed declarations are omitted with diagnostics. This is a
+restricted CSS subset, not a complete CSS parser. Remote stylesheet links still
+require `allowRemoteResources`; scripts and event handlers still require the
+separate `allowActiveContent` decision. Existing callers using that broader
+option retain embedded stylesheet support.
+
+Strict derivation keeps the **first** accepted catalogue HTML Supplement and
+ignores other associated files, following §4.2.2, physical page 12 of Deriving
+HTML from PDF 1.2. Some LaTeX PDFs instead contain separate list and alignment
+HTML style fragments. `mergeCatalogHtmlSupplements` deliberately selects all
+accepted HTML Supplements in their PDF order and still ignores unrelated
+catalogue associated files. It emits `catalog-html-supplements-merged` when it
+combines multiple fragments. This opt-in interoperability profile departs from
+the strict single-Supplement rule; enabling it alone grants no stylesheet,
+script or network permission. All selected embedded bytes remain subject to the
+reader's cumulative asset budget.
+
+The unchanged report attachment in `tests/Fixtures/latex-associated-styles`
+exercises both catalogue fragments, repeated alignment fallbacks and the Safari
+`@supports` branch. Its source includes the invalid declaration `border
+margin-left:1em`, which is diagnosed and omitted, not silently repaired. The
+browser oracle uses the reproducible LuaLaTeX `latex-layout.pdf` fixture with
+nested lists and two aligned equations, and compares filtered CSS with its
+original associated fragments in Chromium and Firefox. A separate control
+checks that nested `@supports`/`@media` conditions actually affect computed
+styles. These finite fixtures do not establish support for every
+LaTeX document, CSS feature or assistive technology.

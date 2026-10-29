@@ -67,6 +67,15 @@ state does not establish PKI trust, revocation, timestamp validity, permission f
 later PDF revisions or authenticity of the derived HTML. The browser popover is
 an explanation, not a trust root. See [signatures](signatures.md).
 
+Embedded CSS has its own opt-in `allowEmbeddedStylesheets` capability. It does
+not enable source scripts or network access. `CssSafetyFilter` rejects imports,
+resource functions (including string-valued `image()`/`image-set()`), escapes,
+expressions and unknown at-rules, preserves duplicate fallback declarations,
+and bounds nested `@supports`/`@media` rules. CSS can still hide or reposition
+content: use the same separate-origin or sandboxed preview boundary. The
+`mergeCatalogHtmlSupplements` interoperability option changes catalogue file
+selection only; it grants no execution capability. See [policies](policies.md).
+
 ## Validate before serialization
 
 Escape text and attribute values. Validate element/attribute names, URL schemes,

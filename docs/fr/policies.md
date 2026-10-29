@@ -71,6 +71,8 @@ et le refus de permissions non vérifiées.
 | Capacité | Valeur par défaut | Comportement activé |
 | --- | --- | --- |
 | `allowActiveContent` | false | Exporter l'ECMAScript PDF fiable et les contenus associés actifs acceptés. Cela n'exécute aucun code en PHP et ne rend pas les scripts source sûrs. |
+| `allowEmbeddedStylesheets` | false | Conserver le CSS incorporé filtré sans autoriser les scripts PDF, les gestionnaires d’événements ou les ressources distantes. |
+| `mergeCatalogHtmlSupplements` | false | Choisir le profil d’interopérabilité LaTeX documenté : traiter tous les Supplements HTML acceptés du catalogue dans l’ordre PDF au lieu du premier seulement. |
 | `allowRemoteResources` | false | Produire les URL de ressources distantes autorisées. Le navigateur destinataire peut les récupérer, la bibliothèque PHP ne le fait pas. L'import HTML distant exige aussi l'autorisation de contenu actif. |
 | `allowHtmlNamespace` | true | Dériver les types de structure HTML explicites reconnus sous le filtre de sécurité. Le désactiver exige un mapping vers un autre namespace reconnu. |
 | `formActions.allowReset` | false | Activer le pont ResetForm propre à la bibliothèque : `/DV`, sélection, noms parents et exclusion. |
@@ -168,3 +170,50 @@ Servir ces fichiers, accepter les soumissions, appliquer les permissions PDF
 authentifiées et choisir origine/politique de sécurité du contenu appartiennent
 à l'application. Lire la [sécurité](security.md) et examiner les diagnostics avant
 publication.
+
+## Conserver les styles incorporés sans activer les scripts
+
+```php
+$policy = new DerivationPolicy(
+    allowEmbeddedStylesheets: true,
+    mergeCatalogHtmlSupplements: true,
+);
+$converter = new PdfToHtml(deriver: new HtmlDeriver($policy));
+```
+
+`allowEmbeddedStylesheets` accepte les fichiers associés locaux `text/css` et les
+éléments `style` incorporés. Chaque déclaration passe encore par
+`CssSafetyFilter` : les variantes comme `text-align:right;
+text-align:-moz-right; text-align:-webkit-right` restent dans leur ordre source.
+Les blocs `@supports` et `@media` imbriqués sont conservés dans la grammaire
+acceptée et les budgets cumulatifs d’octets/jetons et de profondeur. Imports,
+fonctions de ressources URL/image, échappements, expressions, règles @ non
+acceptées et déclarations malformées sont omis avec des diagnostics. Il s’agit
+d’un sous-ensemble CSS restreint, pas d’un analyseur CSS complet. Les liens vers
+des feuilles distantes exigent toujours `allowRemoteResources` ; scripts et
+gestionnaires d’événements exigent la décision distincte `allowActiveContent`.
+Les appelants utilisant déjà cette option plus large conservent les styles
+incorporés.
+
+La dérivation stricte conserve le **premier** Supplement HTML accepté du
+catalogue et ignore les autres fichiers associés, conformément au §4.2.2,
+page physique 12 de Deriving HTML from PDF 1.2. Certains PDF LaTeX contiennent
+plutôt des fragments HTML de style séparés pour les listes et l’alignement.
+`mergeCatalogHtmlSupplements` sélectionne volontairement tous les Supplements
+HTML acceptés dans l’ordre PDF, tout en ignorant les autres fichiers associés
+du catalogue. Le diagnostic `catalog-html-supplements-merged` signale la
+combinaison de plusieurs fragments. Ce profil d’interopérabilité optionnel
+s’écarte de la règle stricte du Supplement unique ; son activation seule
+n’autorise ni feuille de style, ni script, ni réseau. Tous les octets incorporés
+sélectionnés restent soumis au budget cumulatif de ressources du lecteur.
+
+La pièce jointe originale conservée dans `tests/Fixtures/latex-associated-styles`
+exerce les deux fragments du catalogue, les variantes d’alignement répétées et
+la branche Safari `@supports`. Sa source contient la déclaration invalide
+`border margin-left:1em`, diagnostiquée et omise, sans réparation implicite.
+L’oracle navigateur utilise la fixture LuaLaTeX reproductible `latex-layout.pdf`,
+avec listes imbriquées et deux équations alignées, et compare le CSS filtré à ses
+fragments associés originaux dans Chromium et Firefox. Un contrôle distinct
+vérifie que les conditions `@supports`/`@media` imbriquées modifient effectivement
+les styles calculés. Ces fixtures finies ne prouvent pas la prise en charge de
+tous les documents LaTeX, mécanismes CSS ou technologies d’assistance.

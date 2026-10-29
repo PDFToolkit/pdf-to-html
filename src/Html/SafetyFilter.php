@@ -105,9 +105,11 @@ final class SafetyFilter
     private int $nodes = 0;
     private int $fragmentBytes = 0;
     private int $fragmentTokens = 0;
+    private readonly CssSafetyFilter $cssFilter;
 
     public function __construct(private readonly DerivationPolicy $policy, private readonly DerivationLimits $limits)
     {
+        $this->cssFilter = new CssSafetyFilter($limits);
     }
 
     public function url(string $url, bool $resource = false): ?string
@@ -137,16 +139,23 @@ final class SafetyFilter
      * @return array<string, string> */
     public function css(array $declarations): array
     {
-        $result = [];
-        foreach ($declarations as $property => $value) {
-            if (preg_match('/\A(?:--)?[a-zA-Z][a-zA-Z0-9-]*\z/D', $property) !== 1
-                || preg_match('/[{};<>\\\\\x00-\x1f]|@|url\s*\(|expression\s*\(|behavior|binding|\/\*/i', $value) === 1) {
-                $this->diagnostics[] = new Diagnostic('blocked-css', 'A CSS declaration was omitted by the safe output policy.', $property);
-                continue;
-            }
-            $result[$property] = $value;
-        }
+        $result = $this->cssFilter->declarations($declarations);
+        $this->cssDiagnostics();
         return $result;
+    }
+
+    /** @param array<string, string> $css */
+    public function mergeStyle(string $style, array $css): string
+    {
+        $result = $this->cssFilter->mergeDeclarations($style, $css);
+        $this->cssDiagnostics();
+        return $result;
+    }
+
+    private function cssDiagnostics(): void
+    {
+        array_push($this->diagnostics, ...$this->cssFilter->diagnostics);
+        $this->cssFilter->diagnostics = [];
     }
 
     /**
@@ -237,14 +246,8 @@ final class SafetyFilter
                 continue;
             }
             if ($name === 'style') {
-                $declarations = [];
-                foreach (explode(';', $value) as $declaration) {
-                    $parts = explode(':', $declaration, 2);
-                    if (count($parts) === 2) {
-                        $declarations[trim($parts[0])] = trim($parts[1]);
-                    }
-                }
-                $value = $this->cssText($this->css($declarations));
+                $value = $this->cssFilter->declarationText($value);
+                $this->cssDiagnostics();
                 if ($value === '') {
                     continue;
                 }
@@ -297,6 +300,9 @@ final class SafetyFilter
             return in_array($tag, self::MATHML_ELEMENTS, true);
         }
         if ($namespace === null && in_array($tag, self::MATHML_ELEMENTS, true)) {
+            return true;
+        }
+        if ($tag === 'style' && $this->policy->allowEmbeddedStylesheets) {
             return true;
         }
         if ($this->policy->allowActiveContent && in_array($tag, ['script','style','link'], true)) {
@@ -416,8 +422,8 @@ final class SafetyFilter
             }
             return isset($element->attributes['href']);
         }
-        if ($tag === 'style' && $derivedHead) {
-            // Generated CSS has already passed the derivation policy; filter() sanitizes the stylesheet again.
+        if ($tag === 'style' && ($derivedHead || $this->policy->allowEmbeddedStylesheets)) {
+            // Generated or explicitly permitted CSS still passes the same bounded filter.
             return true;
         }
         if (in_array($tag, ['style','script'], true)) {
@@ -430,52 +436,11 @@ final class SafetyFilter
         return false;
     }
 
-    /** Restricted stylesheet syntax: no imports, URLs, escapes or nested rules. */
+    /** Sanitized CSS with bounded nested supports/media rules and ordered declarations. */
     public function stylesheet(string $sheet): string
     {
-        if (strlen($sheet) > $this->limits->maximumOutputBytes) {
-            throw new DerivationException('A stylesheet exceeds the output byte limit.');
-        }
-        $withoutComments = '';
-        $position = 0;
-        while (($start = strpos($sheet, '/*', $position)) !== false) {
-            $end = strpos($sheet, '*/', $start + 2);
-            if ($end === false) {
-                $this->diagnostics[] = new Diagnostic('blocked-stylesheet-comment', 'An unterminated CSS comment was omitted with its stylesheet.');
-                return '';
-            }
-            $withoutComments .= substr($sheet, $position, $start - $position);
-            $position = $end + 2;
-        }
-        $sheet = $withoutComments.substr($sheet, $position);
-        $result = '';
-        $offset = 0;
-        while ($offset < strlen($sheet)) {
-            if (preg_match('/\\G\\s*\\z/D', $sheet, $empty, 0, $offset) === 1) {
-                break;
-            }
-            if (preg_match('/\\G\\s*([^{}]+)\\{([^{}]*)\\}\\s*/s', $sheet, $match, 0, $offset) !== 1) {
-                $this->diagnostics[] = new Diagnostic('blocked-stylesheet-syntax', 'Unsupported or nested stylesheet syntax was omitted.');
-                break;
-            }
-            $offset += strlen($match[0]);
-            $selector = trim($match[1]);
-            if (preg_match('/\\A[a-zA-Z0-9_.*#,:>+~\\s\\[\\]="\'|^$()-]+\\z/D', $selector) !== 1) {
-                $this->diagnostics[] = new Diagnostic('blocked-stylesheet-selector', 'An unsupported stylesheet selector was omitted.');
-                continue;
-            }
-            $declarations = [];
-            foreach (explode(';', $match[2]) as $part) {
-                $pair = explode(':', $part, 2);
-                if (count($pair) === 2) {
-                    $declarations[trim($pair[0])] = trim($pair[1]);
-                }
-            }
-            $css = $this->cssText($this->css($declarations));
-            if ($css !== '') {
-                $result .= $selector.'{'.$css.'}';
-            }
-        }
+        $result = $this->cssFilter->stylesheet($sheet);
+        $this->cssDiagnostics();
         return $result;
     }
 

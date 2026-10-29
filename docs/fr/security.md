@@ -74,6 +74,17 @@ d’horodatage, ni permission des révisions PDF ultérieures, ni authenticité 
 dérivé. Le popover explique un résultat, sans constituer une racine de confiance.
 Voir les [signatures](signatures.md).
 
+Le CSS incorporé possède sa capacité optionnelle `allowEmbeddedStylesheets`.
+Elle n’active ni scripts source ni accès réseau. `CssSafetyFilter` refuse les
+imports, fonctions de ressources (y compris `image()`/`image-set()` avec chaînes),
+échappements, expressions et règles @ inconnues ; il conserve les déclarations
+répétées de repli et borne les règles `@supports`/`@media` imbriquées. Le CSS peut
+toujours masquer ou déplacer du contenu : conserver la prévisualisation dans
+une origine séparée ou une frame sandboxée. L’option d’interopérabilité
+`mergeCatalogHtmlSupplements` change uniquement la sélection des fichiers du
+catalogue ; elle n’accorde aucune capacité d’exécution. Voir les
+[politiques](policies.md).
+
 ## Valider avant sérialisation
 
 Échapper textes et attributs. Valider noms d'éléments et d'attributs, schémas d'URL,

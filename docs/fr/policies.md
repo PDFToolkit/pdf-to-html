@@ -195,6 +195,19 @@ gestionnaires d’événements exigent la décision distincte `allowActiveConten
 Les appelants utilisant déjà cette option plus large conservent les styles
 incorporés.
 
+Pour une feuille associée à un élément de structure, la ressource locale filtrée
+est référencée par un `link rel="stylesheet"` juste avant cet élément
+(§4.6.4.3, pages physiques 65–66). Les liens dans le corps passent les mêmes
+contrôles d’URL ; les capacités CSS n’autorisent ni `import` ni les autres
+relations de lien. Les règles générales restent applicables (§4.6.4.1, pages
+physiques 63–64) : un `Supplement` accepté exclut les contenus directs/MCID et
+conserve les éléments de sous-structure ; `Alternative` remplace tout le
+sous-arbre. Un fichier ignoré ne supprime pas le contenu original. Pour styliser
+du texte sans le remplacer, associer le CSS du document au catalogue, ou placer
+ce texte dans des éléments de sous-structure. Le positionnement du CSS et du
+JavaScript ne lève pas ces règles ; le JavaScript associé exige toujours la
+politique de contenu actif (§4.6.4.4).
+
 La dérivation stricte conserve le **premier** Supplement HTML accepté du
 catalogue et ignore les autres fichiers associés, conformément au §4.2.2,
 page physique 12 de Deriving HTML from PDF 1.2. Certains PDF LaTeX contiennent

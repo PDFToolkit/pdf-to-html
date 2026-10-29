@@ -270,7 +270,7 @@ final class SafetyFilter
             if ($child instanceof Element) {
                 $childNamespace = $this->childNamespace($namespace, $element->tag, $element->attributes, strtolower($child->tag));
                 $headMetadata = $element->tag === 'head' && in_array($child->tag, ['meta','title','link','style','script'], true);
-                if (($headMetadata && !$this->metadataAllowed($child, true)) || (!$headMetadata && !$this->tagAllowed(strtolower($child->tag), $childNamespace))) {
+                if (($headMetadata && !$this->metadataAllowed($child, true)) || (!$headMetadata && !$this->bodyElementAllowed($child, $childNamespace))) {
                     $this->diagnostics[] = new Diagnostic('blocked-output-element', 'An unsafe or unsupported output element was omitted.', $child->tag);
                     continue;
                 }
@@ -305,10 +305,29 @@ final class SafetyFilter
         if ($tag === 'style' && $this->policy->allowEmbeddedStylesheets) {
             return true;
         }
+        if ($tag === 'link' && ($this->policy->allowEmbeddedStylesheets || $this->policy->allowRemoteResources)) {
+            return true;
+        }
         if ($this->policy->allowActiveContent && in_array($tag, ['script','style','link'], true)) {
             return true;
         }
         return in_array($tag, self::HTML_ELEMENTS, true);
+    }
+
+    private function bodyElementAllowed(Element $element, string $namespace): bool
+    {
+        if (!$this->tagAllowed(strtolower($element->tag), $namespace)) {
+            return false;
+        }
+        if (strtolower($element->tag) !== 'link') {
+            return true;
+        }
+        // The stylesheet capabilities must not admit imports or other link relations.
+        if (!$this->policy->allowActiveContent && strtolower(trim($element->attributes['rel'] ?? '')) !== 'stylesheet') {
+            $this->diagnostics[] = new Diagnostic('blocked-body-resource', 'Only stylesheet links are permitted in body content without active-content permission.');
+            return false;
+        }
+        return $this->metadataAllowed($element);
     }
 
     /** The HTML parser recognizes these namespace integration points, not arbitrary xmlns declarations. */
@@ -378,7 +397,7 @@ final class SafetyFilter
                     $attrs[strtolower($attribute->name)] = $attribute->value;
                 }
                 $node = new Element($tag, $attrs);
-                if ($head && !$this->metadataAllowed($node)) {
+                if (($head && !$this->metadataAllowed($node)) || (!$head && !$this->bodyElementAllowed($node, $targetNamespace))) {
                     continue;
                 }
                 $node->children = $this->domChildren($child, $depth + 1, false, $targetNamespace, $xml);

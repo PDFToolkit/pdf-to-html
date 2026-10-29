@@ -76,6 +76,43 @@ final class EmbeddedStylesheetsTest extends TestCase
         self::assertStringContainsString('href="document.css"', $result->html);
     }
 
+    public function testStructureStylesheetRetainsItsLinkAndAppliesSupplementContentRules(): void
+    {
+        $fixture = new PdfFixture();
+        $pdf = $fixture->build([
+            4 => $fixture->stream('/P <</MCID 0>> BDC BT /F1 12 Tf (Direct content) Tj ET EMC /Span <</MCID 1>> BDC BT /F1 12 Tf (Child structure) Tj ET EMC'),
+            7 => '<< /Type /StructElem /S /P /P 6 0 R /Pg 3 0 R /K [0 10 0 R] /AF [15 0 R 17 0 R 19 0 R] >>',
+            10 => '<< /Type /StructElem /S /Span /P 7 0 R /Pg 3 0 R /K 1 >>',
+            14 => '<< /Nums [0 [7 0 R 10 0 R]] >>',
+            15 => '<< /Type /Filespec /UF (local.css) /AFRelationship /Supplement /EF << /UF 16 0 R >> >>',
+            16 => $fixture->stream('@import "https://evil.test/import.css";p{color:red;background:u/**/rl(https://evil.test/pixel)}', '/Type /EmbeddedFile /Subtype /text#2Fcss'),
+            17 => '<< /Type /Filespec /FS /URL /F (https://evil.test/remote.css) /AFRelationship /Supplement >>',
+            19 => '<< /Type /Filespec /UF (active.js) /AFRelationship /Supplement /EF << /UF 20 0 R >> >>',
+            20 => $fixture->stream('globalThis.unwanted=true;', '/Type /EmbeddedFile /Subtype /text#2Fjavascript'),
+        ]);
+        $blocked = (new PdfToHtml())->convert($pdf, 'blocked.pdf');
+        self::assertSame([], $blocked->assets);
+        self::assertStringContainsString('Direct content', $blocked->html);
+        self::assertStringContainsString('Child structure', $blocked->html);
+        self::assertStringNotContainsString('<link', $blocked->html);
+
+        $policy = new DerivationPolicy(allowEmbeddedStylesheets: true);
+        $result = (new PdfToHtml(deriver: new HtmlDeriver($policy)))->convert($pdf, 'accepted.pdf');
+        self::assertCount(1, $result->assets);
+        self::assertSame('local.css', $result->assets[0]->filename);
+        self::assertSame('p{color:red}', $result->assets[0]->bytes);
+        self::assertStringContainsString('<link rel="stylesheet" type="text/css" href="local.css"><p', $result->html);
+        self::assertStringNotContainsString('Direct content', $result->html);
+        self::assertStringContainsString('Child structure', $result->html);
+        self::assertStringNotContainsString('evil.test', $result->html);
+        self::assertStringNotContainsString('<script', $result->html);
+        $codes = array_map(static fn ($diagnostic) => $diagnostic->code, $result->diagnostics);
+        foreach (['blocked-stylesheet-rule', 'blocked-css', 'associated-url-blocked', 'associated-script-blocked'] as $code) {
+            self::assertContains($code, $codes);
+        }
+        self::assertNotContains('blocked-output-element', $codes);
+    }
+
     public function testOriginalLatexAttachmentRetainsBothStylesheetsAndFallbacks(): void
     {
         $path = dirname(__DIR__).'/Fixtures/latex-associated-styles/example.pdf';

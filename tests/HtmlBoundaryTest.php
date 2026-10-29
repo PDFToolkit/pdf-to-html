@@ -50,6 +50,40 @@ final class HtmlBoundaryTest extends TestCase
         self::assertSame([], $filter->fragment('<style>.paragraph{color:red}</style>', head: true));
     }
 
+    public function testBodyStylesheetCapabilitiesDoNotAdmitImportsOrOtherResourceRelations(): void
+    {
+        foreach ([new DerivationPolicy(allowEmbeddedStylesheets: true), new DerivationPolicy(allowRemoteResources: true)] as $policy) {
+            $filter = new SafetyFilter($policy, new DerivationLimits());
+            foreach (['import', 'preload', 'prefetch', 'icon', 'alternate', 'stylesheet import', ''] as $relation) {
+                $link = new Element('link', ['rel' => $relation, 'href' => 'local.css']);
+                $body = new Element('body', [], [$link]);
+                $filter->filter($body);
+                self::assertSame([], $body->children, $relation);
+                self::assertSame([], $filter->fragment('<link rel="'.$relation.'" href="local.css">'), $relation);
+            }
+            $nodes = $filter->fragment('<link rel="stylesheet" href="local.css">');
+            self::assertCount(1, $nodes);
+            self::assertSame('local.css', $nodes[0]->attributes['href']);
+        }
+    }
+
+    public function testBodyStylesheetsStillRequireAnExplicitCapabilityAndSafeResourceUrl(): void
+    {
+        $blocked = new SafetyFilter(new DerivationPolicy(), new DerivationLimits());
+        self::assertSame([], $blocked->fragment('<link rel="stylesheet" href="local.css">'));
+        $local = new SafetyFilter(new DerivationPolicy(allowEmbeddedStylesheets: true), new DerivationLimits());
+        foreach (['https://evil.test/a.css', '//evil.test/a.css', '/a.css', '../a.css', 'a%2e%2e.css', 'javascript:alert(1)', 'data:text/css,p{color:red}'] as $url) {
+            self::assertSame([], $local->fragment('<link rel="stylesheet" href="'.$url.'">'), $url);
+            $body = new Element('body', [], [new Element('link', ['rel' => 'stylesheet', 'href' => $url])]);
+            $local->filter($body);
+            self::assertSame([], $body->children, $url);
+        }
+        $remote = new SafetyFilter(new DerivationPolicy(allowRemoteResources: true), new DerivationLimits());
+        $nodes = $remote->fragment('<link rel="stylesheet" href="https://example.test/a.css">');
+        self::assertCount(1, $nodes);
+        self::assertSame('https://example.test/a.css', $nodes[0]->attributes['href']);
+    }
+
     public function testStylesheetCommentsCannotHideUrlFunctions(): void
     {
         $filter = new SafetyFilter(new DerivationPolicy(allowActiveContent: true), new DerivationLimits());

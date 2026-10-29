@@ -37,7 +37,7 @@ class AssociatedStylesValidation {
   }
 
   async run() {
-    assert.equal(Object.keys(this.cases).length, 2);
+    assert.deepEqual(Object.keys(this.cases).sort(), ['latex-catalogue-styles', 'nested-conditions', 'structure-stylesheet']);
     await fs.mkdir(this.output, { recursive: true });
     const report = { playwright: require('playwright/package.json').version, casesSha256: crypto.createHash('sha256').update(JSON.stringify(this.cases)).digest('hex'), browsers: [] };
     try {
@@ -48,18 +48,50 @@ class AssociatedStylesValidation {
         try {
           const context = await browser.newContext({ viewport: { width: 1200, height: 900 }, javaScriptEnabled: false, serviceWorkers: 'block' });
           const requests = [];
-          await context.route('**/*', route => { requests.push(route.request().url()); return route.abort(); });
+          const resources = new Map(), assetRequests = [];
+          await context.route('**/*', route => {
+            const url = route.request().url(), resource = resources.get(url);
+            if (resource && route.request().method() === 'GET') {
+              if (resource.contentType === 'text/css') assetRequests.push(url);
+              return route.fulfill(resource);
+            }
+            requests.push(url); return route.abort();
+          });
           for (const [caseName, fixture] of Object.entries(this.cases)) {
             assert.match(caseName, /^[a-z0-9-]+$/);
             assert(!fixture.html.includes('<script'), 'No source script should be emitted');
             const actualPage = await context.newPage();
             const referencePage = await context.newPage();
-            await actualPage.setContent(fixture.html);
-            await referencePage.setContent(fixture.html.replace('</head>', fixture.originalStyles + '</head>'));
+            const referenceHtml = fixture.html.replace('</head>', fixture.originalStyles + '</head>');
+            if (fixture.assets) {
+              const base = `https://associated-styles.invalid/${caseName}/`;
+              resources.set(base + 'actual.html', { contentType: 'text/html', body: fixture.html });
+              resources.set(base + 'reference.html', { contentType: 'text/html', body: referenceHtml });
+              for (const asset of fixture.assets) {
+                assert.match(asset.filename, /^[A-Za-z0-9][A-Za-z0-9_.-]*$/);
+                assert.equal(asset.mediaType, 'text/css');
+                resources.set(base + asset.filename, { contentType: asset.mediaType, body: asset.bytes });
+              }
+              // Serve the unchanged HTML and its returned CSS in memory; no network is used.
+              await actualPage.goto(base + 'actual.html');
+              await referencePage.goto(base + 'reference.html');
+            } else {
+              await actualPage.setContent(fixture.html);
+              await referencePage.setContent(referenceHtml);
+            }
             const actual = await this.observe(actualPage, fixture.selectors);
             const reference = await this.observe(referencePage, fixture.selectors);
             const result = { name: caseName, actual, reference, passed: false };
             entry.cases.push(result);
+            if (caseName === 'structure-stylesheet') {
+              result.stylesheet = await actualPage.evaluate(() => {
+                const paragraph = document.getElementById('structure-css'), link = paragraph.previousElementSibling;
+                return { tag: link.tagName, rel: link.rel, href: link.getAttribute('href'), text: paragraph.textContent, body: link.parentElement.tagName };
+              });
+              assert.deepEqual(result.stylesheet, { tag: 'LINK', rel: 'stylesheet', href: 'structure.css', text: 'This child structure retains the linked stylesheet.', body: 'BODY' });
+              assert.equal(assetRequests.length, 2, 'Both browser documents must load the actual returned stylesheet asset');
+              result.assetRequests = [...assetRequests];
+            }
             for (const [selector, observed] of Object.entries(actual)) {
               assert(observed.length > 0, `${name}/${caseName}: missing ${selector}`);
               assert.equal(observed.length, reference[selector].length);

@@ -17,7 +17,7 @@ use PDF\Reading\FileBytes;
 
 final readonly class AssociatedStylesCases
 {
-    /** @return array<string, array{html:string, originalStyles:string, selectors:array<string,list<string>>, expected:array<string,array<string,string>>}> */
+    /** @return array<string, array{html:string, originalStyles:string, selectors:array<string,list<string>>, expected:array<string,array<string,string>>, assets?:list<array{filename:string, mediaType:string, bytes:string}>}> */
     public function all(): array
     {
         $policy = new DerivationPolicy(allowEmbeddedStylesheets: true, mergeCatalogHtmlSupplements: true);
@@ -37,6 +37,12 @@ final readonly class AssociatedStylesCases
             new AssociatedFile('first.html', 'text/html', 'Supplement', '<style>#css-proof{text-align:right;text-align:-moz-right;text-align:-webkit-right}</style>'),
             new AssociatedFile('second.html', 'text/html', 'Supplement', '<style>@supports (display:block){@media screen and (min-width:1px){#css-proof{border-top:7px solid rgb(1,2,3);color:rgb(4,5,6)}}}#author-item{display:block}#author-first{margin-top:11px}</style>'),
         ]);
+        $structureCss = '#structure-css-child{color:rgb(12,34,56);border-top:9px solid rgb(65,43,21)}';
+        $structure = (new HtmlDeriver($policy))->derive(new TaggedDocument('structure-css.pdf', [
+            new StructureElement('structure-css', 'P', [new TextContent('Excluded direct content'),
+                new StructureElement('structure-css-child', 'Span', [new TextContent('This child structure retains the linked stylesheet.')], properties: new StructureProperties(id: 'structure-css-child')),
+            ], properties: new StructureProperties(id: 'structure-css'), associatedFiles: [new AssociatedFile('structure.css', 'text/css', 'Supplement', $structureCss)]),
+        ]));
         return [
             'latex-catalogue-styles' => [
                 'html' => (new HtmlDeriver($policy))->derive($source)->html,
@@ -49,6 +55,13 @@ final readonly class AssociatedStylesCases
                 'originalStyles' => implode('', array_map(static fn (AssociatedFile $file): string => $file->bytes ?? '', $control->associatedFiles)),
                 'selectors' => ['#css-proof' => ['text-align', 'border-top-width', 'border-top-color', 'color'], '#author-item' => ['display'], '#author-first' => ['margin-top']],
                 'expected' => ['#css-proof' => ['border-top-width' => '7px', 'border-top-color' => 'rgb(1, 2, 3)', 'color' => 'rgb(4, 5, 6)'], '#author-item' => ['display' => 'block'], '#author-first' => ['margin-top' => '11px']],
+            ],
+            'structure-stylesheet' => [
+                'html' => $structure->html,
+                'originalStyles' => '<style>'.$structureCss.'</style>',
+                'selectors' => ['#structure-css-child' => ['color', 'border-top-width', 'border-top-color']],
+                'expected' => ['#structure-css-child' => ['color' => 'rgb(12, 34, 56)', 'border-top-width' => '9px', 'border-top-color' => 'rgb(65, 43, 21)']],
+                'assets' => array_map(static fn ($asset): array => ['filename' => $asset->filename, 'mediaType' => $asset->mediaType, 'bytes' => $asset->bytes], $structure->assets),
             ],
         ];
     }

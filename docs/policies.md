@@ -179,6 +179,18 @@ require `allowRemoteResources`; scripts and event handlers still require the
 separate `allowActiveContent` decision. Existing callers using that broader
 option retain embedded stylesheet support.
 
+For a stylesheet associated with a structure element, the filtered local asset
+is referenced by a `link rel="stylesheet"` immediately before that element
+(§4.6.4.3, physical pages 65–66). Body links pass the same resource-URL checks;
+the stylesheet capabilities do not authorize `import` or other link relations.
+The general association rules still apply (§4.6.4.1, physical pages 63–64): an
+accepted `Supplement` excludes direct content items/MCIDs but retains child
+structure elements; `Alternative` replaces the whole subtree. An ignored file
+does not suppress the original content. To style text without replacing it,
+associate document-level CSS with the catalogue, or retain that text in child
+structure elements. CSS and JavaScript positioning does not waive these rules;
+associated JavaScript still requires the active-content policy (§4.6.4.4).
+
 Strict derivation keeps the **first** accepted catalogue HTML Supplement and
 ignores other associated files, following §4.2.2, physical page 12 of Deriving
 HTML from PDF 1.2. Some LaTeX PDFs instead contain separate list and alignment

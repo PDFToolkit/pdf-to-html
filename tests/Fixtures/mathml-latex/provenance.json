@@ -185,13 +185,13 @@
     "latex-layout": {
       "source": {
         "path": "latex-layout.tex",
-        "bytes": 1157,
-        "sha256": "7723b2475453fbe3b8a9bf459c1f2009328c417b76c31879abaa7a055d2e44f7"
+        "bytes": 1209,
+        "sha256": "a6c421620fc12dc38a30ddc4adc29d1c996c3ca71cbc2ade411b0359e2959ce7"
       },
       "pdf": {
         "path": "latex-layout.pdf",
-        "bytes": 35578,
-        "sha256": "ddd75daccb45696b6c5b49daed89b6b603a30e1d32a4e9670518c7497b26053c"
+        "bytes": 35674,
+        "sha256": "d09301d51d14eaf6a677e87f93d329dad720c66e2c9e61779ab47ad6793e8913"
       },
       "mode": "mathml-SE,mathml-AF",
       "independentCleanBuildsIdentical": true,

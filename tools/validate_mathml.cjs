@@ -46,16 +46,19 @@ class MathmlBrowserValidation {
           await reference.close();
           for (const [caseName, fixture] of Object.entries(this.cases)) {
             assert.match(caseName, /^[a-z0-9-]+$/);
-            assert(['inline', 'block'].includes(fixture.expectedDisplay));
+            assert(fixture.expectedMath || ['inline', 'block'].includes(fixture.expectedDisplay));
             const page = await context.newPage();
             await page.setContent(fixture.html, { waitUntil: 'load' });
             const observed = await page.evaluate(() => {
               const rect = element => {
                 const box = element.getBoundingClientRect();
-                return { top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+                return { top: box.top, bottom: box.bottom, left: box.left, right: box.right, width: box.width, height: box.height };
               };
               return Array.from(document.querySelectorAll('math'), math => ({
                 namespace: math.namespaceURI,
+                id: math.id,
+                text: math.textContent,
+                displayAttribute: math.getAttribute('display') || 'inline',
                 display: getComputedStyle(math).display,
                 rect: rect(math),
                 superscripts: Array.from(math.querySelectorAll('msup'), item => ({
@@ -66,6 +69,9 @@ class MathmlBrowserValidation {
                   numerator: rect(item.children[0]),
                   denominator: rect(item.children[1]),
                 })),
+                matrices: Array.from(math.querySelectorAll('mtable'), table => ({
+                  rows: Array.from(table.children, row => Array.from(row.children, cell => ({text: cell.textContent, rect: rect(cell)}))),
+                })),
               }));
             });
             await page.screenshot({ path: path.join(this.output, `${name}-${caseName}.png`), fullPage: true });
@@ -73,21 +79,51 @@ class MathmlBrowserValidation {
               const elements = Array.from(document.querySelectorAll(selector));
               return [selector, elements.map(element => getComputedStyle(element).display)];
             })), Object.keys(fixture.htmlDisplays || {}));
-            const record = { name: caseName, expectedDisplay: fixture.expectedDisplay, math: observed, htmlDisplays, passed: false };
+            const record = { name: caseName, source: fixture.source, expectedDisplay: fixture.expectedDisplay, expectedMath: fixture.expectedMath, math: observed, htmlDisplays, passed: false };
             result.cases.push(record);
             const label = `${name}/${caseName}`;
             assert(observed.length > 0, `${label}: no MathML root`);
-            for (const math of observed) {
+            if (fixture.expectedMath) assert.equal(observed.length, fixture.expectedMath.length, `${label}: missing or duplicated real PDF formulas`);
+            for (const [index, math] of observed.entries()) {
+              const expected = fixture.expectedMath?.[index];
+              const display = expected?.display || fixture.expectedDisplay;
               assert.equal(math.namespace, 'http://www.w3.org/1998/Math/MathML', label);
-              assert.equal(math.display, result.nativeDisplay[fixture.expectedDisplay], `${label}: display differs from native ${fixture.expectedDisplay} MathML`);
+              assert.equal(math.display, result.nativeDisplay[display], `${label}: display differs from native ${display} MathML`);
               assert(math.rect.width > 0 && math.rect.height > 0, `${label}: invisible math`);
-              assert(math.superscripts.length > 0 || math.fractions.length > 0, `${label}: no layout-sensitive expression`);
+              assert(math.superscripts.length > 0 || math.fractions.length > 0 || math.matrices.length > 0, `${label}: no layout-sensitive expression`);
+              if (expected) {
+                assert.equal(math.id, expected.id, `${label}: original PDF structure ID must survive, including when MathML AF is also present`);
+                assert.equal(math.text, expected.text, `${label}: original math token text and spacing changed`);
+                assert.equal(math.displayAttribute, expected.display, `${label}: inline/display attribute`);
+                assert.equal(math.superscripts.length, expected.superscripts, `${label}: superscript count`);
+                assert.equal(math.fractions.length, expected.fractions, `${label}: fraction count`);
+                assert.equal(math.matrices.length, expected.matrices.length, `${label}: matrix count`);
+              }
               for (const { base, exponent } of math.superscripts) {
                 assert(exponent.bottom < base.bottom - 1, `${label}: exponent is not raised`);
                 assert(exponent.height < base.height, `${label}: exponent is not smaller`);
               }
               for (const { numerator, denominator } of math.fractions) {
                 assert(numerator.bottom <= denominator.top + 0.5, `${label}: fraction is not vertically stacked`);
+              }
+              for (const [matrixIndex, matrix] of math.matrices.entries()) {
+                const shape = expected.matrices[matrixIndex];
+                assert.equal(matrix.rows.length, shape.rows, `${label}: matrix row count`);
+                assert.deepEqual(matrix.rows.map(row => row.map(cell => cell.text)), shape.cells, `${label}: matrix cell order`);
+                for (const [rowIndex, row] of matrix.rows.entries()) {
+                  assert.equal(row.length, shape.columns, `${label}: matrix column count`);
+                  for (const [columnIndex, cell] of row.entries()) {
+                    assert(cell.rect.width > 0 && cell.rect.height > 0, `${label}: invisible matrix cell`);
+                    if (columnIndex > 0) {
+                      assert(row[columnIndex - 1].rect.right <= cell.rect.left + 0.5, `${label}: matrix columns overlap`);
+                    }
+                    if (rowIndex > 0) {
+                      const above = matrix.rows[rowIndex - 1][columnIndex].rect;
+                      assert(above.bottom <= cell.rect.top + 0.5, `${label}: matrix rows overlap`);
+                      assert(Math.abs((above.left + above.right) / 2 - (cell.rect.left + cell.rect.right) / 2) < 1, `${label}: matrix column centres differ`);
+                    }
+                  }
+                }
               }
             }
             for (const [selector, expected] of Object.entries(fixture.htmlDisplays || {})) {

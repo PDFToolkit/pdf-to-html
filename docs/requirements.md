@@ -5,7 +5,7 @@
 This ledger concerns the retained PDF Association usage specification, not a
 claim of complete ISO 32000-2, Acrobat or browser implementation. Page numbers
 are physical PDF pages, including the six-page front matter.
-[Open the original](../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
+[Open the original](https://pdfa.org/download-area/specifications/Deriving_HTML_from_PDF_1-2.pdf).
 
 **Native** means executable package behavior. **Policy** means an explicit
 security decision permitted by the reference. **Port** means the package

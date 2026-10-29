@@ -6,7 +6,8 @@ Dériver du HTML sémantique depuis un PDF balisé avec des objets PHP explicite
 selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 
 Ce dépôt a été créé spécialement pour implémenter les règles de
-[Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
+[Deriving_HTML_from_PDF_1-2.pdf](https://pdfa.org/download-area/specifications/Deriving_HTML_from_PDF_1-2.pdf).
+[Copie conservée dans ce dépôt](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
 La version 0.7.0 implémente les mécanismes de dérivation de la référence avec des
 profils de sécurité explicites, l’authentification native par mot de passe/clé publique/MAC et un
 rendu fourni par l’application. Le [guide de couverture](docs/fr/coverage.md) et le

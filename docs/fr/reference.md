@@ -6,7 +6,8 @@ La source est **Deriving HTML from PDF, version 1.2, septembre 2026**, publiée 
 PDF Association sous [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/).
 Le PDF original compte **74 pages physiques** ; son nom et ses octets sont conservés.
 
-[Ouvrir l'original](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf)
+[Ouvrir l'original](https://pdfa.org/download-area/specifications/Deriving_HTML_from_PDF_1-2.pdf)
+· [Copie conservée dans ce dépôt](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf)
 · [Consulter l'inventaire et l'empreinte](../../resources/reference.json).
 
 Le corps numéroté commence à la page physique 7 (page imprimée 1), après six pages

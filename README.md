@@ -6,7 +6,8 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 **Deriving HTML from PDF 1.2** (PDF Association, September 2026).
 
 This repository was created specifically to implement the rules in
-[Deriving_HTML_from_PDF_1-2.pdf](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
+[Deriving_HTML_from_PDF_1-2.pdf](https://pdfa.org/download-area/specifications/Deriving_HTML_from_PDF_1-2.pdf).
+[Copy preserved in this repository](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
 Version 0.7.0 implements the reference's derivation mechanisms with explicit
 security profiles, native password/public-key/MAC authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)

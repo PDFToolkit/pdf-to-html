@@ -5,7 +5,7 @@
 Ce registre concerne la spécification d'usage PDF Association conservée ; il ne
 revendique pas une implémentation complète d'ISO 32000-2, d'Acrobat ou du
 navigateur. Les pages sont les pages physiques du PDF, y compris les six pages
-préliminaires. [Ouvrir l'original](../../resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
+préliminaires. [Ouvrir l'original](https://pdfa.org/download-area/specifications/Deriving_HTML_from_PDF_1-2.pdf).
 
 **Natif** désigne un comportement exécutable du package. **Politique** désigne un
 choix de sécurité explicite permis par la référence. **Port** signifie que le

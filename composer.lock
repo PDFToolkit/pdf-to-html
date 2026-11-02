@@ -4,89 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5ea452dcbd651044714ac6d1563c39cf",
+    "content-hash": "28dc9b86cddcdbbe2fa36dfc49b8dea6",
     "packages": [
         {
-            "name": "pdftoolkit/pdf-reader",
-            "version": "v0.8.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/PDFToolkit/pdf-reader.git",
-                "reference": "007ed70a2e77d62df8d7f8775382af594070714e"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/007ed70a2e77d62df8d7f8775382af594070714e",
-                "reference": "007ed70a2e77d62df8d7f8775382af594070714e",
-                "shasum": ""
-            },
-            "require": {
-                "ext-ctype": "*",
-                "ext-zlib": "*",
-                "php": "^8.3",
-                "roukmoute/pdf": "^0.11 || ^0.12"
-            },
-            "require-dev": {
-                "friendsofphp/php-cs-fixer": "^3.0",
-                "pdftoolkit/pdf-codecs": "^0.1",
-                "phpstan/phpstan": "^2.1",
-                "phpunit/phpunit": "^12.0"
-            },
-            "suggest": {
-                "ext-openssl": "Required when explicitly selecting native AES or OpenSSL certificate authentication.",
-                "pdftoolkit/pdf-codecs": "Optional pure PHP image decoder when no compatible native engine is available: composer require pdftoolkit/pdf-codecs:^0.1"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "0.8.x-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "PDF\\Reading\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Mathias STRASSER",
-                    "email": "contact@roukmoute.fr"
-                }
-            ],
-            "description": "A bounded PDF object reader with password, certificate and source PDF MAC authentication for PHP 8.3+",
-            "homepage": "https://pdftoolkit.github.io/modules/reader/",
-            "keywords": [
-                "iso-32000-1",
-                "object-model",
-                "pdf",
-                "pdf-1.7",
-                "pdf-2.0",
-                "php",
-                "reader"
-            ],
-            "support": {
-                "docs": "https://pdftoolkit.github.io/modules/reader/",
-                "issues": "https://github.com/PDFToolkit/pdf-reader/issues",
-                "source": "https://github.com/PDFToolkit/pdf-reader"
-            },
-            "time": "2026-11-02T15:56:43+00:00"
-        },
-        {
-            "name": "roukmoute/pdf",
-            "version": "v0.12.0",
+            "name": "pdftoolkit/pdf",
+            "version": "v0.12.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf.git",
-                "reference": "44fd56797614775f21ec9df996a85eaf54f68a04"
+                "reference": "48dc06996b1ac4a586a58228e8cd1268f05a9305"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/44fd56797614775f21ec9df996a85eaf54f68a04",
-                "reference": "44fd56797614775f21ec9df996a85eaf54f68a04",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf/zipball/48dc06996b1ac4a586a58228e8cd1268f05a9305",
+                "reference": "48dc06996b1ac4a586a58228e8cd1268f05a9305",
                 "shasum": ""
             },
             "require": {
@@ -96,11 +27,15 @@
                 "php": "^8.3",
                 "php-64bit": "*"
             },
+            "replace": {
+                "roukmoute/pdf": "self.version"
+            },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.0",
+                "pdftoolkit/pdf-codecs": "^0.1",
                 "pdftoolkit/pdf-fonts": "^0.2",
-                "pdftoolkit/pdf-images": "^0.1.13",
-                "pdftoolkit/pdf-reader": "^0.6.1",
+                "pdftoolkit/pdf-images": "^0.2",
+                "pdftoolkit/pdf-reader": "^0.7",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^12.0"
             },
@@ -149,7 +84,76 @@
                 "issues": "https://github.com/PDFToolkit/pdf/issues",
                 "source": "https://github.com/PDFToolkit/pdf"
             },
-            "time": "2026-10-28T19:06:49+00:00"
+            "time": "2026-11-02T20:03:50+00:00"
+        },
+        {
+            "name": "pdftoolkit/pdf-reader",
+            "version": "v0.8.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/PDFToolkit/pdf-reader.git",
+                "reference": "41bfcae6bc4bea76fe6a94486a0bb59c82d61e79"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/41bfcae6bc4bea76fe6a94486a0bb59c82d61e79",
+                "reference": "41bfcae6bc4bea76fe6a94486a0bb59c82d61e79",
+                "shasum": ""
+            },
+            "require": {
+                "ext-ctype": "*",
+                "ext-zlib": "*",
+                "pdftoolkit/pdf": "^0.12.2",
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "pdftoolkit/pdf-codecs": "^0.1",
+                "phpstan/phpstan": "^2.1",
+                "phpunit/phpunit": "^12.0"
+            },
+            "suggest": {
+                "ext-openssl": "Required when explicitly selecting native AES or OpenSSL certificate authentication.",
+                "pdftoolkit/pdf-codecs": "Optional pure PHP image decoder when no compatible native engine is available: composer require pdftoolkit/pdf-codecs:^0.1"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.8.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "PDF\\Reading\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mathias STRASSER",
+                    "email": "contact@roukmoute.fr"
+                }
+            ],
+            "description": "A bounded PDF object reader with password, certificate and source PDF MAC authentication for PHP 8.3+",
+            "homepage": "https://pdftoolkit.github.io/modules/reader/",
+            "keywords": [
+                "iso-32000-1",
+                "object-model",
+                "pdf",
+                "pdf-1.7",
+                "pdf-2.0",
+                "php",
+                "reader"
+            ],
+            "support": {
+                "docs": "https://pdftoolkit.github.io/modules/reader/",
+                "issues": "https://github.com/PDFToolkit/pdf-reader/issues",
+                "source": "https://github.com/PDFToolkit/pdf-reader"
+            },
+            "time": "2026-11-02T20:16:22+00:00"
         }
     ],
     "packages-dev": [

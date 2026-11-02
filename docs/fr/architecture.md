@@ -168,3 +168,14 @@ d’intégrité fourni de la politique complète de validation de l’applicatio
 `TaggedDocument::$calculationOrder` conserve CO AcroForm sous forme de noms de
 champs. Le pont optionnel de scripts suit cet ordre explicite, sans registre
 global de documents ni runtime Acrobat implicite.
+
+## Inspecter le PDF source
+
+Reader 0.8 fournit `PDF\Reading\Inspection\DocumentInspector` indépendamment de
+la dérivation HTML. Sa vue bornée conserve les dictionnaires parsés, les rôles
+source, les références de pages/objets, namespaces, correspondances de rôles et
+métadonnées des fichiers associés. Elle ne sélectionne aucun remplacement
+HTML/MathML et ne décode pas les flux. Le [guide d’inspection](https://pdftoolkit.github.io/fr/modules/reader/inspection.html)
+décrit le contrat JSON typé et ses limites. L’onglet **Structure PDF** de la démo
+peut rester accessible lorsqu’un PDF lisible ne peut pas être dérivé en HTML.
+Cette vue est en lecture seule ; elle ne fournit pas d’édition ni de réexport PDF.

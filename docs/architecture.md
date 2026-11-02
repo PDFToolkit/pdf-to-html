@@ -159,3 +159,14 @@ integrity adapter and an application's complete validation policy.
 `TaggedDocument::$calculationOrder` preserves AcroForm CO as field names. The
 optional script bridge uses this explicit order; no global document registry or
 implicit Acrobat runtime is introduced.
+
+## Inspecting the source PDF
+
+Reader 0.8 provides `PDF\Reading\Inspection\DocumentInspector` independently of
+HTML derivation. Its bounded snapshot preserves parsed dictionaries, source
+roles, page/object references, namespaces, role mappings and associated-file
+metadata. It does not select HTML/MathML replacement content or decode streams.
+The [inspection guide](https://pdftoolkit.github.io/modules/reader/inspection.html)
+documents the typed JSON contract and limits. The demo’s **PDF structure** tab
+can remain available when a readable PDF cannot be derived to HTML. This is a
+read-only view, not an editing or PDF re-export API.

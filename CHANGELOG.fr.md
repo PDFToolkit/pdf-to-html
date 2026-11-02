@@ -4,6 +4,11 @@
 
 ## Non publié
 
+## 0.8.2 - 2026-11-02
+
+- Accepter Reader 0.8 avec Reader 0.7 et valider la dérivation avec la dépendance publiée Reader 0.8.0.
+- Documenter l’API distincte d’inspection PDF en lecture seule et l’onglet Structure de la démo. Les politiques de dérivation et la sortie HTML par défaut restent inchangées.
+
 ## 0.8.1 - 2026-10-29
 
 - Conserver les liens vers les feuilles CSS filtrées associées aux éléments de structure lorsque la politique explicite de styles incorporés est activée. Appliquer les mêmes restrictions de relation et d’URL que dans l’en-tête ; scripts, imports et ressources distantes restent bloqués par défaut.

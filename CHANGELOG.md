@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+## 0.8.2 - 2026-11-02
+
+- Accept Reader 0.8 alongside Reader 0.7 and validate derivation against the released Reader 0.8.0 dependency.
+- Document the separate, read-only PDF inspection API and browser Structure tab. HTML derivation policies and default output remain unchanged.
+
 ## 0.8.1 - 2026-10-29
 
 - Preserve filtered stylesheet links associated with structure elements when the explicit embedded-stylesheet policy is enabled. Apply the same relation and URL restrictions as head links; keep scripts, imports and remote resources blocked by default.

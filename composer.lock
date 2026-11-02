@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ac933847daca9622b4d817b0ecb517c0",
+    "content-hash": "5ea452dcbd651044714ac6d1563c39cf",
     "packages": [
         {
             "name": "pdftoolkit/pdf-reader",
-            "version": "v0.7.0",
+            "version": "v0.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PDFToolkit/pdf-reader.git",
-                "reference": "8f0a1a447da7812f515ac9c307f8431531d29655"
+                "reference": "007ed70a2e77d62df8d7f8775382af594070714e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/8f0a1a447da7812f515ac9c307f8431531d29655",
-                "reference": "8f0a1a447da7812f515ac9c307f8431531d29655",
+                "url": "https://api.github.com/repos/PDFToolkit/pdf-reader/zipball/007ed70a2e77d62df8d7f8775382af594070714e",
+                "reference": "007ed70a2e77d62df8d7f8775382af594070714e",
                 "shasum": ""
             },
             "require": {
@@ -39,7 +39,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "0.7.x-dev"
+                    "dev-master": "0.8.x-dev"
                 }
             },
             "autoload": {
@@ -73,7 +73,7 @@
                 "issues": "https://github.com/PDFToolkit/pdf-reader/issues",
                 "source": "https://github.com/PDFToolkit/pdf-reader"
             },
-            "time": "2026-10-28T20:37:33+00:00"
+            "time": "2026-11-02T15:56:43+00:00"
         },
         {
             "name": "roukmoute/pdf",

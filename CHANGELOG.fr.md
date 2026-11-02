@@ -4,6 +4,11 @@
 
 ## Non publié
 
+## 0.8.3 — 2026-11-02
+
+- Utiliser le nom Composer canonique `pdftoolkit/pdf:^0.12.2` et les dépendances stables migrées. Conserver les namespaces PHP, API et comportements existants.
+- Documenter la migration des exigences applicatives en français et en anglais ; conserver les anciennes versions et leurs preuves.
+
 ## 0.8.2 - 2026-11-02
 
 - Accepter Reader 0.8 avec Reader 0.7 et valider la dérivation avec la dépendance publiée Reader 0.8.0.

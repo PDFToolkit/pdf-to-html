@@ -8,7 +8,7 @@ selon **Deriving HTML from PDF 1.2** (PDF Association, septembre 2026).
 Ce dépôt a été créé spécialement pour implémenter les règles de
 [Deriving_HTML_from_PDF_1-2.pdf](https://pdfa.org/download-area/specifications/Deriving_HTML_from_PDF_1-2.pdf).
 [Copie conservée dans ce dépôt](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-La version 0.8.2 implémente les mécanismes de dérivation de la référence avec des
+La version 0.8.3 implémente les mécanismes de dérivation de la référence avec des
 profils de sécurité explicites, l’authentification native par mot de passe/clé publique/MAC et un
 rendu fourni par l’application. Le [guide de couverture](docs/fr/coverage.md) et le
 [registre des clauses](docs/fr/requirements.md) décrivent les comportements
@@ -25,11 +25,16 @@ de convertir tout PDF.
 composer require "pdftoolkit/pdf-to-html:^0.8"
 ```
 
+Le core est installé sous son nom Composer canonique `pdftoolkit/pdf:^0.12.2`.
+Si votre application exige directement `roukmoute/pdf`, remplacez cette exigence
+par `pdftoolkit/pdf:^0.12.2` et actualisez le verrou avec Composer.
+Les namespaces PHP et les API restent inchangés.
+
 PHP 8.3+ en 64 bits avec DOM et mbstring est nécessaire. La CI vérifie PHP 8.3,
 8.4 et 8.5. Composer installe le core et le lecteur PDF comme dépendances ;
 installer seulement le core n'installe pas ce module.
 
-La version 0.8.2 exige le Reader `^0.7 || ^0.8` et le core stable `^0.11 || ^0.12`.
+La version 0.8.3 exige le Reader `^0.8.1` et le core stable `pdftoolkit/pdf:^0.12.2`.
 Depuis sa version 0.6, le Reader prend en charge l’authentification par clé publique sur sélection explicite et normalise les permissions historiques s3.
 Le lecteur vérifie
 les MAC sources ISO/TS 32004 signalés avant l’interprétation du contenu.

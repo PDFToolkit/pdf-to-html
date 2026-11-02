@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+## 0.8.3 — 2026-11-02
+
+- Use the canonical Composer package `pdftoolkit/pdf:^0.12.2` and migrated stable dependencies. Keep existing PHP namespaces, APIs and behavior.
+- Document migration of application requirements in English and French; preserve previous releases and their evidence.
+
 ## 0.8.2 - 2026-11-02
 
 - Accept Reader 0.8 alongside Reader 0.7 and validate derivation against the released Reader 0.8.0 dependency.

@@ -8,7 +8,7 @@ Derive semantic HTML from tagged PDF using explicit PHP objects, following
 This repository was created specifically to implement the rules in
 [Deriving_HTML_from_PDF_1-2.pdf](https://pdfa.org/download-area/specifications/Deriving_HTML_from_PDF_1-2.pdf).
 [Copy preserved in this repository](resources/reference-documents/Deriving_HTML_from_PDF_1-2.pdf).
-Version 0.8.2 implements the reference's derivation mechanisms with explicit
+Version 0.8.3 implements the reference's derivation mechanisms with explicit
 security profiles, native password/public-key/MAC authentication and application-supplied rendering.
 The [coverage guide](docs/coverage.md) and [clause ledger](docs/requirements.md)
 record the concrete behavior, executable evidence and integration boundaries.
@@ -23,11 +23,16 @@ positions. It does not reproduce page layout or promise conversion of every PDF.
 composer require "pdftoolkit/pdf-to-html:^0.8"
 ```
 
+The core is installed under its canonical Composer name `pdftoolkit/pdf:^0.12.2`.
+If your application directly requires `roukmoute/pdf`, replace that requirement
+with `pdftoolkit/pdf:^0.12.2` and update the lock with Composer.
+PHP namespaces and APIs are unchanged.
+
 Requires 64-bit PHP 8.3+ with DOM and mbstring. CI checks PHP 8.3, 8.4 and 8.5.
 Composer installs the PDF core and reader as dependencies; installing the core
 alone does not install this module.
 
-Version 0.8.2 requires Reader `^0.7 || ^0.8` and stable core `^0.11 || ^0.12`.
+Version 0.8.3 requires Reader `^0.8.1` and stable core `pdftoolkit/pdf:^0.12.2`.
 Since version 0.6, Reader supports explicitly selected public-key authentication with normalized historical s3 permissions.
 The reader verifies indicated
 ISO/TS 32004 source MACs before content interpretation. Explicit
